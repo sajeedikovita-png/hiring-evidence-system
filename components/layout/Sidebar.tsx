@@ -8,9 +8,9 @@ import ShieldCheck from "lucide-react/dist/esm/icons/shield-check.js";
 import UsersRound from "lucide-react/dist/esm/icons/users-round.js";
 
 const navItems = [
-  { label: "Dashboard", icon: LayoutDashboard, active: true },
+  { label: "Dashboard", icon: LayoutDashboard },
   { label: "Jobs", icon: BriefcaseBusiness },
-  { label: "Candidates", icon: UsersRound },
+  { label: "Candidates", icon: UsersRound, active: true },
   { label: "Reports", icon: FileText },
   { label: "Fairness checks", icon: ShieldCheck },
   { label: "Decisions", icon: ClipboardCheck },
@@ -25,8 +25,8 @@ export function Sidebar() {
           HE
         </div>
         <div>
-          <div className="brand-title">Hiring Evidence System</div>
-          <div className="brand-subtitle">Evidence-led review</div>
+          <div className="brand-title">Recruiter Workspace</div>
+          <div className="brand-subtitle">Hiring Evidence System</div>
         </div>
       </div>
 
@@ -46,7 +46,11 @@ export function Sidebar() {
         </ul>
       </nav>
 
-      <div className="sidebar-footer">Hire with evidence, not guesswork. Final decisions stay with the hiring team.</div>
+      <div className="sidebar-footer">
+        <strong>Sarah Tan</strong>
+        <span>Assigned reviewer</span>
+        <small>Final decisions stay with the hiring team.</small>
+      </div>
     </aside>
   );
 }

@@ -21,6 +21,8 @@ const shellHtml = renderToStaticMarkup(
 assert.match(shellHtml, /Hiring Evidence System/);
 assert.match(shellHtml, /aria-label="Main navigation"/);
 assert.match(shellHtml, /AI assists\. Human decides\./);
+assert.match(shellHtml, /Search evidence/);
+assert.match(shellHtml, /Final decision/);
 assert.match(shellHtml, /Evidence workspace/);
 
 const componentHtml = renderToStaticMarkup(
@@ -57,13 +59,23 @@ assert.match(appHtml, /Candidate Review/);
 assert.match(appHtml, /Amanda Lee/);
 assert.match(appHtml, /Frontend Developer/);
 assert.match(appHtml, /Northstar Digital/);
+assert.match(appHtml, /HER-2026-0521-AL/);
+assert.match(appHtml, /Evidence report ready/);
+assert.match(appHtml, /Verification needed/);
 assert.match(appHtml, /Human review required/);
 assert.match(appHtml, /Good evidence, verification needed/);
-assert.match(appHtml, /Job requirement/);
+assert.match(appHtml, /2 evidence gaps/);
+assert.match(appHtml, /Requirement/);
 assert.match(appHtml, /Candidate evidence/);
+assert.match(appHtml, /View resume/);
+assert.match(appHtml, /AI-assisted review note/);
 assert.match(appHtml, /Protected characteristics not used/);
 assert.match(appHtml, /Invite to interview/);
 assert.match(appHtml, /Final decision must be based on job-related evidence and reviewed by a human/);
 assert.match(appHtml, /AI-assisted analysis\. Human review is required before making any hiring decision\./);
+assert.doesNotMatch(
+  appHtml,
+  /Consolidated Auditor Suggestion|Verified Match|Best candidate|Perfect match|AI selected|AI recommendation|Accept Path|Auto decision/i
+);
 
 console.log("Candidate Evidence Report screen smoke test passed.");
