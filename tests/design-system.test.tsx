@@ -52,30 +52,52 @@ assert.match(componentHtml, /No candidates yet/);
 assert.match(componentHtml, /Human review required/);
 assert.match(componentHtml, /Recruiter notes/);
 
-const appHtml = renderToStaticMarkup(<App />);
+const landingHtml = renderToStaticMarkup(<App path="/" />);
+const loginHtml = renderToStaticMarkup(<App path="/login" />);
+const dashboardHtml = renderToStaticMarkup(<App path="/dashboard" />);
+const reportHtml = renderToStaticMarkup(<App path="/reports/candidate-evidence" />);
+const combinedAppHtml = [landingHtml, loginHtml, dashboardHtml, reportHtml].join("\n");
 
-assert.doesNotMatch(appHtml, /Design system preview/i);
-assert.match(appHtml, /Candidate Review/);
-assert.match(appHtml, /Amanda Lee/);
-assert.match(appHtml, /Frontend Developer/);
-assert.match(appHtml, /Northstar Digital/);
-assert.match(appHtml, /HER-2026-0521-AL/);
-assert.match(appHtml, /Evidence report ready/);
-assert.match(appHtml, /Verification needed/);
-assert.match(appHtml, /Human review required/);
-assert.match(appHtml, /Good evidence, verification needed/);
-assert.match(appHtml, /2 evidence gaps/);
-assert.match(appHtml, /Requirement/);
-assert.match(appHtml, /Candidate evidence/);
-assert.match(appHtml, /View resume/);
-assert.match(appHtml, /AI-assisted review note/);
-assert.match(appHtml, /Protected characteristics not used/);
-assert.match(appHtml, /Invite to interview/);
-assert.match(appHtml, /Final decision must be based on job-related evidence and reviewed by a human/);
-assert.match(appHtml, /AI-assisted analysis\. Human review is required before making any hiring decision\./);
+assert.match(landingHtml, /Hire with evidence, not guesswork\./);
+assert.match(landingHtml, /View sample report/);
+assert.match(landingHtml, /Request pilot access/);
+assert.match(landingHtml, /Human-led hiring/);
+
+assert.match(loginHtml, /Sign in/);
+assert.match(loginHtml, /Access candidate evidence reports/);
+
+assert.match(dashboardHtml, /Evidence Ledger/);
+assert.match(dashboardHtml, /Active jobs/);
+assert.match(dashboardHtml, /Candidates waiting for review/);
+assert.match(dashboardHtml, /Reports completed/);
+assert.match(dashboardHtml, /Decisions needing sign-off/);
+assert.match(dashboardHtml, /Open report/);
+
+assert.doesNotMatch(reportHtml, /Design system preview/i);
+assert.match(reportHtml, /Candidate Evidence Report/);
+assert.match(reportHtml, /Amanda Lee/);
+assert.match(reportHtml, /Frontend Developer/);
+assert.match(reportHtml, /Northstar Digital/);
+assert.match(reportHtml, /Today, 4:15 PM/);
+assert.match(reportHtml, /HER-2026-0521-AL/);
+assert.match(reportHtml, /Evidence report ready/);
+assert.match(reportHtml, /Verification needed/);
+assert.match(reportHtml, /Human review required/);
+assert.match(reportHtml, /Good evidence, verification needed/);
+assert.match(reportHtml, /2 evidence gaps/);
+assert.match(reportHtml, /Requirement/);
+assert.match(reportHtml, /Candidate evidence/);
+assert.match(reportHtml, /Missing evidence/);
+assert.match(reportHtml, /Suggested interview questions/);
+assert.match(reportHtml, /View resume/);
+assert.match(reportHtml, /Protected characteristics not used/);
+assert.match(reportHtml, /Invite to interview/);
+assert.match(reportHtml, /Export PDF/);
+assert.match(reportHtml, /Final decision must be based on job-related evidence and reviewed by a human/);
+assert.match(reportHtml, /AI-assisted analysis\. Human review is required before making any hiring decision\./);
 assert.doesNotMatch(
-  appHtml,
-  /Consolidated Auditor Suggestion|Verified Match|Best candidate|Perfect match|AI selected|AI recommendation|Accept Path|Auto decision/i
+  combinedAppHtml,
+  /Consolidated Auditor Suggestion|Verified Match|Best candidate|Perfect match|AI selected|AI rejected|AI recommendation|Accept Path|Auto decision|Auto reject|Culture fit score|Personality score|Bias-free/i
 );
 
-console.log("Candidate Evidence Report screen smoke test passed.");
+console.log("Front-end MVP route smoke test passed.");
