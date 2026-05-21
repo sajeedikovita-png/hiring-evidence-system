@@ -10,6 +10,7 @@ import { DataTable } from "../components/ui/DataTable";
 import { EmptyState } from "../components/ui/EmptyState";
 import { NoteTextArea } from "../components/ui/NoteTextArea";
 import { WarningCard } from "../components/ui/WarningCard";
+import { App } from "../src/App";
 
 const shellHtml = renderToStaticMarkup(
   <AppShell>
@@ -49,4 +50,20 @@ assert.match(componentHtml, /No candidates yet/);
 assert.match(componentHtml, /Human review required/);
 assert.match(componentHtml, /Recruiter notes/);
 
-console.log("Phase 2 design system smoke test passed.");
+const appHtml = renderToStaticMarkup(<App />);
+
+assert.doesNotMatch(appHtml, /Design system preview/i);
+assert.match(appHtml, /Candidate Review/);
+assert.match(appHtml, /Amanda Lee/);
+assert.match(appHtml, /Frontend Developer/);
+assert.match(appHtml, /Northstar Digital/);
+assert.match(appHtml, /Human review required/);
+assert.match(appHtml, /Good evidence, verification needed/);
+assert.match(appHtml, /Job requirement/);
+assert.match(appHtml, /Candidate evidence/);
+assert.match(appHtml, /Protected characteristics not used/);
+assert.match(appHtml, /Invite to interview/);
+assert.match(appHtml, /Final decision must be based on job-related evidence and reviewed by a human/);
+assert.match(appHtml, /AI-assisted analysis\. Human review is required before making any hiring decision\./);
+
+console.log("Candidate Evidence Report screen smoke test passed.");
