@@ -2,7 +2,7 @@ import React from "react";
 import { Badge } from "../../components/ui/Badge";
 import { DataTable } from "../../components/ui/DataTable";
 import { RecruiterShell } from "../components/layout/RecruiterShell";
-import { getJobCandidateList } from "../services/hiringRepository";
+import { getJobCandidateList } from "../services/mockSelectors";
 
 export function JobCandidateListPage() {
   const candidateList = getJobCandidateList();

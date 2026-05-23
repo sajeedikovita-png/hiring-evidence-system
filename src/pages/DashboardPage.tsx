@@ -3,9 +3,11 @@ import { Badge } from "../../components/ui/Badge";
 import { Button } from "../../components/ui/Button";
 import { DataTable } from "../../components/ui/DataTable";
 import { RecruiterShell } from "../components/layout/RecruiterShell";
-import { dashboardMetrics, recentJobs, reviewQueue } from "../data/mockHiringData";
+import { getDashboardViewModel } from "../services/mockSelectors";
 
 export function DashboardPage() {
+  const dashboard = getDashboardViewModel();
+
   return (
     <RecruiterShell
       active="dashboard"
@@ -16,8 +18,8 @@ export function DashboardPage() {
       <main className="workspace-content">
         <section className="dashboard-intro">
           <div>
-            <p className="section-kicker">Welcome back, Sarah</p>
-            <h2>12 candidate reports need recruiter review today.</h2>
+            <p className="section-kicker">Welcome back, {dashboard.activeReviewerName}</p>
+            <h2>{dashboard.introCount} candidate reports need recruiter review today.</h2>
             <p>Fairness checks are complete for current reports with no decision wording warnings.</p>
           </div>
           <a className="button button-secondary" href="/reports/candidate-evidence">
@@ -29,7 +31,7 @@ export function DashboardPage() {
         </section>
 
         <section className="dashboard-metrics">
-          {dashboardMetrics.map((metric) => (
+          {dashboard.metrics.map((metric) => (
             <article className="metric-card" key={metric.label}>
               <p>{metric.label}</p>
               <strong>{metric.value}</strong>
@@ -48,7 +50,7 @@ export function DashboardPage() {
               <Badge tone="warning">Human review required</Badge>
             </div>
             <div className="queue-list">
-              {reviewQueue.map((item) => (
+              {dashboard.reviewQueue.map((item) => (
                 <article key={item.candidate} className="queue-item">
                   <div>
                     <strong>{item.candidate}</strong>
@@ -64,7 +66,7 @@ export function DashboardPage() {
 
           <section className="workspace-card decision-signoff-card">
             <p className="section-kicker">Decisions needing sign-off</p>
-            <h2>9</h2>
+            <h2>{dashboard.metrics.find((metric) => metric.label === "Decisions needing sign-off")?.value ?? "0"}</h2>
             <p className="muted">Decision reason required before candidate status is finalized.</p>
             <Button>Review decisions</Button>
           </section>
@@ -87,7 +89,7 @@ export function DashboardPage() {
               { key: "evidenceStatus", header: "Evidence status" },
               { key: "lastUpdated", header: "Last updated" }
             ]}
-            rows={recentJobs.map((job) => ({
+            rows={dashboard.recentJobs.map((job) => ({
               ...job,
               title: <a className="table-link" href={job.candidateListPath}>{job.title}</a>,
               evidenceStatus: <Badge tone={job.evidenceStatus.tone}>{job.evidenceStatus.label}</Badge>,

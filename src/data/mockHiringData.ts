@@ -7,16 +7,13 @@ import type {
   CandidateConsent,
   CandidateDocument,
   CandidateReport,
-  DashboardMetric,
   EvidenceItem,
   Job,
-  JobCriteria,
-  JobRow,
+  JobCriterion,
   Organization,
   QuestionnaireAnswer,
   QuestionnaireQuestion,
   ReviewDecision,
-  ReviewQueueItem,
   User
 } from "../types/hiring";
 
@@ -37,6 +34,14 @@ export const users: User[] = [
     email: "sarah@northstar.example",
     role: "recruiter",
     createdAt: "2026-05-01T08:10:00.000Z"
+  },
+  {
+    id: "user-maya-chen",
+    organizationId: "org-northstar",
+    name: "Maya Chen",
+    email: "maya@northstar.example",
+    role: "recruiter",
+    createdAt: "2026-05-02T09:30:00.000Z"
   }
 ];
 
@@ -79,7 +84,7 @@ export const jobs: Job[] = [
   }
 ];
 
-export const jobCriteria: JobCriteria[] = [
+export const jobCriteria: JobCriterion[] = [
   {
     id: "criteria-react-production",
     jobId: "job-frontend-developer",
@@ -106,6 +111,42 @@ export const jobCriteria: JobCriteria[] = [
     priority: "required",
     sortOrder: 3,
     createdAt: "2026-05-18T09:12:00.000Z"
+  },
+  {
+    id: "criteria-csm-enterprise",
+    jobId: "job-customer-success-manager",
+    label: "Enterprise account management",
+    description: "Evidence of managing renewal risk, onboarding, or expansion work for B2B customers.",
+    priority: "required",
+    sortOrder: 1,
+    createdAt: "2026-05-15T09:10:00.000Z"
+  },
+  {
+    id: "criteria-csm-risk",
+    jobId: "job-customer-success-manager",
+    label: "Customer risk follow-up",
+    description: "Evidence of structured follow-up when customer health signals need attention.",
+    priority: "preferred",
+    sortOrder: 2,
+    createdAt: "2026-05-15T09:11:00.000Z"
+  },
+  {
+    id: "criteria-data-sql",
+    jobId: "job-data-analyst",
+    label: "SQL analysis",
+    description: "Evidence of using SQL to answer operational or product questions.",
+    priority: "required",
+    sortOrder: 1,
+    createdAt: "2026-05-13T09:10:00.000Z"
+  },
+  {
+    id: "criteria-data-storytelling",
+    jobId: "job-data-analyst",
+    label: "Insight communication",
+    description: "Evidence of explaining analysis clearly to non-technical stakeholders.",
+    priority: "required",
+    sortOrder: 2,
+    createdAt: "2026-05-13T09:11:00.000Z"
   }
 ];
 
@@ -138,6 +179,14 @@ export const candidates: Candidate[] = [
     name: "Marcus Wong",
     source: "bulk_upload",
     createdAt: "2026-05-21T06:09:00.000Z"
+  },
+  {
+    id: "candidate-elena-garcia",
+    organizationId: "org-northstar",
+    name: "Elena Garcia",
+    email: "elena@example.com",
+    source: "application_link",
+    createdAt: "2026-05-22T04:30:00.000Z"
   }
 ];
 
@@ -176,6 +225,15 @@ export const applications: Application[] = [
     candidateId: "candidate-marcus-wong",
     status: "failed",
     appliedAt: "2026-05-21T06:09:00.000Z"
+  },
+  {
+    id: "application-elena-csm",
+    organizationId: "org-northstar",
+    jobId: "job-customer-success-manager",
+    candidateId: "candidate-elena-garcia",
+    status: "submitted",
+    appliedAt: "2026-05-22T04:30:00.000Z",
+    consentId: "consent-elena-csm"
   }
 ];
 
@@ -203,6 +261,14 @@ export const candidateConsents: CandidateConsent[] = [
     consentText: "Candidate resume may be processed for this hiring review.",
     status: "recorded",
     recordedAt: "2026-05-21T06:06:00.000Z"
+  },
+  {
+    id: "consent-elena-csm",
+    applicationId: "application-elena-csm",
+    candidateId: "candidate-elena-garcia",
+    consentText: "Candidate resume and questionnaire answers may be processed for this hiring review.",
+    status: "recorded",
+    recordedAt: "2026-05-22T04:30:00.000Z"
   }
 ];
 
@@ -239,6 +305,17 @@ export const candidateDocuments: CandidateDocument[] = [
     uploadStatus: "Uploaded",
     parsingStatus: "Parsed",
     createdAt: "2026-05-21T06:06:00.000Z"
+  },
+  {
+    id: "document-elena-resume",
+    applicationId: "application-elena-csm",
+    candidateId: "candidate-elena-garcia",
+    fileName: "Elena Garcia resume.pdf",
+    fileUrl: "/mock-files/elena-garcia-resume.pdf",
+    fileType: "pdf",
+    uploadStatus: "Uploaded",
+    parsingStatus: "Queued",
+    createdAt: "2026-05-22T04:30:00.000Z"
   }
 ];
 
@@ -249,6 +326,13 @@ export const questionnaireQuestions: QuestionnaireQuestion[] = [
     prompt: "Describe one production interface you shipped and maintained.",
     sortOrder: 1,
     createdAt: "2026-05-18T09:20:00.000Z"
+  },
+  {
+    id: "question-csm-risk",
+    jobId: "job-customer-success-manager",
+    prompt: "Describe one customer risk situation you handled and what evidence showed improvement.",
+    sortOrder: 1,
+    createdAt: "2026-05-15T09:20:00.000Z"
   }
 ];
 
@@ -259,6 +343,13 @@ export const questionnaireAnswers: QuestionnaireAnswer[] = [
     applicationId: "application-amanda-frontend",
     answer: "I led a React dashboard rebuild with product and design, then supported rollout and analytics instrumentation.",
     createdAt: "2026-05-21T06:12:00.000Z"
+  },
+  {
+    id: "answer-elena-risk",
+    questionId: "question-csm-risk",
+    applicationId: "application-elena-csm",
+    answer: "I rebuilt a renewal-risk workflow with support and sales, then tracked follow-up completion and customer health changes.",
+    createdAt: "2026-05-22T04:42:00.000Z"
   }
 ];
 
@@ -475,70 +566,6 @@ export const bulkUploadFiles: BulkUploadFile[] = [
     evidenceReportStatus: "Failed",
     errorMessage: "Unsupported file type. Upload PDF or DOCX resumes only.",
     createdAt: "2026-05-21T06:12:00.000Z"
-  }
-];
-
-export const dashboardMetrics: DashboardMetric[] = [
-  { label: "Active jobs", value: "12", detail: "4 roles updated this week" },
-  { label: "Candidates waiting for review", value: "28", detail: "6 need verification today" },
-  { label: "Reports completed", value: "84", detail: "Evidence reports ready for recruiter review" },
-  { label: "Decisions needing sign-off", value: "9", detail: "Decision reasons still required" }
-];
-
-export const reviewQueue: ReviewQueueItem[] = [
-  {
-    candidate: "Amanda Lee",
-    role: "Frontend Developer",
-    status: { label: "Human review required", tone: "info" },
-    due: "Today",
-    reportPath: "/reports/candidate-evidence"
-  },
-  {
-    candidate: "Daniel Morris",
-    role: "Frontend Developer",
-    status: { label: "Needs verification", tone: "warning" },
-    due: "Tomorrow",
-    reportPath: "/jobs/frontend-developer/candidates"
-  },
-  {
-    candidate: "Priya Shah",
-    role: "Frontend Developer",
-    status: { label: "Evidence report ready", tone: "success" },
-    due: "23 May 2026",
-    reportPath: "/jobs/frontend-developer/candidates"
-  }
-];
-
-export const recentJobs: JobRow[] = [
-  {
-    id: "job-frontend-developer",
-    title: "Frontend Developer",
-    department: "Product Engineering",
-    candidates: "14 candidates",
-    evidenceStatus: { label: "3 reports ready", tone: "success" },
-    lastUpdated: "Today",
-    candidateListPath: "/jobs/frontend-developer/candidates",
-    uploadPath: "/jobs/frontend-developer/candidates/upload"
-  },
-  {
-    id: "job-customer-success-manager",
-    title: "Customer Success Manager",
-    department: "Revenue",
-    candidates: "9 candidates",
-    evidenceStatus: { label: "Needs verification", tone: "warning" },
-    lastUpdated: "20 May 2026",
-    candidateListPath: "/dashboard",
-    uploadPath: "/dashboard"
-  },
-  {
-    id: "job-data-analyst",
-    title: "Data Analyst",
-    department: "Operations",
-    candidates: "11 candidates",
-    evidenceStatus: { label: "Human review required", tone: "info" },
-    lastUpdated: "19 May 2026",
-    candidateListPath: "/dashboard",
-    uploadPath: "/dashboard"
   }
 ];
 

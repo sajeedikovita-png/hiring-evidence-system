@@ -10,7 +10,7 @@ import { FairnessCheckCard } from "../components/report/FairnessCheckCard";
 import { HumanDecisionPanel } from "../components/report/HumanDecisionPanel";
 import { ReportSupportSections } from "../components/report/ReportSupportSections";
 import { RecruiterShell } from "../components/layout/RecruiterShell";
-import { getCandidateReport } from "../services/hiringRepository";
+import { getCandidateReport } from "../services/mockSelectors";
 
 export function CandidateEvidenceReportPage() {
   const candidateReport = getCandidateReport();

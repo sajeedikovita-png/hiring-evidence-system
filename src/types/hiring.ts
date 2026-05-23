@@ -38,7 +38,7 @@ export type Job = {
   updatedAt: string;
 };
 
-export type JobCriteria = {
+export type JobCriterion = {
   id: string;
   jobId: string;
   label: string;
@@ -47,6 +47,8 @@ export type JobCriteria = {
   sortOrder: number;
   createdAt: string;
 };
+
+export type JobCriteria = JobCriterion;
 
 export type Candidate = {
   id: string;
@@ -228,6 +230,15 @@ export type CandidateReportViewModel = {
   fairness: FairnessCheck;
   recruiterNotes: string[];
   decisionOptions: ReviewDecision["decision"][];
+  decisionDraft?: ReviewDecision;
+};
+
+export type DashboardViewModel = {
+  metrics: DashboardMetric[];
+  reviewQueue: ReviewQueueItem[];
+  recentJobs: JobRow[];
+  introCount: number;
+  activeReviewerName: string;
 };
 
 export type JobCandidateListViewModel = {

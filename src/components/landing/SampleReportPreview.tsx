@@ -1,6 +1,6 @@
 import React from "react";
 import { Badge } from "../../../components/ui/Badge";
-import { getCandidateReport } from "../../services/hiringRepository";
+import { getCandidateReport } from "../../services/mockSelectors";
 
 export function SampleReportPreview() {
   const candidateReport = getCandidateReport();

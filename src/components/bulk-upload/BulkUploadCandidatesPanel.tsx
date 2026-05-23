@@ -3,7 +3,7 @@ import UploadCloud from "lucide-react/dist/esm/icons/upload-cloud.js";
 import { Badge } from "../../../components/ui/Badge";
 import { Button } from "../../../components/ui/Button";
 import { DataTable } from "../../../components/ui/DataTable";
-import { createMockBulkUploadFile, getBulkUploadWorkspace } from "../../services/hiringRepository";
+import { createMockBulkUploadFile, getBulkUploadWorkspace } from "../../services/mockSelectors";
 import type { BulkUploadFile, BulkUploadWorkspaceViewModel } from "../../types/hiring";
 
 type BulkUploadCandidatesPanelProps = {

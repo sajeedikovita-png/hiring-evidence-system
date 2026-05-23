@@ -12,8 +12,18 @@ import { EmptyState } from "../components/ui/EmptyState";
 import { NoteTextArea } from "../components/ui/NoteTextArea";
 import { WarningCard } from "../components/ui/WarningCard";
 import { App, AppRoutes } from "../src/App";
+import { applications, candidateReports, candidates, jobs, users } from "../src/data/mockHiringData";
 import { hiringSchemaTables } from "../src/data/schema";
-import { getBulkUploadWorkspace, getCandidateReport, getJobCandidateList } from "../src/services/hiringRepository";
+import {
+  getApplicationsForJob,
+  getBulkUploadBatchByJobId,
+  getBulkUploadWorkspace,
+  getCandidateReport,
+  getCandidateReportById,
+  getDashboardMetrics,
+  getEvidenceItemsForApplication,
+  getJobCandidateList
+} from "../src/services/mockSelectors";
 
 const shellHtml = renderToStaticMarkup(
   <AppShell>
@@ -118,6 +128,23 @@ const reportRecord = getCandidateReport("report-amanda-lee");
 assert.equal(reportRecord.candidate.name, "Amanda Lee");
 assert.equal(reportRecord.application.jobId, "job-frontend-developer");
 assert.equal(reportRecord.evidenceRows.length > 0, true);
+
+assert.equal(users.filter((user) => user.role === "recruiter").length, 2);
+assert.equal(jobs.length, 3);
+assert.equal(candidates.length, 5);
+assert.equal(applications.length >= 5, true);
+
+const generatedMetrics = getDashboardMetrics();
+assert.equal(generatedMetrics.find((metric) => metric.label === "Active jobs")?.value, "3");
+assert.equal(generatedMetrics.find((metric) => metric.label === "Reports completed")?.value, String(candidateReports.length));
+assert.equal(generatedMetrics.find((metric) => metric.label === "Decisions needing sign-off")?.value, "1");
+
+const selectorReport = getCandidateReportById("report-amanda-lee");
+assert.equal(selectorReport.fairness.protectedCharacteristics.includes("Age"), true);
+assert.equal(selectorReport.fairness.protectedCharacteristics.includes("Photo"), true);
+assert.equal(getEvidenceItemsForApplication("application-amanda-frontend").length > 0, true);
+assert.equal(getApplicationsForJob("job-frontend-developer").length >= 4, true);
+assert.equal(getBulkUploadBatchByJobId("job-frontend-developer")?.jobId, "job-frontend-developer");
 
 const candidateList = getJobCandidateList("job-frontend-developer");
 assert.equal(candidateList.job.title, "Frontend Developer");
