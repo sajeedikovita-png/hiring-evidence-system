@@ -20,6 +20,7 @@ export function AppRoutes() {
       <Route path="/jobs/frontend-developer/candidates" element={<JobCandidateListPage />} />
       <Route path="/jobs/frontend-developer/candidates/upload" element={<BulkUploadCandidatesPage />} />
       <Route path="/reports/candidate-evidence" element={<CandidateEvidenceReportPage />} />
+      <Route path="/reports/:reportId" element={<CandidateEvidenceReportPage />} />
       <Route path="*" element={<LandingPage />} />
     </Routes>
   );

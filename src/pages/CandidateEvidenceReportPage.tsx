@@ -1,4 +1,5 @@
 import React from "react";
+import { useParams } from "react-router-dom";
 import { Badge } from "../../components/ui/Badge";
 import { Button } from "../../components/ui/Button";
 import { Card } from "../../components/ui/Card";
@@ -10,11 +11,33 @@ import { FairnessCheckCard } from "../components/report/FairnessCheckCard";
 import { HumanDecisionPanel } from "../components/report/HumanDecisionPanel";
 import { ReportSupportSections } from "../components/report/ReportSupportSections";
 import { RecruiterShell } from "../components/layout/RecruiterShell";
-import { getCandidateEvidenceReport } from "../services/reportService";
+import { getActiveCompanyContext } from "../services/companyContextService";
+import { getReportById } from "../services/hiringRepository";
 import type { CandidateProfile } from "../types/hiring";
 
 export function CandidateEvidenceReportPage() {
-  const evidenceReport = getCandidateEvidenceReport();
+  const { reportId } = useParams();
+  const companyContext = getActiveCompanyContext();
+  const evidenceReport = getReportById(companyContext.companyId, reportId ?? "report-amanda-lee");
+
+  if (!evidenceReport) {
+    return (
+      <RecruiterShell
+        active="reports"
+        title="Candidate Evidence Report"
+        subtitle="The requested report is not available in this company workspace."
+        primaryAction="Final decision"
+        secondaryAction="Share report"
+      >
+        <main className="workspace-content">
+          <WarningCard title="Human review required">
+            Report access is scoped to the active company workspace. Return to the dashboard and open an available evidence report.
+          </WarningCard>
+        </main>
+      </RecruiterShell>
+    );
+  }
+
   const candidateProfile: CandidateProfile = {
     name: evidenceReport.candidate.name,
     role: evidenceReport.jobRole.title,

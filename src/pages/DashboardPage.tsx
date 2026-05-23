@@ -3,10 +3,12 @@ import { Badge } from "../../components/ui/Badge";
 import { Button } from "../../components/ui/Button";
 import { DataTable } from "../../components/ui/DataTable";
 import { RecruiterShell } from "../components/layout/RecruiterShell";
-import { getDashboardViewModel } from "../services/mockSelectors";
+import { getActiveCompanyContext } from "../services/companyContextService";
+import { getDashboardData } from "../services/hiringRepository";
 
 export function DashboardPage() {
-  const dashboard = getDashboardViewModel();
+  const companyContext = getActiveCompanyContext();
+  const dashboard = getDashboardData(companyContext.companyId);
 
   return (
     <RecruiterShell

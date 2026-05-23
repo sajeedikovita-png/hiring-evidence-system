@@ -15,6 +15,7 @@ import { App, AppRoutes } from "../src/App";
 import { applications, candidateReports, candidates, jobs, users } from "../src/data/mockHiringData";
 import { hiringSchemaTables } from "../src/data/schema";
 import { containsForbiddenHiringLanguage, forbiddenHiringPhrases } from "../src/services/compliance";
+import { getActiveCompanyContext } from "../src/services/companyContextService";
 import {
   getApplicationsForJob,
   getBulkUploadBatchByJobId,
@@ -39,6 +40,7 @@ const shellHtml = renderToStaticMarkup(
     <main>Evidence workspace</main>
   </AppShell>
 );
+const companyContext = getActiveCompanyContext();
 
 assert.match(shellHtml, /Hiring Evidence System/);
 assert.match(shellHtml, /aria-label="Main navigation"/);
@@ -165,12 +167,12 @@ assert.equal(uploadWorkspace.job.title, "Frontend Developer");
 assert.equal(uploadWorkspace.batch.totalFiles, uploadWorkspace.files.length);
 assert.equal(uploadWorkspace.files.some((file) => file.status === "Failed"), true);
 
-const repositoryDashboard = getDashboardData();
+const repositoryDashboard = getDashboardData(companyContext.companyId);
 assert.equal(repositoryDashboard.metrics.some((metric) => metric.label === "Active jobs"), true);
-assert.equal(getJobById("job-frontend-developer")?.title, "Frontend Developer");
-assert.equal(getReportById("report-amanda-lee")?.status, "Human review required");
+assert.equal(getJobById(companyContext.companyId, "job-frontend-developer")?.title, "Frontend Developer");
+assert.equal(getReportById(companyContext.companyId, "report-amanda-lee")?.status, "Human review required");
 
-const evidenceReportModel = getCandidateEvidenceReport("report-amanda-lee");
+const evidenceReportModel = getCandidateEvidenceReport(companyContext.companyId, "report-amanda-lee");
 assert.equal(evidenceReportModel.candidate.name, "Amanda Lee");
 assert.equal(evidenceReportModel.jobRole.title, "Frontend Developer");
 assert.equal(evidenceReportModel.requirementEvidence.length > 0, true);
