@@ -1,10 +1,10 @@
 import React from "react";
 import { Badge } from "../../../components/ui/Badge";
 import { DataTable } from "../../../components/ui/DataTable";
-import type { EvidenceRow } from "../../types/hiring";
+import type { EvidenceItem } from "../../types/hiring";
 
 type EvidenceMatrixProps = {
-  rows: EvidenceRow[];
+  rows: EvidenceItem[];
 };
 
 export function EvidenceMatrix({ rows }: EvidenceMatrixProps) {

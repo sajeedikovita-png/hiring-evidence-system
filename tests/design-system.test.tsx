@@ -11,6 +11,8 @@ import { EmptyState } from "../components/ui/EmptyState";
 import { NoteTextArea } from "../components/ui/NoteTextArea";
 import { WarningCard } from "../components/ui/WarningCard";
 import { App } from "../src/App";
+import { hiringSchemaTables } from "../src/data/schema";
+import { getBulkUploadWorkspace, getCandidateReport, getJobCandidateList } from "../src/services/hiringRepository";
 
 const shellHtml = renderToStaticMarkup(
   <AppShell>
@@ -56,7 +58,49 @@ const landingHtml = renderToStaticMarkup(<App path="/" />);
 const loginHtml = renderToStaticMarkup(<App path="/login" />);
 const dashboardHtml = renderToStaticMarkup(<App path="/dashboard" />);
 const reportHtml = renderToStaticMarkup(<App path="/reports/candidate-evidence" />);
+const candidateListHtml = renderToStaticMarkup(<App path="/jobs/frontend-developer/candidates" />);
+const bulkUploadHtml = renderToStaticMarkup(<App path="/jobs/frontend-developer/candidates/upload" />);
 const combinedAppHtml = [landingHtml, loginHtml, dashboardHtml, reportHtml].join("\n");
+const allAppHtml = [combinedAppHtml, candidateListHtml, bulkUploadHtml].join("\n");
+
+const expectedTables = [
+  "organizations",
+  "users",
+  "jobs",
+  "job_criteria",
+  "candidates",
+  "applications",
+  "candidate_documents",
+  "candidate_consents",
+  "questionnaire_questions",
+  "questionnaire_answers",
+  "evidence_items",
+  "candidate_reports",
+  "review_decisions",
+  "audit_logs",
+  "bulk_upload_batches",
+  "bulk_upload_files"
+];
+
+assert.deepEqual(
+  expectedTables.filter((tableName) => !hiringSchemaTables.some((table) => table.name === tableName)),
+  []
+);
+
+const reportRecord = getCandidateReport("report-amanda-lee");
+assert.equal(reportRecord.candidate.name, "Amanda Lee");
+assert.equal(reportRecord.application.jobId, "job-frontend-developer");
+assert.equal(reportRecord.evidenceRows.length > 0, true);
+
+const candidateList = getJobCandidateList("job-frontend-developer");
+assert.equal(candidateList.job.title, "Frontend Developer");
+assert.equal(candidateList.filters.includes("Good evidence, verification needed"), true);
+assert.equal(candidateList.rows.some((row) => row.reportStatus.label === "Report failed"), true);
+
+const uploadWorkspace = getBulkUploadWorkspace("job-frontend-developer");
+assert.equal(uploadWorkspace.job.title, "Frontend Developer");
+assert.equal(uploadWorkspace.batch.totalFiles, uploadWorkspace.files.length);
+assert.equal(uploadWorkspace.files.some((file) => file.status === "Failed"), true);
 
 assert.match(landingHtml, /Hire with evidence, not guesswork\./);
 assert.match(landingHtml, /View sample report/);
@@ -72,6 +116,7 @@ assert.match(dashboardHtml, /Candidates waiting for review/);
 assert.match(dashboardHtml, /Reports completed/);
 assert.match(dashboardHtml, /Decisions needing sign-off/);
 assert.match(dashboardHtml, /Open report/);
+assert.match(dashboardHtml, /Upload candidates/);
 
 assert.doesNotMatch(reportHtml, /Design system preview/i);
 assert.match(reportHtml, /Candidate Evidence Report/);
@@ -95,8 +140,29 @@ assert.match(reportHtml, /Invite to interview/);
 assert.match(reportHtml, /Export PDF/);
 assert.match(reportHtml, /Final decision must be based on job-related evidence and reviewed by a human/);
 assert.match(reportHtml, /AI-assisted analysis\. Human review is required before making any hiring decision\./);
+
+assert.match(candidateListHtml, /Grouped by evidence level/);
+assert.match(candidateListHtml, /Strong evidence/);
+assert.match(candidateListHtml, /Good evidence, verification needed/);
+assert.match(candidateListHtml, /Missing key evidence/);
+assert.match(candidateListHtml, /Needs human review/);
+assert.match(candidateListHtml, /Report failed/);
+assert.match(candidateListHtml, /Upload candidates/);
+
+assert.match(bulkUploadHtml, /Bulk Upload Candidates/);
+assert.match(bulkUploadHtml, /Frontend Developer/);
+assert.match(bulkUploadHtml, /PDF, DOCX/);
+assert.match(
+  bulkUploadHtml,
+  /I confirm that my organisation has permission or a valid basis to upload and process these candidate resumes for this hiring review\./
+);
+assert.match(bulkUploadHtml, /Processing progress/);
+assert.match(bulkUploadHtml, /Uploaded files/);
+assert.match(bulkUploadHtml, /Candidate name if detected/);
+assert.match(bulkUploadHtml, /Evidence report status/);
+assert.match(bulkUploadHtml, /Unsupported file type/);
 assert.doesNotMatch(
-  combinedAppHtml,
+  allAppHtml,
   /Consolidated Auditor Suggestion|Verified Match|Best candidate|Perfect match|AI selected|AI rejected|AI recommendation|Accept Path|Auto decision|Auto reject|Culture fit score|Personality score|Bias-free/i
 );
 

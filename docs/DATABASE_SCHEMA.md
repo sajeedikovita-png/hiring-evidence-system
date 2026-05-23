@@ -347,6 +347,55 @@ Fields:
 - metadata_json
 - created_at
 
+## bulk_upload_batches
+
+Stores one job-based bulk resume upload run.
+
+Fields:
+
+- id
+- job_id
+- organization_id
+- uploaded_by
+- status
+- total_files
+- processed_files
+- failed_files
+- created_at
+
+Status values:
+
+- uploaded
+- parsing
+- parsed
+- report_generating
+- report_ready
+- failed
+- needs_manual_review
+
+## bulk_upload_files
+
+Stores each resume file inside a bulk upload batch.
+
+Fields:
+
+- id
+- batch_id
+- file_name
+- file_url
+- status
+- error_message
+- candidate_id
+- application_id
+- created_at
+
+File rules:
+
+- allow PDF and DOCX resumes
+- reject unsupported file types before processing
+- create one application record per accepted resume under the selected job
+- keep failed files visible for human review
+
 ## ai_usage_logs
 
 Stores AI usage for cost tracking.

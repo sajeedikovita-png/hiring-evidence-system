@@ -1,8 +1,10 @@
 import React from "react";
 import { Badge } from "../../../components/ui/Badge";
-import { candidateReport } from "../../data/mockHiringData";
+import { getCandidateReport } from "../../services/hiringRepository";
 
 export function SampleReportPreview() {
+  const candidateReport = getCandidateReport();
+
   return (
     <article className="sample-report-card">
       <div className="sample-report-header">

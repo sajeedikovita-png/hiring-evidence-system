@@ -23,6 +23,9 @@ export function DashboardPage() {
           <a className="button button-secondary" href="/reports/candidate-evidence">
             Open sample report
           </a>
+          <a className="button button-primary" href="/jobs/frontend-developer/candidates/upload">
+            Upload candidates
+          </a>
         </section>
 
         <section className="dashboard-metrics">
@@ -86,8 +89,15 @@ export function DashboardPage() {
             ]}
             rows={recentJobs.map((job) => ({
               ...job,
-              title: <strong>{job.title}</strong>,
-              evidenceStatus: <Badge tone={job.evidenceStatus.tone}>{job.evidenceStatus.label}</Badge>
+              title: <a className="table-link" href={job.candidateListPath}>{job.title}</a>,
+              evidenceStatus: <Badge tone={job.evidenceStatus.tone}>{job.evidenceStatus.label}</Badge>,
+              candidates: <a className="table-link" href={job.candidateListPath}>{job.candidates}</a>,
+              lastUpdated: (
+                <span className="table-action-group">
+                  <span>{job.lastUpdated}</span>
+                  <a className="table-link" href={job.uploadPath}>Upload candidates</a>
+                </span>
+              )
             }))}
           />
         </section>
