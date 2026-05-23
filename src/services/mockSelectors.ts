@@ -8,6 +8,7 @@ import {
   candidates,
   evidenceItems,
   jobs,
+  landingFeatures,
   organizations,
   reviewDecisions,
   users
@@ -28,6 +29,7 @@ import type {
   ReviewQueueItem,
   StatusBadge
 } from "../types/hiring";
+import { validateUploadFile } from "./uploadService";
 
 const privacyConfirmationText =
   "I confirm that my organisation has permission or a valid basis to upload and process these candidate resumes for this hiring review.";
@@ -102,6 +104,10 @@ export function getDashboardMetrics(): DashboardMetric[] {
       detail: "Decision reasons still required"
     }
   ];
+}
+
+export function getLandingFeatures(): string[] {
+  return landingFeatures;
 }
 
 export function getCandidateReportById(reportId: string): CandidateReport {
@@ -299,7 +305,8 @@ export function isAcceptedResumeFile(fileName: string): boolean {
 }
 
 export function createMockBulkUploadFile(fileName: string, index: number): BulkUploadFile {
-  const accepted = isAcceptedResumeFile(fileName);
+  const validation = validateUploadFile({ name: fileName, size: 1024 * 1024 });
+  const accepted = validation.accepted;
   const baseId = fileName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") || `resume-${index + 1}`;
 
   return {
@@ -310,7 +317,7 @@ export function createMockBulkUploadFile(fileName: string, index: number): BulkU
     status: accepted ? "Uploaded" : "Failed",
     parsingStatus: accepted ? "Queued" : "Failed",
     evidenceReportStatus: accepted ? "Report generating" : "Failed",
-    errorMessage: accepted ? undefined : "Unsupported file type. Upload PDF or DOCX resumes only.",
+    errorMessage: accepted ? undefined : validation.message,
     createdAt: new Date().toISOString()
   };
 }

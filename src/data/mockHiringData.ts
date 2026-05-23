@@ -420,7 +420,7 @@ export const candidateReports: CandidateReport[] = [
       "Evidence is promising for React delivery.",
       "Verify AWS ownership before moving past interview review."
     ],
-    decisionOptions: ["Shortlist", "Invite to interview", "Hold", "Needs more evidence", "Reject"]
+    decisionOptions: ["Shortlist for interview", "Hold for review", "Not proceeding", "Request more information"]
   }
 ];
 
@@ -469,7 +469,7 @@ export const reviewDecisions: ReviewDecision[] = [
     reportId: "report-amanda-lee",
     applicationId: "application-amanda-frontend",
     recruiterId: "user-sarah-tan",
-    decision: "Needs more evidence",
+    decision: "Request more information",
     reason: "AWS deployment ownership needs interview verification.",
     status: "draft",
     createdAt: "2026-05-21T08:20:00.000Z"

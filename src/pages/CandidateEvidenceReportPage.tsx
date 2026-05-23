@@ -10,10 +10,31 @@ import { FairnessCheckCard } from "../components/report/FairnessCheckCard";
 import { HumanDecisionPanel } from "../components/report/HumanDecisionPanel";
 import { ReportSupportSections } from "../components/report/ReportSupportSections";
 import { RecruiterShell } from "../components/layout/RecruiterShell";
-import { getCandidateReport } from "../services/mockSelectors";
+import { getCandidateEvidenceReport } from "../services/reportService";
+import type { CandidateProfile } from "../types/hiring";
 
 export function CandidateEvidenceReportPage() {
-  const candidateReport = getCandidateReport();
+  const evidenceReport = getCandidateEvidenceReport();
+  const candidateProfile: CandidateProfile = {
+    name: evidenceReport.candidate.name,
+    role: evidenceReport.jobRole.title,
+    company: evidenceReport.company.name,
+    appliedDate: new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric" }).format(
+      new Date(evidenceReport.application.appliedAt)
+    ),
+    reportGenerated: evidenceReport.generatedAt,
+    reportId: evidenceReport.reportId,
+    currentStatus: evidenceReport.status,
+    assignedRecruiter: "Sarah Tan",
+    consentStatus: evidenceReport.application.consentId ? "Consent recorded" : "Consent missing",
+    questionnaireStatus: "Completed",
+    resumeLabel: evidenceReport.documentSources[0]?.fileName ?? "Resume not attached",
+    statusBadges: [
+      { label: "Evidence report ready", tone: "success" },
+      { label: evidenceReport.status, tone: evidenceReport.status === "Evidence report ready" ? "success" : "info" },
+      { label: "Decision pending", tone: "warning" }
+    ]
+  };
 
   return (
     <RecruiterShell
@@ -24,10 +45,10 @@ export function CandidateEvidenceReportPage() {
       secondaryAction="Share report"
     >
       <main className="workspace-content">
-        <CandidateHeader candidate={candidateReport.candidate} />
+        <CandidateHeader candidate={candidateProfile} />
 
         <section className="dashboard-metrics">
-          {candidateReport.summaryCards.map((card) => (
+          {evidenceReport.evidenceSummary.map((card) => (
             <Card key={card.label} title={card.label} meta={card.tone ? undefined : "Report ready"}>
               <div className="summary-card-heading">
                 <p className="metric">{card.value}</p>
@@ -43,16 +64,19 @@ export function CandidateEvidenceReportPage() {
         </WarningCard>
 
         <div className="report-layout">
-          <CandidateDetailPanel candidate={candidateReport.candidate} fairness={candidateReport.fairness} />
+          <CandidateDetailPanel candidate={candidateProfile} fairness={evidenceReport.fairnessCheck} />
           <div className="report-main-column">
-            <EvidenceMatrix rows={candidateReport.evidenceRows} />
+            <EvidenceMatrix rows={evidenceReport.requirementEvidence} />
             <ReportSupportSections
-              missingEvidence={candidateReport.missingEvidence}
-              interviewQuestions={candidateReport.interviewQuestions}
-              recruiterNotes={candidateReport.recruiterNotes}
+              missingEvidence={evidenceReport.missingEvidence}
+              verificationNeeded={evidenceReport.verificationNeeded}
+              interviewQuestions={evidenceReport.suggestedInterviewQuestions}
+              recruiterNotes={evidenceReport.recruiterNotes}
+              documentSources={evidenceReport.documentSources}
+              auditTrailPreview={evidenceReport.auditTrailPreview}
             />
-            <FairnessCheckCard fairness={candidateReport.fairness} />
-            <HumanDecisionPanel options={candidateReport.decisionOptions} />
+            <FairnessCheckCard fairness={evidenceReport.fairnessCheck} />
+            <HumanDecisionPanel options={evidenceReport.humanDecision.options} />
             <div className="report-export-row">
               <p className="muted">PDF export is a front-end placeholder in this MVP phase.</p>
               <Button variant="secondary">Export PDF</Button>

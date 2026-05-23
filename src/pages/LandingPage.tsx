@@ -2,7 +2,7 @@ import React from "react";
 import { Button } from "../../components/ui/Button";
 import { PublicHeader } from "../components/layout/PublicHeader";
 import { SampleReportPreview } from "../components/landing/SampleReportPreview";
-import { landingFeatures } from "../data/mockHiringData";
+import { getLandingFeatures } from "../services/hiringRepository";
 
 const steps = [
   "Create the job criteria",
@@ -12,6 +12,8 @@ const steps = [
 ];
 
 export function LandingPage() {
+  const landingFeatures = getLandingFeatures();
+
   return (
     <div className="public-page">
       <PublicHeader />

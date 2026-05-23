@@ -14,6 +14,7 @@ import { WarningCard } from "../components/ui/WarningCard";
 import { App, AppRoutes } from "../src/App";
 import { applications, candidateReports, candidates, jobs, users } from "../src/data/mockHiringData";
 import { hiringSchemaTables } from "../src/data/schema";
+import { containsForbiddenHiringLanguage, forbiddenHiringPhrases } from "../src/services/compliance";
 import {
   getApplicationsForJob,
   getBulkUploadBatchByJobId,
@@ -24,6 +25,14 @@ import {
   getEvidenceItemsForApplication,
   getJobCandidateList
 } from "../src/services/mockSelectors";
+import { getCandidateEvidenceReport, validateHumanReviewDecision } from "../src/services/reportService";
+import { getDashboardData, getJobById, getReportById } from "../src/services/hiringRepository";
+import {
+  getUploadStateLabels,
+  isAcceptedUploadFile,
+  validateUploadFile,
+  type UploadFileInput
+} from "../src/services/uploadService";
 
 const shellHtml = renderToStaticMarkup(
   <AppShell>
@@ -156,6 +165,41 @@ assert.equal(uploadWorkspace.job.title, "Frontend Developer");
 assert.equal(uploadWorkspace.batch.totalFiles, uploadWorkspace.files.length);
 assert.equal(uploadWorkspace.files.some((file) => file.status === "Failed"), true);
 
+const repositoryDashboard = getDashboardData();
+assert.equal(repositoryDashboard.metrics.some((metric) => metric.label === "Active jobs"), true);
+assert.equal(getJobById("job-frontend-developer")?.title, "Frontend Developer");
+assert.equal(getReportById("report-amanda-lee")?.status, "Human review required");
+
+const evidenceReportModel = getCandidateEvidenceReport("report-amanda-lee");
+assert.equal(evidenceReportModel.candidate.name, "Amanda Lee");
+assert.equal(evidenceReportModel.jobRole.title, "Frontend Developer");
+assert.equal(evidenceReportModel.requirementEvidence.length > 0, true);
+assert.equal(evidenceReportModel.auditTrailPreview.length > 0, true);
+assert.equal(evidenceReportModel.humanDecision.options.includes("Shortlist for interview"), true);
+
+const supportedUpload: UploadFileInput = { name: "candidate-resume.pdf", size: 1024 * 1024 };
+const unsupportedUpload: UploadFileInput = { name: "candidate-photo.png", size: 1024 };
+const oversizedUpload: UploadFileInput = { name: "candidate-resume.docx", size: 11 * 1024 * 1024 };
+assert.equal(isAcceptedUploadFile(supportedUpload), true);
+assert.equal(validateUploadFile(unsupportedUpload).state, "upload_failed");
+assert.equal(validateUploadFile(unsupportedUpload).message, "Unsupported file type");
+assert.equal(validateUploadFile(oversizedUpload).message, "File too large");
+assert.deepEqual(getUploadStateLabels(), [
+  "Waiting for upload",
+  "Validating file",
+  "Upload accepted",
+  "Parsing queued",
+  "Parsing in progress",
+  "Evidence report generating",
+  "Report ready",
+  "Manual review required",
+  "Upload failed"
+]);
+
+assert.equal(validateHumanReviewDecision("Shortlist for interview", "").valid, false);
+assert.equal(validateHumanReviewDecision("Hold for review", "Need to verify AWS deployment ownership.").valid, true);
+assert.equal(forbiddenHiringPhrases.includes("best candidate"), true);
+
 assert.match(landingHtml, /Hire with evidence, not guesswork\./);
 assert.match(landingHtml, /View sample report/);
 assert.match(landingHtml, /Request pilot access/);
@@ -192,7 +236,7 @@ assert.match(reportHtml, /Missing evidence/);
 assert.match(reportHtml, /Suggested interview questions/);
 assert.match(reportHtml, /View resume/);
 assert.match(reportHtml, /Protected characteristics not used/);
-assert.match(reportHtml, /Invite to interview/);
+assert.match(reportHtml, /Shortlist for interview/);
 assert.match(reportHtml, /Export PDF/);
 assert.match(reportHtml, /Final decision must be based on job-related evidence and reviewed by a human/);
 assert.match(reportHtml, /AI-assisted analysis\. Human review is required before making any hiring decision\./);
@@ -221,5 +265,6 @@ assert.doesNotMatch(
   allAppHtml,
   /Consolidated Auditor Suggestion|Verified Match|Best candidate|Perfect match|AI selected|AI rejected|AI recommendation|Accept Path|Auto decision|Auto reject|Culture fit score|Personality score|Bias-free/i
 );
+assert.equal(containsForbiddenHiringLanguage(allAppHtml), false);
 
 console.log("Front-end MVP route smoke test passed.");

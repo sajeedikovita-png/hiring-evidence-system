@@ -24,7 +24,9 @@ Evidence explains.
 
 ## Current Phase
 
-Front-end MVP foundation with mock data.
+Production foundation over temporary seed data.
+
+Mock data is development scaffolding only. The final goal is a real working B2B recruiter/company web app that can be marketed and used by real companies.
 
 ## Current Completed Work
 
@@ -34,13 +36,15 @@ Front-end MVP foundation with mock data.
 - Landing/login/dashboard/report pages in progress
 - Structured typed mock data added
 - Reusable page data selectors added
+- Production model contracts started
+- Repository/report/upload/compliance service seams added
 - Tests/typecheck/build passing
 
 ## Current Next Goal
 
-Structured typed mock data and reusable page data wiring.
+Replace temporary seed data behind the service layer with real database/API-backed data without rewriting the app pages.
 
-Status: initial implementation is in place. The next pass should deepen scenario coverage, add the synthetic bulk CV test set, and continue wiring future pages to typed mock data before any backend, AI API, payments, or authentication logic is added.
+Status: production-facing architecture is being prepared. The next pass should add real database/auth/upload pipeline decisions, then implement them behind the existing repository and service interfaces.
 
 ## Not Built Yet
 
@@ -82,4 +86,4 @@ Requested routing-foundation reference:
 
 Current repository head before this document update:
 
-- `45e0d65` Add structured hiring mock data
+- `acd30d6` Update project state document

@@ -4,6 +4,7 @@ import { Badge } from "../../../components/ui/Badge";
 import { Button } from "../../../components/ui/Button";
 import { DataTable } from "../../../components/ui/DataTable";
 import { createMockBulkUploadFile, getBulkUploadWorkspace } from "../../services/mockSelectors";
+import { getSafeUploadErrorMessage, getUploadFlowStateForFile, getUploadStateLabels } from "../../services/uploadService";
 import type { BulkUploadFile, BulkUploadWorkspaceViewModel } from "../../types/hiring";
 
 type BulkUploadCandidatesPanelProps = {
@@ -13,8 +14,12 @@ type BulkUploadCandidatesPanelProps = {
 function getStatusTone(status: string) {
   if (status === "Uploaded" || status === "Parsed" || status === "Report ready") return "success";
   if (status === "Failed") return "danger";
-  if (status === "Needs manual review") return "warning";
+  if (status === "Needs manual review" || status === "Manual review required") return "warning";
   return "info";
+}
+
+function formatUploadState(state: string) {
+  return state.replace(/_/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
 export function BulkUploadCandidatesPanel({ workspace = getBulkUploadWorkspace() }: BulkUploadCandidatesPanelProps) {
@@ -76,7 +81,7 @@ export function BulkUploadCandidatesPanel({ workspace = getBulkUploadWorkspace()
 
       <div className="bulk-upload-actions">
         <Button disabled={!privacyConfirmed}>Upload candidates</Button>
-        <p className="muted">Mock processing is non-blocking and ready to be replaced by a background queue.</p>
+        <p className="muted">Upload records move through validation, parsing, report generation, and manual review states.</p>
       </div>
 
       <div className="processing-progress">
@@ -94,6 +99,12 @@ export function BulkUploadCandidatesPanel({ workspace = getBulkUploadWorkspace()
         </div>
       </div>
 
+      <section className="upload-state-strip" aria-label="Upload processing states">
+        {getUploadStateLabels().map((state) => (
+          <span key={state}>{state}</span>
+        ))}
+      </section>
+
       <section className="uploaded-files-section">
         <div className="section-heading-row">
           <div>
@@ -110,6 +121,7 @@ export function BulkUploadCandidatesPanel({ workspace = getBulkUploadWorkspace()
             { key: "status", header: "Upload status" },
             { key: "parsingStatus", header: "Parsing status" },
             { key: "evidenceReportStatus", header: "Evidence report status" },
+            { key: "flowState", header: "Current state" },
             { key: "errorMessage", header: "Error message if failed" },
             { key: "action", header: "View report action" }
           ]}
@@ -119,7 +131,8 @@ export function BulkUploadCandidatesPanel({ workspace = getBulkUploadWorkspace()
             status: <Badge tone={getStatusTone(file.status)}>{file.status}</Badge>,
             parsingStatus: <Badge tone={getStatusTone(file.parsingStatus)}>{file.parsingStatus}</Badge>,
             evidenceReportStatus: <Badge tone={getStatusTone(file.evidenceReportStatus)}>{file.evidenceReportStatus}</Badge>,
-            errorMessage: file.errorMessage ?? "None",
+            flowState: <Badge tone={getStatusTone(formatUploadState(getUploadFlowStateForFile(file)))}>{formatUploadState(getUploadFlowStateForFile(file))}</Badge>,
+            errorMessage: file.errorMessage ? getSafeUploadErrorMessage(file) : "None",
             action:
               file.evidenceReportStatus === "Report ready" ? (
                 <a className="table-link" href="/reports/candidate-evidence">View report</a>

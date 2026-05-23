@@ -9,12 +9,14 @@ export type StatusBadge = {
 
 export type RecordStatus = "active" | "archived" | "draft";
 
-export type Organization = {
+export type Company = {
   id: string;
   name: string;
   status: RecordStatus;
   createdAt: string;
 };
+
+export type Organization = Company;
 
 export type User = {
   id: string;
@@ -25,7 +27,17 @@ export type User = {
   createdAt: string;
 };
 
-export type Job = {
+export type RecruiterProfile = {
+  id: string;
+  userId: string;
+  companyId: string;
+  displayName: string;
+  title: string;
+  isPrimaryReviewer: boolean;
+  createdAt: string;
+};
+
+export type JobRole = {
   id: string;
   organizationId: string;
   title: string;
@@ -38,7 +50,9 @@ export type Job = {
   updatedAt: string;
 };
 
-export type JobCriterion = {
+export type Job = JobRole;
+
+export type JobRequirement = {
   id: string;
   jobId: string;
   label: string;
@@ -47,6 +61,8 @@ export type JobCriterion = {
   sortOrder: number;
   createdAt: string;
 };
+
+export type JobCriterion = JobRequirement;
 
 export type JobCriteria = JobCriterion;
 
@@ -69,7 +85,9 @@ export type Application = {
   consentId?: string;
 };
 
-export type CandidateDocument = {
+export type CandidateApplication = Application;
+
+export type UploadedDocument = {
   id: string;
   applicationId: string;
   candidateId: string;
@@ -79,6 +97,22 @@ export type CandidateDocument = {
   uploadStatus: BulkUploadStatus;
   parsingStatus: ParsingStatus;
   createdAt: string;
+};
+
+export type CandidateDocument = UploadedDocument;
+
+export type ParsedCV = {
+  id: string;
+  documentId: string;
+  applicationId: string;
+  status: "queued" | "parsing" | "parsed" | "failed" | "manual_review_required";
+  extractedName?: string;
+  extractedEmail?: string;
+  extractedSkills: string[];
+  extractedExperience: string[];
+  parseWarnings: string[];
+  createdAt: string;
+  updatedAt: string;
 };
 
 export type CandidateConsent = {
@@ -152,18 +186,46 @@ export type CandidateReport = {
   decisionOptions: ReviewDecision["decision"][];
 };
 
+export type EvidenceReport = {
+  id: string;
+  reportId: string;
+  company: Company;
+  candidate: Candidate;
+  application: CandidateApplication;
+  jobRole: JobRole;
+  status: "Evidence report ready" | "Human review required" | "Decision pending" | "Recruiter decision recorded";
+  generatedAt: string;
+  evidenceSummary: SummaryMetric[];
+  requirementEvidence: EvidenceItem[];
+  missingEvidence: string[];
+  verificationNeeded: string[];
+  suggestedInterviewQuestions: string[];
+  recruiterNotes: string[];
+  documentSources: UploadedDocument[];
+  fairnessCheck: FairnessCheck;
+  humanDecision: {
+    options: ReviewDecision["decision"][];
+    draft?: HumanReviewDecision;
+    reasonRequired: true;
+    reminder: string;
+  };
+  auditTrailPreview: AuditLogEntry[];
+};
+
 export type ReviewDecision = {
   id: string;
   reportId: string;
   applicationId: string;
   recruiterId: string;
-  decision: "Shortlist" | "Invite to interview" | "Hold" | "Needs more evidence" | "Reject";
+  decision: "Shortlist for interview" | "Hold for review" | "Not proceeding" | "Request more information";
   reason: string;
   status: "draft" | "saved";
   createdAt: string;
 };
 
-export type AuditLog = {
+export type HumanReviewDecision = ReviewDecision;
+
+export type AuditLogEntry = {
   id: string;
   organizationId: string;
   userId: string;
@@ -173,11 +235,24 @@ export type AuditLog = {
   createdAt: string;
 };
 
+export type AuditLog = AuditLogEntry;
+
 export type BulkUploadStatus = "Uploaded" | "Failed" | "Needs manual review";
 
 export type ParsingStatus = "Queued" | "Parsing" | "Parsed" | "Failed" | "Needs manual review";
 
 export type EvidenceReportStatus = "Report generating" | "Report ready" | "Failed" | "Needs manual review";
+
+export type UploadFlowState =
+  | "waiting_for_upload"
+  | "validating_file"
+  | "upload_accepted"
+  | "parsing_queued"
+  | "parsing_in_progress"
+  | "evidence_report_generating"
+  | "report_ready"
+  | "manual_review_required"
+  | "upload_failed";
 
 export type BulkUploadBatch = {
   id: string;
