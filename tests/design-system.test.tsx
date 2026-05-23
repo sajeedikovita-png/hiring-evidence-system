@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
+import { MemoryRouter } from "react-router-dom";
 
 import { AppShell } from "../components/layout/AppShell";
 import { Badge } from "../components/ui/Badge";
@@ -10,7 +11,7 @@ import { DataTable } from "../components/ui/DataTable";
 import { EmptyState } from "../components/ui/EmptyState";
 import { NoteTextArea } from "../components/ui/NoteTextArea";
 import { WarningCard } from "../components/ui/WarningCard";
-import { App } from "../src/App";
+import { App, AppRoutes } from "../src/App";
 import { hiringSchemaTables } from "../src/data/schema";
 import { getBulkUploadWorkspace, getCandidateReport, getJobCandidateList } from "../src/services/hiringRepository";
 
@@ -62,6 +63,16 @@ const candidateListHtml = renderToStaticMarkup(<App path="/jobs/frontend-develop
 const bulkUploadHtml = renderToStaticMarkup(<App path="/jobs/frontend-developer/candidates/upload" />);
 const combinedAppHtml = [landingHtml, loginHtml, dashboardHtml, reportHtml].join("\n");
 const allAppHtml = [combinedAppHtml, candidateListHtml, bulkUploadHtml].join("\n");
+const routedDashboardHtml = renderToStaticMarkup(
+  <MemoryRouter initialEntries={["/dashboard"]}>
+    <AppRoutes />
+  </MemoryRouter>
+);
+const routedFallbackHtml = renderToStaticMarkup(
+  <MemoryRouter initialEntries={["/not-a-real-route"]}>
+    <AppRoutes />
+  </MemoryRouter>
+);
 
 const expectedTables = [
   "organizations",
@@ -84,6 +95,22 @@ const expectedTables = [
 
 assert.deepEqual(
   expectedTables.filter((tableName) => !hiringSchemaTables.some((table) => table.name === tableName)),
+  []
+);
+
+const bulkUploadFileSchema = hiringSchemaTables.find((table) => table.name === "bulk_upload_files");
+assert.ok(bulkUploadFileSchema);
+assert.deepEqual(
+  ["candidate_name", "parsing_status", "evidence_report_status"].filter(
+    (columnName) => !bulkUploadFileSchema.columns.some((column) => column.name === columnName)
+  ),
+  []
+);
+
+const candidateReportSchema = hiringSchemaTables.find((table) => table.name === "candidate_reports");
+assert.ok(candidateReportSchema);
+assert.deepEqual(
+  ["decision_options"].filter((columnName) => !candidateReportSchema.columns.some((column) => column.name === columnName)),
   []
 );
 
@@ -111,6 +138,8 @@ assert.match(loginHtml, /Sign in/);
 assert.match(loginHtml, /Access candidate evidence reports/);
 
 assert.match(dashboardHtml, /Evidence Ledger/);
+assert.match(routedDashboardHtml, /Evidence Ledger/);
+assert.match(routedFallbackHtml, /Hire with evidence, not guesswork\./);
 assert.match(dashboardHtml, /Active jobs/);
 assert.match(dashboardHtml, /Candidates waiting for review/);
 assert.match(dashboardHtml, /Reports completed/);

@@ -157,7 +157,8 @@ export const hiringSchemaTables: HiringSchemaTable[] = [
       { name: "summary_cards", type: "json" },
       { name: "missing_evidence", type: "json" },
       { name: "interview_questions", type: "json" },
-      { name: "recruiter_notes", type: "json" }
+      { name: "recruiter_notes", type: "json" },
+      { name: "decision_options", type: "json" }
     ]
   },
   {
@@ -210,6 +211,9 @@ export const hiringSchemaTables: HiringSchemaTable[] = [
       { name: "error_message", type: "text", nullable: true },
       { name: "candidate_id", type: "uuid", references: "candidates.id", nullable: true },
       { name: "application_id", type: "uuid", references: "applications.id", nullable: true },
+      { name: "candidate_name", type: "text", nullable: true },
+      { name: "parsing_status", type: "text" },
+      { name: "evidence_report_status", type: "text" },
       { name: "created_at", type: "timestamp" }
     ]
   }

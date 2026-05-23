@@ -1,4 +1,5 @@
 import React from "react";
+import { BrowserRouter, MemoryRouter, Route, Routes } from "react-router-dom";
 import { BulkUploadCandidatesPage } from "./pages/BulkUploadCandidatesPage";
 import { CandidateEvidenceReportPage } from "./pages/CandidateEvidenceReportPage";
 import { DashboardPage } from "./pages/DashboardPage";
@@ -10,16 +11,32 @@ type AppProps = {
   path?: string;
 };
 
-function getCurrentPath() {
-  return typeof window === "undefined" ? "/" : window.location.pathname;
+export function AppRoutes() {
+  return (
+    <Routes>
+      <Route path="/" element={<LandingPage />} />
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/dashboard" element={<DashboardPage />} />
+      <Route path="/jobs/frontend-developer/candidates" element={<JobCandidateListPage />} />
+      <Route path="/jobs/frontend-developer/candidates/upload" element={<BulkUploadCandidatesPage />} />
+      <Route path="/reports/candidate-evidence" element={<CandidateEvidenceReportPage />} />
+      <Route path="*" element={<LandingPage />} />
+    </Routes>
+  );
 }
 
-export function App({ path = getCurrentPath() }: AppProps = {}) {
+export function App({ path }: AppProps = {}) {
+  if (path) {
+    return (
+      <MemoryRouter initialEntries={[path]}>
+        <AppRoutes />
+      </MemoryRouter>
+    );
+  }
 
-  if (path === "/login") return <LoginPage />;
-  if (path === "/dashboard") return <DashboardPage />;
-  if (path === "/jobs/frontend-developer/candidates") return <JobCandidateListPage />;
-  if (path === "/jobs/frontend-developer/candidates/upload") return <BulkUploadCandidatesPage />;
-  if (path === "/reports/candidate-evidence") return <CandidateEvidenceReportPage />;
-  return <LandingPage />;
+  return (
+    <BrowserRouter>
+      <AppRoutes />
+    </BrowserRouter>
+  );
 }
