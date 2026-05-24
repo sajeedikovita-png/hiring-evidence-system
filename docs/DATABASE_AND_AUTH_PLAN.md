@@ -78,3 +78,37 @@ The current mock repository can be replaced by API/Supabase implementations with
 - `reportService` reads and writes evidence report and human decision records.
 - `uploadService` coordinates real storage upload and pipeline status.
 - `auditLogService` writes append-only audit records.
+
+## Supabase Development Setup
+
+1. Create a Supabase project for development.
+2. Open the SQL editor and run `supabase/schema.sql`.
+3. Run `supabase/seed.sql` to create the initial company workspace records.
+4. Create or invite a development auth user.
+5. Update the seeded `recruiter_profiles.user_id` value so it matches the Supabase Auth user UUID.
+6. Copy `.env.example` to `.env.local`.
+7. Add:
+
+```bash
+VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_SUPABASE_ANON_KEY=your-anon-key
+```
+
+8. Start the app with `npm run dev`.
+
+When both Supabase env vars are present, `hiringRepository` selects the Supabase repository. When either env var is missing, the app uses the seed repository so development can continue locally without a live backend. The fallback is only for development scaffolding and must stay behind service/repository boundaries.
+
+## Supabase Repository Scope
+
+The Supabase repository currently supports:
+
+- active company context from `recruiter_profiles`
+- dashboard metrics from `job_roles`, `candidate_applications`, `evidence_reports`, and `human_review_decisions`
+- job reads from `job_roles`
+- candidate application reads from `candidate_applications`
+- evidence report reads from `evidence_reports`
+- evidence matrix rows from `evidence_items`
+- document sources from `uploaded_documents`
+- audit preview from `audit_log_entries`
+- human decision inserts into `human_review_decisions`
+- audit log inserts when a human decision is saved

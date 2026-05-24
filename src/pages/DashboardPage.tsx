@@ -1,14 +1,58 @@
-import React from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Badge } from "../../components/ui/Badge";
 import { Button } from "../../components/ui/Button";
 import { DataTable } from "../../components/ui/DataTable";
 import { RecruiterShell } from "../components/layout/RecruiterShell";
 import { getActiveCompanyContext } from "../services/companyContextService";
-import { getDashboardData } from "../services/hiringRepository";
+import { getAsyncHiringRepository, getDashboardData } from "../services/hiringRepository";
+import type { DashboardViewModel } from "../types/hiring";
 
 export function DashboardPage() {
+  const repository = useMemo(() => getAsyncHiringRepository(), []);
   const companyContext = getActiveCompanyContext();
-  const dashboard = getDashboardData(companyContext.companyId);
+  const [dashboard, setDashboard] = useState<DashboardViewModel | undefined>(() =>
+    repository.source === "seed" ? getDashboardData(companyContext.companyId) : undefined
+  );
+  const [loadMessage, setLoadMessage] = useState("Loading company workspace.");
+
+  useEffect(() => {
+    let isMounted = true;
+
+    repository
+      .getActiveCompanyContext()
+      .then((context) => repository.getDashboardData(context.companyId))
+      .then((nextDashboard) => {
+        if (isMounted) setDashboard(nextDashboard);
+      })
+      .catch(() => {
+        if (isMounted) setLoadMessage("Unable to load company workspace. Human review required.");
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [repository]);
+
+  if (!dashboard) {
+    return (
+      <RecruiterShell
+        active="dashboard"
+        title="Evidence Ledger"
+        subtitle="Review queue, evidence status, and decision sign-off work for hiring teams."
+        primaryAction="New report"
+      >
+        <main className="workspace-content">
+          <section className="dashboard-intro">
+            <div>
+              <p className="section-kicker">Company workspace</p>
+              <h2>{loadMessage}</h2>
+              <p>AI assists. Human decides. Evidence explains.</p>
+            </div>
+          </section>
+        </main>
+      </RecruiterShell>
+    );
+  }
 
   return (
     <RecruiterShell

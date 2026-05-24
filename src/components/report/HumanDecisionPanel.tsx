@@ -7,12 +7,24 @@ import type { ReviewDecision } from "../../types/hiring";
 
 type HumanDecisionPanelProps = {
   options: ReviewDecision["decision"][];
+  onSaveDecision?: (decision: ReviewDecision["decision"], reason: string) => Promise<{ valid: boolean; message?: string }>;
 };
 
-export function HumanDecisionPanel({ options }: HumanDecisionPanelProps) {
+export function HumanDecisionPanel({ options, onSaveDecision }: HumanDecisionPanelProps) {
   const [selectedDecision, setSelectedDecision] = useState<ReviewDecision["decision"] | "">("");
   const [reason, setReason] = useState("");
+  const [saveMessage, setSaveMessage] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
   const decisionValidation = useMemo(() => validateHumanReviewDecision(selectedDecision, reason), [selectedDecision, reason]);
+
+  async function handleSaveDecision() {
+    if (!selectedDecision || !decisionValidation.valid || !onSaveDecision) return;
+
+    setIsSaving(true);
+    const result = await onSaveDecision(selectedDecision, reason);
+    setSaveMessage(result.valid ? "Recruiter decision recorded" : result.message ?? "Decision reason required");
+    setIsSaving(false);
+  }
 
   return (
     <section className="workspace-card decision-section">
@@ -48,7 +60,10 @@ export function HumanDecisionPanel({ options }: HumanDecisionPanelProps) {
         <p className="muted">
           Final decision must be based on job-related evidence and reviewed by a human. The system does not make the final hiring decision.
         </p>
-        <Button disabled={!decisionValidation.valid}>Save decision</Button>
+        {saveMessage ? <p className="muted">{saveMessage}</p> : null}
+        <Button disabled={!decisionValidation.valid || isSaving} onClick={handleSaveDecision}>
+          {isSaving ? "Saving decision" : "Save decision"}
+        </Button>
       </div>
     </section>
   );

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import { Badge } from "../../components/ui/Badge";
 import { Button } from "../../components/ui/Button";
@@ -11,14 +11,40 @@ import { FairnessCheckCard } from "../components/report/FairnessCheckCard";
 import { HumanDecisionPanel } from "../components/report/HumanDecisionPanel";
 import { ReportSupportSections } from "../components/report/ReportSupportSections";
 import { RecruiterShell } from "../components/layout/RecruiterShell";
-import { getActiveCompanyContext } from "../services/companyContextService";
-import { getReportById } from "../services/hiringRepository";
-import type { CandidateProfile } from "../types/hiring";
+import { getActiveCompanyContext, type CompanyContext } from "../services/companyContextService";
+import { getAsyncHiringRepository, getReportById } from "../services/hiringRepository";
+import type { CandidateProfile, EvidenceReport, ReviewDecision } from "../types/hiring";
 
 export function CandidateEvidenceReportPage() {
   const { reportId } = useParams();
+  const repository = useMemo(() => getAsyncHiringRepository(), []);
   const companyContext = getActiveCompanyContext();
-  const evidenceReport = getReportById(companyContext.companyId, reportId ?? "report-amanda-lee");
+  const [activeContext, setActiveContext] = useState<CompanyContext>(companyContext);
+  const selectedReportId = reportId ?? "report-amanda-lee";
+  const [evidenceReport, setEvidenceReport] = useState<EvidenceReport | undefined>(() =>
+    repository.source === "seed" ? getReportById(companyContext.companyId, selectedReportId) : undefined
+  );
+
+  useEffect(() => {
+    let isMounted = true;
+
+    repository
+      .getActiveCompanyContext()
+      .then((context) => {
+        if (isMounted) setActiveContext(context);
+        return repository.getReportById(context.companyId, selectedReportId);
+      })
+      .then((nextReport) => {
+        if (isMounted) setEvidenceReport(nextReport);
+      })
+      .catch(() => {
+        if (isMounted) setEvidenceReport(undefined);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [repository, selectedReportId]);
 
   if (!evidenceReport) {
     return (
@@ -99,7 +125,20 @@ export function CandidateEvidenceReportPage() {
               auditTrailPreview={evidenceReport.auditTrailPreview}
             />
             <FairnessCheckCard fairness={evidenceReport.fairnessCheck} />
-            <HumanDecisionPanel options={evidenceReport.humanDecision.options} />
+            <HumanDecisionPanel
+              options={evidenceReport.humanDecision.options}
+              onSaveDecision={(decision: ReviewDecision["decision"], reason: string) =>
+                repository.saveHumanReviewDecision({
+                  companyId: activeContext.companyId,
+                  reportId: evidenceReport.id,
+                  applicationId: evidenceReport.application.id,
+                  userId: activeContext.userId,
+                  decision,
+                  reason,
+                  timestamp: new Date().toISOString()
+                })
+              }
+            />
             <div className="report-export-row">
               <p className="muted">PDF export is a front-end placeholder in this MVP phase.</p>
               <Button variant="secondary">Export PDF</Button>
