@@ -21,9 +21,14 @@ export function HumanDecisionPanel({ options, onSaveDecision }: HumanDecisionPan
     if (!selectedDecision || !decisionValidation.valid || !onSaveDecision) return;
 
     setIsSaving(true);
-    const result = await onSaveDecision(selectedDecision, reason);
-    setSaveMessage(result.valid ? "Recruiter decision recorded" : result.message ?? "Decision reason required");
-    setIsSaving(false);
+    try {
+      const result = await onSaveDecision(selectedDecision, reason);
+      setSaveMessage(result.valid ? "Recruiter decision recorded" : result.message ?? "Decision reason required");
+    } catch {
+      setSaveMessage("Decision save failed");
+    } finally {
+      setIsSaving(false);
+    }
   }
 
   return (

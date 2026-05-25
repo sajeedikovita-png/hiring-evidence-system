@@ -4,6 +4,7 @@ import { Badge } from "../../components/ui/Badge";
 import { Button } from "../../components/ui/Button";
 import { Card } from "../../components/ui/Card";
 import { WarningCard } from "../../components/ui/WarningCard";
+import { DevelopmentConnectionStatusPanel } from "../components/dev/DevelopmentConnectionStatusPanel";
 import { CandidateDetailPanel } from "../components/report/CandidateDetailPanel";
 import { CandidateHeader } from "../components/report/CandidateHeader";
 import { EvidenceMatrix } from "../components/report/EvidenceMatrix";
@@ -12,6 +13,11 @@ import { HumanDecisionPanel } from "../components/report/HumanDecisionPanel";
 import { ReportSupportSections } from "../components/report/ReportSupportSections";
 import { RecruiterShell } from "../components/layout/RecruiterShell";
 import { getActiveCompanyContext, type CompanyContext } from "../services/companyContextService";
+import {
+  classifyConnectionIssue,
+  getDevelopmentConnectionStatus,
+  type DevelopmentConnectionStatus
+} from "../services/connectionStatusService";
 import { getAsyncHiringRepository, getReportById } from "../services/hiringRepository";
 import type { CandidateProfile, EvidenceReport, ReviewDecision } from "../types/hiring";
 
@@ -24,6 +30,10 @@ export function CandidateEvidenceReportPage() {
   const [evidenceReport, setEvidenceReport] = useState<EvidenceReport | undefined>(() =>
     repository.source === "seed" ? getReportById(companyContext.companyId, selectedReportId) : undefined
   );
+  const [connectionStatus, setConnectionStatus] = useState<DevelopmentConnectionStatus>(() =>
+    getDevelopmentConnectionStatus({ repositorySource: repository.source })
+  );
+  const [reportLoadMessage, setReportLoadMessage] = useState("Report cannot load");
 
   useEffect(() => {
     let isMounted = true;
@@ -35,10 +45,36 @@ export function CandidateEvidenceReportPage() {
         return repository.getReportById(context.companyId, selectedReportId);
       })
       .then((nextReport) => {
-        if (isMounted) setEvidenceReport(nextReport);
+        if (!isMounted) return;
+
+        setEvidenceReport(nextReport);
+        if (nextReport && repository.source === "supabase") {
+          setConnectionStatus(getDevelopmentConnectionStatus({ repositorySource: repository.source, issue: "ready" }));
+        }
+        if (!nextReport) {
+          setReportLoadMessage("Report cannot load");
+          setConnectionStatus(
+            getDevelopmentConnectionStatus({
+              repositorySource: repository.source,
+              issue: "report_read_failed",
+              error: "Report is not available in this company workspace."
+            })
+          );
+        }
       })
-      .catch(() => {
-        if (isMounted) setEvidenceReport(undefined);
+      .catch((error) => {
+        if (isMounted) {
+          const issue = classifyConnectionIssue(error, "report_read_failed");
+          setEvidenceReport(undefined);
+          setConnectionStatus(getDevelopmentConnectionStatus({ repositorySource: repository.source, issue, error }));
+          setReportLoadMessage(
+            issue === "auth_user_missing"
+              ? "Auth user missing"
+              : issue === "company_context_missing"
+                ? "Company context missing"
+                : "Report cannot load"
+          );
+        }
       });
 
     return () => {
@@ -56,8 +92,10 @@ export function CandidateEvidenceReportPage() {
         secondaryAction="Share report"
       >
         <main className="workspace-content">
+          <DevelopmentConnectionStatusPanel status={connectionStatus} />
           <WarningCard title="Human review required">
-            Report access is scoped to the active company workspace. Return to the dashboard and open an available evidence report.
+            {reportLoadMessage}. Report access is scoped to the active company workspace. Return to the dashboard and open an available
+            evidence report.
           </WarningCard>
         </main>
       </RecruiterShell>
@@ -94,6 +132,7 @@ export function CandidateEvidenceReportPage() {
       secondaryAction="Share report"
     >
       <main className="workspace-content">
+        <DevelopmentConnectionStatusPanel status={connectionStatus} />
         <CandidateHeader candidate={candidateProfile} />
 
         <section className="dashboard-metrics">
@@ -127,17 +166,38 @@ export function CandidateEvidenceReportPage() {
             <FairnessCheckCard fairness={evidenceReport.fairnessCheck} />
             <HumanDecisionPanel
               options={evidenceReport.humanDecision.options}
-              onSaveDecision={(decision: ReviewDecision["decision"], reason: string) =>
-                repository.saveHumanReviewDecision({
-                  companyId: activeContext.companyId,
-                  reportId: evidenceReport.id,
-                  applicationId: evidenceReport.application.id,
-                  userId: activeContext.userId,
-                  decision,
-                  reason,
-                  timestamp: new Date().toISOString()
-                })
-              }
+              onSaveDecision={async (decision: ReviewDecision["decision"], reason: string) => {
+                try {
+                  const result = await repository.saveHumanReviewDecision({
+                    companyId: activeContext.companyId,
+                    reportId: evidenceReport.id,
+                    applicationId: evidenceReport.application.id,
+                    userId: activeContext.userId,
+                    decision,
+                    reason,
+                    timestamp: new Date().toISOString()
+                  });
+
+                  if (result.valid && repository.source === "supabase") {
+                    setConnectionStatus(getDevelopmentConnectionStatus({ repositorySource: repository.source, issue: "ready" }));
+                  }
+
+                  if (!result.valid) {
+                    setConnectionStatus(
+                      getDevelopmentConnectionStatus({
+                        repositorySource: repository.source,
+                        issue: "decision_save_failed",
+                        error: result.message
+                      })
+                    );
+                  }
+
+                  return result;
+                } catch (error) {
+                  setConnectionStatus(getDevelopmentConnectionStatus({ repositorySource: repository.source, issue: "decision_save_failed", error }));
+                  return { valid: false, message: "Decision save failed" };
+                }
+              }}
             />
             <div className="report-export-row">
               <p className="muted">PDF export is a front-end placeholder in this MVP phase.</p>

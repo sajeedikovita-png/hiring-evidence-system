@@ -2,8 +2,14 @@ import React, { useEffect, useMemo, useState } from "react";
 import { Badge } from "../../components/ui/Badge";
 import { Button } from "../../components/ui/Button";
 import { DataTable } from "../../components/ui/DataTable";
+import { DevelopmentConnectionStatusPanel } from "../components/dev/DevelopmentConnectionStatusPanel";
 import { RecruiterShell } from "../components/layout/RecruiterShell";
 import { getActiveCompanyContext } from "../services/companyContextService";
+import {
+  classifyConnectionIssue,
+  getDevelopmentConnectionStatus,
+  type DevelopmentConnectionStatus
+} from "../services/connectionStatusService";
 import { getAsyncHiringRepository, getDashboardData } from "../services/hiringRepository";
 import type { DashboardViewModel } from "../types/hiring";
 
@@ -14,6 +20,9 @@ export function DashboardPage() {
     repository.source === "seed" ? getDashboardData(companyContext.companyId) : undefined
   );
   const [loadMessage, setLoadMessage] = useState("Loading company workspace.");
+  const [connectionStatus, setConnectionStatus] = useState<DevelopmentConnectionStatus>(() =>
+    getDevelopmentConnectionStatus({ repositorySource: repository.source })
+  );
 
   useEffect(() => {
     let isMounted = true;
@@ -22,10 +31,25 @@ export function DashboardPage() {
       .getActiveCompanyContext()
       .then((context) => repository.getDashboardData(context.companyId))
       .then((nextDashboard) => {
-        if (isMounted) setDashboard(nextDashboard);
+        if (isMounted) {
+          setDashboard(nextDashboard);
+          if (repository.source === "supabase") {
+            setConnectionStatus(getDevelopmentConnectionStatus({ repositorySource: repository.source, issue: "ready" }));
+          }
+        }
       })
-      .catch(() => {
-        if (isMounted) setLoadMessage("Unable to load company workspace. Human review required.");
+      .catch((error) => {
+        if (isMounted) {
+          const issue = classifyConnectionIssue(error, "dashboard_read_failed");
+          setConnectionStatus(getDevelopmentConnectionStatus({ repositorySource: repository.source, issue, error }));
+          setLoadMessage(
+            issue === "auth_user_missing"
+              ? "Auth user missing"
+              : issue === "company_context_missing"
+                ? "Company context missing"
+                : "Dashboard cannot load"
+          );
+        }
       });
 
     return () => {
@@ -42,6 +66,7 @@ export function DashboardPage() {
         primaryAction="New report"
       >
         <main className="workspace-content">
+          <DevelopmentConnectionStatusPanel status={connectionStatus} />
           <section className="dashboard-intro">
             <div>
               <p className="section-kicker">Company workspace</p>
@@ -62,6 +87,7 @@ export function DashboardPage() {
       primaryAction="New report"
     >
       <main className="workspace-content">
+        <DevelopmentConnectionStatusPanel status={connectionStatus} />
         <section className="dashboard-intro">
           <div>
             <p className="section-kicker">Welcome back, {dashboard.activeReviewerName}</p>
