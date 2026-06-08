@@ -11,9 +11,11 @@ export function PublicHeader() {
         <a href="/#problem">Problem</a>
         <a href="/#how-it-works">How it works</a>
         <a href="/#sample-report">Sample report</a>
+        <a href="/demo-presentation">Slideshow</a>
+        <a href="/demo-test-lab">Demo lab</a>
         <a href="/login">Login</a>
       </nav>
-      <a className="button button-primary" href="/dashboard">
+      <a className="button button-primary" href="/request-pilot">
         Request pilot access
       </a>
     </header>

@@ -77,7 +77,7 @@ function getJobTitle(jobId: string) {
 }
 
 function getReportPath(report?: CandidateReport) {
-  return report ? "/reports/candidate-evidence" : "/jobs/frontend-developer/candidates";
+  return report ? `/reports/${report.reportId}` : "/jobs/frontend-developer/candidates";
 }
 
 export function getDashboardMetrics(): DashboardMetric[] {

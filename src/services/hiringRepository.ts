@@ -1,8 +1,20 @@
 import { applications, candidates, jobs } from "../data/mockHiringData";
-import type { Candidate, CandidateApplication, DashboardViewModel, EvidenceReport, JobRole } from "../types/hiring";
+import type {
+  BulkUploadWorkspaceViewModel,
+  Candidate,
+  CandidateApplication,
+  DashboardViewModel,
+  EvidenceReport,
+  JobCandidateListViewModel,
+  JobRole
+} from "../types/hiring";
 import { requireCompanyId } from "./companyContextService";
 import { getActiveCompanyContext, type CompanyContext } from "./companyContextService";
-import { getDashboardViewModel } from "./mockSelectors";
+import {
+  getBulkUploadWorkspace as getSeedBulkUploadWorkspace,
+  getDashboardViewModel,
+  getJobCandidateList as getSeedJobCandidateList
+} from "./mockSelectors";
 import { getCandidateEvidenceReport, saveHumanReviewDecision, type SaveHumanReviewDecisionInput, type SaveHumanReviewDecisionResult } from "./reportService";
 import { createHiringSupabaseClient } from "./supabaseClient";
 import { createSupabaseHiringRepository } from "./supabaseHiringRepository";
@@ -23,11 +35,13 @@ export type HiringRepository = {
 export type AsyncHiringRepository = {
   source: RepositorySource;
   getActiveCompanyContext: () => Promise<CompanyContext>;
-  getDashboardData: (companyId: string) => Promise<DashboardViewModel>;
+  getDashboardData: (companyId: string, activeUserId?: string) => Promise<DashboardViewModel>;
   getJobById: (companyId: string, jobId: string) => Promise<JobRole | undefined>;
   getCandidateById: (companyId: string, candidateId: string) => Promise<Candidate | undefined>;
   getApplicationsForCandidate: (companyId: string, candidateId: string) => Promise<CandidateApplication[]>;
   getReportById: (companyId: string, reportId: string) => Promise<EvidenceReport | undefined>;
+  getJobCandidateList: (companyId: string, jobId: string) => Promise<JobCandidateListViewModel | undefined>;
+  getBulkUploadWorkspace: (companyId: string, jobId: string) => Promise<BulkUploadWorkspaceViewModel | undefined>;
   saveHumanReviewDecision: (input: SaveHumanReviewDecisionInput) => Promise<SaveHumanReviewDecisionResult>;
 };
 
@@ -86,6 +100,14 @@ const seedAsyncHiringRepository: AsyncHiringRepository = {
   },
   async getReportById(companyId: string, reportId: string) {
     return getReportById(companyId, reportId);
+  },
+  async getJobCandidateList(companyId: string, jobId: string) {
+    requireCompanyId(companyId);
+    return getSeedJobCandidateList(jobId);
+  },
+  async getBulkUploadWorkspace(companyId: string, jobId: string) {
+    requireCompanyId(companyId);
+    return getSeedBulkUploadWorkspace(jobId);
   },
   async saveHumanReviewDecision(input: SaveHumanReviewDecisionInput) {
     return saveHumanReviewDecision(input);

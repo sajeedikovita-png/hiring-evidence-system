@@ -5,13 +5,21 @@ import { validateHumanReviewDecision, type SaveHumanReviewDecisionInput, type Sa
 import type {
   Application,
   AuditLogEntry,
+  BulkUploadBatch,
+  BulkUploadFile,
+  BulkUploadWorkspaceViewModel,
   Candidate,
   DashboardMetric,
   DashboardViewModel,
+  EvidenceLevel,
+  EvidenceReportStatus,
   EvidenceItem,
   EvidenceReport,
   FairnessCheck,
+  JobCandidateListViewModel,
+  JobCandidateRow,
   JobRole,
+  ParsingStatus,
   ReviewDecision,
   StatusBadge,
   SummaryMetric,
@@ -147,13 +155,156 @@ function formatDateLabel(value: string) {
   }).format(date);
 }
 
+function getToneForEvidence(label: string): StatusBadge["tone"] {
+  if (label === "Strong evidence" || label === "Evidence report ready" || label === "Report ready") return "success";
+  if (label === "Good evidence, verification needed" || label === "Needs verification" || label === "Needs manual review") return "warning";
+  if (label === "Report failed" || label === "Failed" || label === "Missing key evidence") return "danger";
+  return "info";
+}
+
+function isUuid(value: string) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+}
+
+function mapRouteJobTitle(jobId: string) {
+  return jobId === "job-frontend-developer" ? "Frontend Developer" : jobId;
+}
+
+function getCandidateListRoutePath() {
+  return "/jobs/frontend-developer/candidates";
+}
+
+function getCandidateUploadRoutePath() {
+  return "/jobs/frontend-developer/candidates/upload";
+}
+
+function mapUploadStatus(status: string): BulkUploadFile["status"] {
+  if (status === "failed") return "Failed";
+  if (status === "manual_review_required") return "Needs manual review";
+  return "Uploaded";
+}
+
+function mapParsingStatusLabel(status: string): ParsingStatus {
+  if (status === "parsed") return "Parsed";
+  if (status === "parsing") return "Parsing";
+  if (status === "failed") return "Failed";
+  if (status === "manual_review_required") return "Needs manual review";
+  return "Queued";
+}
+
+function getEvidenceReportStatus(application: DbRecord | undefined, document: DbRecord | undefined, report: DbRecord | undefined): EvidenceReportStatus {
+  if (asString(application?.status) === "failed" || asString(document?.upload_status) === "failed") return "Failed";
+  if (asString(application?.status) === "needs_review" || asString(document?.parsing_status) === "manual_review_required") {
+    return "Needs manual review";
+  }
+  if (report) return "Report ready";
+  return "Report generating";
+}
+
+function getEvidenceLevel(application: DbRecord, document: DbRecord | undefined, report: DbRecord | undefined): EvidenceLevel {
+  const evidenceReportStatus = getEvidenceReportStatus(application, document, report);
+
+  if (evidenceReportStatus === "Failed") return "Report failed";
+  if (evidenceReportStatus === "Needs manual review") return "Needs human review";
+  if (evidenceReportStatus === "Report ready") return "Good evidence, verification needed";
+  return "Missing key evidence";
+}
+
+function formatEvidenceReportStatus(status: EvidenceReportStatus) {
+  return status === "Failed" ? "Report failed" : status;
+}
+
+function getReviewStatus(evidenceLevel: EvidenceLevel): StatusBadge {
+  if (evidenceLevel === "Report failed") return { label: "Report failed", tone: "danger" };
+  if (evidenceLevel === "Missing key evidence") return { label: "Needs verification", tone: "warning" };
+  return { label: "Human review required", tone: "info" };
+}
+
+function mapBulkUploadFile(row: DbRecord, application: DbRecord | undefined, report: DbRecord | undefined, batchId: string): BulkUploadFile {
+  const evidenceReportStatus = getEvidenceReportStatus(application, row, report);
+
+  return {
+    id: asString(row.id),
+    batchId,
+    fileName: asString(row.file_name),
+    fileUrl: asString(row.storage_path),
+    status: mapUploadStatus(asString(row.upload_status)),
+    errorMessage: typeof row.error_message === "string" ? row.error_message : undefined,
+    candidateId: asString(row.candidate_id),
+    applicationId: asString(row.application_id),
+    parsingStatus: mapParsingStatusLabel(asString(row.parsing_status)),
+    evidenceReportStatus,
+    reportPath: report ? `/reports/${asString(report.public_report_code, asString(report.id))}` : undefined,
+    createdAt: asString(row.created_at)
+  };
+}
+
+function deriveBatchStatus(files: BulkUploadFile[]): BulkUploadBatch["status"] {
+  if (files.some((file) => file.status === "Failed" || file.evidenceReportStatus === "Failed")) return "Failed";
+  if (files.some((file) => file.status === "Needs manual review" || file.evidenceReportStatus === "Needs manual review")) {
+    return "Needs manual review";
+  }
+  if (files.some((file) => file.evidenceReportStatus === "Report generating")) return "Report generating";
+  if (files.every((file) => file.evidenceReportStatus === "Report ready")) return "Report ready";
+  return "Uploaded";
+}
+
 function reportLookupColumn(reportId: string) {
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(reportId)
-    ? "id"
-    : "public_report_code";
+  return isUuid(reportId) ? "id" : "public_report_code";
+}
+
+export function pickActiveReviewerName(profileRows: DbRecord[], activeUserId: string | undefined, fallback: string) {
+  const activeProfile = activeUserId ? profileRows.find((profile) => asString(profile.user_id) === activeUserId) : undefined;
+  return asString(activeProfile?.display_name, asString(profileRows[0]?.display_name, fallback));
 }
 
 export function createSupabaseHiringRepository(client: SupabaseClient): AsyncHiringRepository {
+  async function getJobRowForRoute(companyId: string, jobId: string): Promise<DbRecord | undefined> {
+    const query = client.from("job_roles").select("*").eq("company_id", companyId).limit(1);
+    const { data, error } = await (isUuid(jobId) ? query.eq("id", jobId) : query.eq("title", mapRouteJobTitle(jobId))).maybeSingle();
+    assertNoSupabaseError(error, "Unable to read job role");
+    return data ? (data as DbRecord) : undefined;
+  }
+
+  async function readJobWorkspaceRows(companyId: string, jobId: string) {
+    const job = await getJobRowForRoute(companyId, jobId);
+    if (!job) return undefined;
+
+    const mappedJob = mapJobRole(job);
+    const { data: applicationData, error: applicationError } = await client
+      .from("candidate_applications")
+      .select("*")
+      .eq("company_id", companyId)
+      .eq("job_id", mappedJob.id);
+    assertNoSupabaseError(applicationError, "Unable to read candidate applications");
+
+    const applicationRows = asArray<DbRecord>(applicationData);
+    const candidateIds = Array.from(new Set(applicationRows.map((application) => asString(application.candidate_id)).filter(Boolean)));
+    const applicationIds = Array.from(new Set(applicationRows.map((application) => asString(application.id)).filter(Boolean)));
+
+    const [candidateResult, documentResult, reportResult] = await Promise.all([
+      candidateIds.length > 0
+        ? client.from("candidates").select("*").eq("company_id", companyId).in("id", candidateIds)
+        : Promise.resolve({ data: [], error: null }),
+      applicationIds.length > 0
+        ? client.from("uploaded_documents").select("*").eq("company_id", companyId).in("application_id", applicationIds)
+        : Promise.resolve({ data: [], error: null }),
+      client.from("evidence_reports").select("*").eq("company_id", companyId).eq("job_id", mappedJob.id)
+    ]);
+
+    for (const result of [candidateResult, documentResult, reportResult]) {
+      assertNoSupabaseError(result.error, "Unable to assemble job candidate workspace");
+    }
+
+    return {
+      job: mappedJob,
+      applicationRows,
+      candidateRows: asArray<DbRecord>(candidateResult.data),
+      documentRows: asArray<DbRecord>(documentResult.data),
+      reportRows: asArray<DbRecord>(reportResult.data)
+    };
+  }
+
   return {
     source: "supabase",
 
@@ -185,7 +336,7 @@ export function createSupabaseHiringRepository(client: SupabaseClient): AsyncHir
       };
     },
 
-    async getDashboardData(companyId: string): Promise<DashboardViewModel> {
+    async getDashboardData(companyId: string, activeUserId?: string): Promise<DashboardViewModel> {
       const [jobsResult, applicationsResult, reportsResult, decisionsResult, candidatesResult, profilesResult] = await Promise.all([
         client.from("job_roles").select("*").eq("company_id", companyId),
         client.from("candidate_applications").select("*").eq("company_id", companyId),
@@ -235,7 +386,7 @@ export function createSupabaseHiringRepository(client: SupabaseClient): AsyncHir
       return {
         metrics,
         introCount: reviewableApplications.length,
-        activeReviewerName: asString(profileRows[0]?.display_name, "Recruiter"),
+        activeReviewerName: pickActiveReviewerName(profileRows, activeUserId, "Recruiter"),
         reviewQueue: reviewableApplications.map((application) => {
           const mappedApplication = mapApplication(application);
           const report = reportByApplicationId.get(mappedApplication.id);
@@ -265,8 +416,8 @@ export function createSupabaseHiringRepository(client: SupabaseClient): AsyncHir
                 ? { label: `${jobReports.length} reports ready`, tone: "success" }
                 : { label: "Needs verification", tone: "warning" },
             lastUpdated: formatDateLabel(mappedJob.updatedAt),
-            candidateListPath: "/dashboard",
-            uploadPath: "/dashboard"
+            candidateListPath: getCandidateListRoutePath(),
+            uploadPath: getCandidateUploadRoutePath()
           };
         })
       };
@@ -292,6 +443,114 @@ export function createSupabaseHiringRepository(client: SupabaseClient): AsyncHir
         .eq("candidate_id", candidateId);
       assertNoSupabaseError(error, "Unable to read candidate applications");
       return asArray<DbRecord>(data).map(mapApplication);
+    },
+
+    async getJobCandidateList(companyId: string, jobId: string): Promise<JobCandidateListViewModel | undefined> {
+      const workspace = await readJobWorkspaceRows(companyId, jobId);
+      if (!workspace) return undefined;
+
+      const candidateById = new Map(workspace.candidateRows.map((candidate) => [asString(candidate.id), mapCandidate(candidate)]));
+      const applicationById = new Map(workspace.applicationRows.map((application) => [asString(application.id), application]));
+      const documentByApplicationId = new Map(workspace.documentRows.map((document) => [asString(document.application_id), document]));
+      const reportByApplicationId = new Map(workspace.reportRows.map((report) => [asString(report.application_id), report]));
+      const batchId = `job-${workspace.job.id}-read-state`;
+      const batchFiles = workspace.documentRows.map((document) =>
+        mapBulkUploadFile(document, applicationById.get(asString(document.application_id)), reportByApplicationId.get(asString(document.application_id)), batchId)
+      );
+
+      const rows: JobCandidateRow[] = workspace.applicationRows.map((application) => {
+        const mappedApplication = mapApplication(application);
+        const candidate = candidateById.get(mappedApplication.candidateId);
+        const document = documentByApplicationId.get(mappedApplication.id);
+        const report = reportByApplicationId.get(mappedApplication.id);
+        const evidenceLevel = getEvidenceLevel(application, document, report);
+        const evidenceReportStatus = getEvidenceReportStatus(application, document, report);
+
+        return {
+          id: mappedApplication.id,
+          candidateName: candidate?.name ?? "Candidate name not detected",
+          applicationId: mappedApplication.id,
+          evidenceLevel,
+          reportStatus: {
+            label: formatEvidenceReportStatus(evidenceReportStatus),
+            tone: getToneForEvidence(evidenceReportStatus)
+          },
+          reviewStatus: getReviewStatus(evidenceLevel),
+          uploadedFile: document ? asString(document.file_name, "Uploaded file") : "No document attached",
+          updatedAt: formatDateLabel(asString(application.updated_at, mappedApplication.appliedAt)),
+          reportPath: report ? `/reports/${asString(report.public_report_code, asString(report.id))}` : getCandidateListRoutePath()
+        };
+      });
+
+      return {
+        job: workspace.job,
+        batch: {
+          id: batchId,
+          jobId: workspace.job.id,
+          organizationId: companyId,
+          uploadedBy: "",
+          status: batchFiles.length > 0 ? deriveBatchStatus(batchFiles) : "Uploaded",
+          totalFiles: workspace.documentRows.length,
+          processedFiles: workspace.documentRows.filter((document) =>
+            ["parsed", "failed", "manual_review_required"].includes(asString(document.parsing_status))
+          ).length,
+          failedFiles: workspace.documentRows.filter((document) => asString(document.upload_status) === "failed").length,
+          createdAt: asString(workspace.documentRows[0]?.created_at, workspace.job.createdAt)
+        },
+        filters: [
+          "Strong evidence",
+          "Good evidence, verification needed",
+          "Missing key evidence",
+          "Needs human review",
+          "Report failed"
+        ],
+        rows
+      };
+    },
+
+    async getBulkUploadWorkspace(companyId: string, jobId: string): Promise<BulkUploadWorkspaceViewModel | undefined> {
+      const workspace = await readJobWorkspaceRows(companyId, jobId);
+      if (!workspace) return undefined;
+
+      const applicationById = new Map(workspace.applicationRows.map((application) => [asString(application.id), application]));
+      const candidateById = new Map(workspace.candidateRows.map((candidate) => [asString(candidate.id), mapCandidate(candidate)]));
+      const reportByApplicationId = new Map(workspace.reportRows.map((report) => [asString(report.application_id), report]));
+      const batchId = `job-${workspace.job.id}-read-state`;
+      const files = workspace.documentRows.map((document) => {
+        const file = mapBulkUploadFile(
+          document,
+          applicationById.get(asString(document.application_id)),
+          reportByApplicationId.get(asString(document.application_id)),
+          batchId
+        );
+        const candidate = candidateById.get(asString(document.candidate_id));
+        return {
+          ...file,
+          candidateName: candidate?.name
+        };
+      });
+
+      return {
+        job: workspace.job,
+        batch: {
+          id: batchId,
+          jobId: workspace.job.id,
+          organizationId: companyId,
+          uploadedBy: "",
+          status: files.length > 0 ? deriveBatchStatus(files) : "Uploaded",
+          totalFiles: files.length,
+          processedFiles: files.filter((file) =>
+            ["Parsed", "Failed", "Needs manual review"].includes(file.parsingStatus)
+          ).length,
+          failedFiles: files.filter((file) => file.status === "Failed" || file.evidenceReportStatus === "Failed").length,
+          createdAt: files[0]?.createdAt ?? workspace.job.createdAt
+        },
+        files,
+        acceptedFileTypes: ["PDF", "DOCX"],
+        maxFileSizeMb: 10,
+        privacyConfirmationText:
+          "I confirm that my organisation has permission or a valid basis to upload and process these candidate resumes for this hiring review."
+      };
     },
 
     async getReportById(companyId: string, reportId: string): Promise<EvidenceReport | undefined> {

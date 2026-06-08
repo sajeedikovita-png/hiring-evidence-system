@@ -278,6 +278,7 @@ export type BulkUploadFile = {
   candidateName?: string;
   parsingStatus: ParsingStatus;
   evidenceReportStatus: EvidenceReportStatus;
+  reportPath?: string;
   createdAt: string;
 };
 

@@ -135,7 +135,7 @@ export function BulkUploadCandidatesPanel({ workspace = getBulkUploadWorkspace()
             errorMessage: file.errorMessage ? getSafeUploadErrorMessage(file) : "None",
             action:
               file.evidenceReportStatus === "Report ready" ? (
-                <a className="table-link" href="/reports/candidate-evidence">View report</a>
+                <a className="table-link" href={file.reportPath ?? "/reports/HER-2026-0521-AL"}>View report</a>
               ) : (
                 <span className="muted">Not ready</span>
               )

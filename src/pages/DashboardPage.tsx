@@ -29,7 +29,7 @@ export function DashboardPage() {
 
     repository
       .getActiveCompanyContext()
-      .then((context) => repository.getDashboardData(context.companyId))
+      .then((context) => repository.getDashboardData(context.companyId, context.userId))
       .then((nextDashboard) => {
         if (isMounted) {
           setDashboard(nextDashboard);
@@ -64,6 +64,7 @@ export function DashboardPage() {
         title="Evidence Ledger"
         subtitle="Review queue, evidence status, and decision sign-off work for hiring teams."
         primaryAction="New report"
+        reviewerName={companyContext.userName}
       >
         <main className="workspace-content">
           <DevelopmentConnectionStatusPanel status={connectionStatus} />
@@ -85,6 +86,7 @@ export function DashboardPage() {
       title="Evidence Ledger"
       subtitle="Review queue, evidence status, and decision sign-off work for hiring teams."
       primaryAction="New report"
+      reviewerName={dashboard.activeReviewerName}
     >
       <main className="workspace-content">
         <DevelopmentConnectionStatusPanel status={connectionStatus} />
@@ -94,7 +96,7 @@ export function DashboardPage() {
             <h2>{dashboard.introCount} candidate reports need recruiter review today.</h2>
             <p>Fairness checks are complete for current reports with no decision wording warnings.</p>
           </div>
-          <a className="button button-secondary" href="/reports/candidate-evidence">
+          <a className="button button-secondary" href={dashboard.reviewQueue[0]?.reportPath ?? "/dashboard"}>
             Open sample report
           </a>
           <a className="button button-primary" href="/jobs/frontend-developer/candidates/upload">

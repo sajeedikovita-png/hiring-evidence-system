@@ -90,6 +90,7 @@ export function CandidateEvidenceReportPage() {
         subtitle="The requested report is not available in this company workspace."
         primaryAction="Final decision"
         secondaryAction="Share report"
+        reviewerName={activeContext.userName}
       >
         <main className="workspace-content">
           <DevelopmentConnectionStatusPanel status={connectionStatus} />
@@ -130,6 +131,7 @@ export function CandidateEvidenceReportPage() {
       subtitle="Review job-related evidence, missing proof, fairness checks, and human decision notes."
       primaryAction="Final decision"
       secondaryAction="Share report"
+      reviewerName={activeContext.userName}
     >
       <main className="workspace-content">
         <DevelopmentConnectionStatusPanel status={connectionStatus} />

@@ -12,10 +12,12 @@ import { EmptyState } from "../components/ui/EmptyState";
 import { NoteTextArea } from "../components/ui/NoteTextArea";
 import { WarningCard } from "../components/ui/WarningCard";
 import { App, AppRoutes } from "../src/App";
+import { FairnessCheckCard } from "../src/components/report/FairnessCheckCard";
 import { applications, candidateReports, candidates, jobs, users } from "../src/data/mockHiringData";
 import { hiringSchemaTables } from "../src/data/schema";
 import { containsForbiddenHiringLanguage, forbiddenHiringPhrases } from "../src/services/compliance";
 import { getActiveCompanyContext } from "../src/services/companyContextService";
+import { getDemoTestLabViewModel } from "../src/services/demoTestLabService";
 import {
   getApplicationsForJob,
   getBulkUploadBatchByJobId,
@@ -28,6 +30,7 @@ import {
 } from "../src/services/mockSelectors";
 import { getCandidateEvidenceReport, validateHumanReviewDecision } from "../src/services/reportService";
 import { getDashboardData, getJobById, getReportById } from "../src/services/hiringRepository";
+import { submitPilotRequest, validatePilotRequest, type PilotRequestInput } from "../src/services/pilotRequestService";
 import {
   getUploadStateLabels,
   isAcceptedUploadFile,
@@ -68,6 +71,19 @@ const componentHtml = renderToStaticMarkup(
   </>
 );
 
+const fairnessWithMissingListHtml = renderToStaticMarkup(
+  <FairnessCheckCard
+    fairness={
+      {
+        status: "Fairness check passed",
+        protectedCharacteristicsStatus: "Protected characteristics not used",
+        decisionWordingWarning: "None",
+        reminder: "Human review reminder"
+      } as never
+    }
+  />
+);
+
 assert.match(componentHtml, /<button[^>]*>Create job<\/button>/);
 assert.match(componentHtml, /Candidate Evidence Report/);
 assert.match(componentHtml, /Needs verification/);
@@ -75,14 +91,18 @@ assert.match(componentHtml, /<caption>Evidence matrix<\/caption>/);
 assert.match(componentHtml, /No candidates yet/);
 assert.match(componentHtml, /Human review required/);
 assert.match(componentHtml, /Recruiter notes/);
+assert.match(fairnessWithMissingListHtml, /Protected characteristics not used/);
 
 const landingHtml = renderToStaticMarkup(<App path="/" />);
 const loginHtml = renderToStaticMarkup(<App path="/login" />);
+const requestPilotHtml = renderToStaticMarkup(<App path="/request-pilot" />);
+const demoPresentationHtml = renderToStaticMarkup(<App path="/demo-presentation" />);
+const demoTestLabHtml = renderToStaticMarkup(<App path="/demo-test-lab" />);
 const dashboardHtml = renderToStaticMarkup(<App path="/dashboard" />);
 const reportHtml = renderToStaticMarkup(<App path="/reports/candidate-evidence" />);
 const candidateListHtml = renderToStaticMarkup(<App path="/jobs/frontend-developer/candidates" />);
 const bulkUploadHtml = renderToStaticMarkup(<App path="/jobs/frontend-developer/candidates/upload" />);
-const combinedAppHtml = [landingHtml, loginHtml, dashboardHtml, reportHtml].join("\n");
+const combinedAppHtml = [landingHtml, loginHtml, requestPilotHtml, demoPresentationHtml, demoTestLabHtml, dashboardHtml, reportHtml].join("\n");
 const allAppHtml = [combinedAppHtml, candidateListHtml, bulkUploadHtml].join("\n");
 const routedDashboardHtml = renderToStaticMarkup(
   <MemoryRouter initialEntries={["/dashboard"]}>
@@ -202,10 +222,76 @@ assert.equal(validateHumanReviewDecision("Shortlist for interview", "").valid, f
 assert.equal(validateHumanReviewDecision("Hold for review", "Need to verify AWS deployment ownership.").valid, true);
 assert.equal(forbiddenHiringPhrases.includes("best candidate"), true);
 
+const demoTestLab = getDemoTestLabViewModel();
+assert.equal(demoTestLab.companyName, "Northstar Digital");
+assert.equal(demoTestLab.jobTitle, "Frontend Developer");
+assert.equal(demoTestLab.resumes.length, 60);
+assert.deepEqual(
+  demoTestLab.requiredCategories.filter((category) => !demoTestLab.categorySummaries.some((summary) => summary.category === category)),
+  []
+);
+assert.equal(demoTestLab.metrics.find((metric) => metric.label === "Synthetic resumes")?.value, "60");
+assert.equal(
+  Number(demoTestLab.metrics.find((metric) => metric.label === "Expected outcome match")?.value),
+  demoTestLab.resumes.filter((resume) => resume.actualEvidenceLevel === resume.expectedEvidenceLevel).length
+);
+assert.equal(demoTestLab.categorySummaries.reduce((total, summary) => total + summary.count, 0), 60);
+assert.equal(demoTestLab.resumes.some((resume) => resume.recommendedRecruiterAction === "Human review required"), true);
+
+const validPilotRequest: PilotRequestInput = {
+  companyName: "Northstar Digital",
+  workEmail: "pilot@northstar.example",
+  requesterRole: "Head of Talent",
+  hiringVolume: "6-10 roles this quarter",
+  firstRoleToReview: "Frontend Developer",
+  note: "We want to review evidence gaps before interview decisions."
+};
+const blankPilotRequest: PilotRequestInput = {
+  companyName: "",
+  workEmail: "not-an-email",
+  requesterRole: "",
+  hiringVolume: "",
+  firstRoleToReview: "",
+  note: ""
+};
+
+assert.equal(validatePilotRequest(validPilotRequest).valid, true);
+assert.equal(validatePilotRequest(blankPilotRequest).valid, false);
+assert.equal(validatePilotRequest(blankPilotRequest).errors.workEmail, "Enter a valid work email.");
+assert.equal(submitPilotRequest(validPilotRequest).status, "pending_contact");
+
 assert.match(landingHtml, /Hire with evidence, not guesswork\./);
 assert.match(landingHtml, /View sample report/);
 assert.match(landingHtml, /Request pilot access/);
 assert.match(landingHtml, /Human-led hiring/);
+assert.match(landingHtml, /href="\/request-pilot"[^>]*>Request pilot access/);
+assert.match(landingHtml, /href="\/demo-test-lab"[^>]*>Open demo test lab/);
+assert.match(landingHtml, /href="\/demo-presentation"[^>]*>Open demo slideshow/);
+
+assert.match(requestPilotHtml, /Request pilot access/);
+assert.match(requestPilotHtml, /Start a controlled pilot with one role/);
+assert.match(requestPilotHtml, /Company name/);
+assert.match(requestPilotHtml, /Work email/);
+assert.match(requestPilotHtml, /First role to review/);
+assert.match(requestPilotHtml, /Human review required/);
+assert.match(requestPilotHtml, /View sample report/);
+
+assert.match(demoTestLabHtml, /Demo Test Lab/);
+assert.match(demoTestLabHtml, /60 synthetic resumes/);
+assert.match(demoTestLabHtml, /Northstar Digital/);
+assert.match(demoTestLabHtml, /Frontend Developer/);
+assert.match(demoTestLabHtml, /Expected outcome match/);
+assert.match(demoTestLabHtml, /Strong frontend evidence/);
+assert.match(demoTestLabHtml, /Human review required/);
+assert.match(demoTestLabHtml, /This demo proves whether evidence grouping matches the controlled test set/);
+
+assert.match(demoPresentationHtml, /Pilot Demo Slideshow/);
+assert.match(demoPresentationHtml, /Show the product story in 6 clicks/);
+assert.match(demoPresentationHtml, /Practical demo path/);
+assert.match(demoPresentationHtml, /60 synthetic resumes/);
+assert.match(demoPresentationHtml, /Evidence found/);
+assert.match(demoPresentationHtml, /Open practical demo/);
+assert.match(demoPresentationHtml, /View sample evidence report/);
 
 assert.match(loginHtml, /Sign in/);
 assert.match(loginHtml, /Access candidate evidence reports/);
@@ -219,6 +305,7 @@ assert.match(dashboardHtml, /Reports completed/);
 assert.match(dashboardHtml, /Decisions needing sign-off/);
 assert.match(dashboardHtml, /Open report/);
 assert.match(dashboardHtml, /Upload candidates/);
+assert.match(dashboardHtml, /href="\/reports\/HER-2026-0521-AL"[^>]*>Open sample report/);
 
 assert.doesNotMatch(reportHtml, /Design system preview/i);
 assert.match(reportHtml, /Candidate Evidence Report/);
@@ -243,26 +330,15 @@ assert.match(reportHtml, /Export PDF/);
 assert.match(reportHtml, /Final decision must be based on job-related evidence and reviewed by a human/);
 assert.match(reportHtml, /AI-assisted analysis\. Human review is required before making any hiring decision\./);
 
-assert.match(candidateListHtml, /Grouped by evidence level/);
-assert.match(candidateListHtml, /Strong evidence/);
-assert.match(candidateListHtml, /Good evidence, verification needed/);
-assert.match(candidateListHtml, /Missing key evidence/);
-assert.match(candidateListHtml, /Needs human review/);
-assert.match(candidateListHtml, /Report failed/);
+assert.match(candidateListHtml, /Company workspace/);
+assert.match(candidateListHtml, /Loading company workspace/);
+assert.doesNotMatch(candidateListHtml, /Amanda Lee/);
 assert.match(candidateListHtml, /Upload candidates/);
 
-assert.match(bulkUploadHtml, /Bulk Upload Candidates/);
-assert.match(bulkUploadHtml, /Frontend Developer/);
-assert.match(bulkUploadHtml, /PDF, DOCX/);
-assert.match(
-  bulkUploadHtml,
-  /I confirm that my organisation has permission or a valid basis to upload and process these candidate resumes for this hiring review\./
-);
-assert.match(bulkUploadHtml, /Processing progress/);
-assert.match(bulkUploadHtml, /Uploaded files/);
-assert.match(bulkUploadHtml, /Candidate name if detected/);
-assert.match(bulkUploadHtml, /Evidence report status/);
-assert.match(bulkUploadHtml, /Unsupported file type/);
+assert.match(bulkUploadHtml, /Company workspace/);
+assert.match(bulkUploadHtml, /Loading company workspace/);
+assert.doesNotMatch(bulkUploadHtml, /Amanda Lee/);
+assert.match(bulkUploadHtml, /Upload Candidates/);
 assert.doesNotMatch(
   allAppHtml,
   /Consolidated Auditor Suggestion|Verified Match|Best candidate|Perfect match|AI selected|AI rejected|AI recommendation|Accept Path|Auto decision|Auto reject|Culture fit score|Personality score|Bias-free/i

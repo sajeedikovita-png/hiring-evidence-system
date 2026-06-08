@@ -1,5 +1,4 @@
 import React from "react";
-import { Button } from "../../components/ui/Button";
 import { PublicHeader } from "../components/layout/PublicHeader";
 import { SampleReportPreview } from "../components/landing/SampleReportPreview";
 import { getLandingFeatures } from "../services/hiringRepository";
@@ -30,7 +29,12 @@ export function LandingPage() {
               <a className="button button-primary" href="/reports/candidate-evidence">
                 View sample report
               </a>
-              <Button variant="secondary">Request pilot access</Button>
+              <a className="button button-secondary" href="/demo-presentation">
+                Open demo slideshow
+              </a>
+              <a className="button button-secondary" href="/request-pilot">
+                Request pilot access
+              </a>
             </div>
           </div>
           <SampleReportPreview />
@@ -83,6 +87,14 @@ export function LandingPage() {
             <p className="section-kicker">Sample report</p>
             <h2>A recruiter can see evidence, gaps, and verification questions quickly.</h2>
             <p className="muted">Every report includes the reminder: AI-assisted analysis. Human review is required before making any hiring decision.</p>
+            <div className="hero-actions">
+              <a className="button button-primary" href="/demo-presentation">
+                Open demo slideshow
+              </a>
+              <a className="button button-secondary" href="/demo-test-lab">
+                Open demo test lab
+              </a>
+            </div>
           </div>
           <SampleReportPreview />
         </section>
@@ -100,11 +112,17 @@ export function LandingPage() {
           <p className="section-kicker">Pilot access</p>
           <h2>Start with one role and one evidence review workflow.</h2>
           <div className="hero-actions">
-            <a className="button button-primary" href="/dashboard">
+            <a className="button button-primary" href="/request-pilot">
               Request pilot access
             </a>
             <a className="button button-secondary" href="/reports/candidate-evidence">
               View sample report
+            </a>
+            <a className="button button-secondary" href="/demo-presentation">
+              Open demo slideshow
+            </a>
+            <a className="button button-secondary" href="/demo-test-lab">
+              Open demo test lab
             </a>
           </div>
         </section>

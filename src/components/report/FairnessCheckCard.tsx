@@ -7,6 +7,8 @@ type FairnessCheckCardProps = {
 };
 
 export function FairnessCheckCard({ fairness }: FairnessCheckCardProps) {
+  const protectedCharacteristics = Array.isArray(fairness.protectedCharacteristics) ? fairness.protectedCharacteristics : [];
+
   return (
     <section className="workspace-card fairness-card">
       <div className="section-heading-row">
@@ -35,9 +37,11 @@ export function FairnessCheckCard({ fairness }: FairnessCheckCardProps) {
         <div className="protected-list-panel">
           <h3>Protected characteristics not used</h3>
           <ul className="protected-list">
-            {fairness.protectedCharacteristics.map((item) => (
-              <li key={item}>{item}</li>
-            ))}
+            {protectedCharacteristics.length > 0 ? (
+              protectedCharacteristics.map((item) => <li key={item}>{item}</li>)
+            ) : (
+              <li>Protected characteristics not used</li>
+            )}
           </ul>
         </div>
       </div>

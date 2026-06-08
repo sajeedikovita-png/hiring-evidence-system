@@ -39,6 +39,15 @@ for (const command of ["npm run typecheck", "npm run test", "npm run build", "np
 const appCodeFindings = findForbiddenPhrases(path.join(repoRoot, "src"));
 assert.deepEqual(appCodeFindings, [], "Forbidden hiring phrases must not appear in app code outside the compliance allowlist.");
 
+for (const pagePath of [
+  path.join(repoRoot, "src", "pages", "JobCandidateListPage.tsx"),
+  path.join(repoRoot, "src", "pages", "BulkUploadCandidatesPage.tsx")
+]) {
+  const pageSource = readFileSync(pagePath, "utf8");
+  assert.doesNotMatch(pageSource, /services\/mockSelectors/, `${path.relative(repoRoot, pagePath)} must load through repository services.`);
+  assert.match(pageSource, /getAsyncHiringRepository/, `${path.relative(repoRoot, pagePath)} must use the async hiring repository.`);
+}
+
 function findForbiddenPhrases(dir: string): string[] {
   const findings: string[] = [];
   for (const entry of readdirSync(dir)) {

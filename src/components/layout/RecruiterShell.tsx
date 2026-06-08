@@ -17,6 +17,7 @@ type RecruiterShellProps = {
   title: string;
   subtitle: string;
   children: ReactNode;
+  reviewerName?: string;
   primaryAction?: string;
   secondaryAction?: string;
 };
@@ -24,14 +25,22 @@ type RecruiterShellProps = {
 const navItems = [
   { id: "dashboard", label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { id: "jobs", label: "Jobs", href: "/dashboard", icon: BriefcaseBusiness },
-  { id: "candidates", label: "Candidates", href: "/reports/candidate-evidence", icon: UsersRound },
-  { id: "reports", label: "Reports", href: "/reports/candidate-evidence", icon: FileText },
+  { id: "candidates", label: "Candidates", href: "/jobs/frontend-developer/candidates", icon: UsersRound },
+  { id: "reports", label: "Reports", href: "/reports/HER-2026-0521-AL", icon: FileText },
   { id: "fairness", label: "Fairness checks", href: "/dashboard", icon: ShieldCheck },
   { id: "decisions", label: "Decisions", href: "/dashboard", icon: ClipboardCheck },
   { id: "settings", label: "Settings", href: "/dashboard", icon: Settings }
 ];
 
-export function RecruiterShell({ active, title, subtitle, children, primaryAction, secondaryAction }: RecruiterShellProps) {
+export function RecruiterShell({
+  active,
+  title,
+  subtitle,
+  children,
+  reviewerName = "Sarah Tan",
+  primaryAction,
+  secondaryAction
+}: RecruiterShellProps) {
   return (
     <div className="recruiter-shell">
       <aside className="recruiter-sidebar">
@@ -59,7 +68,7 @@ export function RecruiterShell({ active, title, subtitle, children, primaryActio
           </ul>
         </nav>
         <div className="reviewer-card">
-          <strong>Sarah Tan</strong>
+          <strong>{reviewerName}</strong>
           <span>Assigned reviewer</span>
           <small>Final decisions stay with the hiring team.</small>
         </div>
