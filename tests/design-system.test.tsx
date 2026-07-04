@@ -95,6 +95,7 @@ assert.match(fairnessWithMissingListHtml, /Protected characteristics not used/);
 
 const landingHtml = renderToStaticMarkup(<App path="/" />);
 const loginHtml = renderToStaticMarkup(<App path="/login" />);
+const setPasswordHtml = renderToStaticMarkup(<App path="/set-password" />);
 const requestPilotHtml = renderToStaticMarkup(<App path="/request-pilot" />);
 const demoPresentationHtml = renderToStaticMarkup(<App path="/demo-presentation" />);
 const demoTestLabHtml = renderToStaticMarkup(<App path="/demo-test-lab" />);
@@ -102,7 +103,16 @@ const dashboardHtml = renderToStaticMarkup(<App path="/dashboard" />);
 const reportHtml = renderToStaticMarkup(<App path="/reports/candidate-evidence" />);
 const candidateListHtml = renderToStaticMarkup(<App path="/jobs/frontend-developer/candidates" />);
 const bulkUploadHtml = renderToStaticMarkup(<App path="/jobs/frontend-developer/candidates/upload" />);
-const combinedAppHtml = [landingHtml, loginHtml, requestPilotHtml, demoPresentationHtml, demoTestLabHtml, dashboardHtml, reportHtml].join("\n");
+const combinedAppHtml = [
+  landingHtml,
+  loginHtml,
+  setPasswordHtml,
+  requestPilotHtml,
+  demoPresentationHtml,
+  demoTestLabHtml,
+  dashboardHtml,
+  reportHtml
+].join("\n");
 const allAppHtml = [combinedAppHtml, candidateListHtml, bulkUploadHtml].join("\n");
 const routedDashboardHtml = renderToStaticMarkup(
   <MemoryRouter initialEntries={["/dashboard"]}>
@@ -295,6 +305,8 @@ assert.match(demoPresentationHtml, /View sample evidence report/);
 
 assert.match(loginHtml, /Sign in/);
 assert.match(loginHtml, /Access candidate evidence reports/);
+assert.match(setPasswordHtml, /Set your password/);
+assert.match(setPasswordHtml, /Confirm password/);
 
 assert.match(dashboardHtml, /Evidence Ledger/);
 assert.match(routedDashboardHtml, /Evidence Ledger/);
