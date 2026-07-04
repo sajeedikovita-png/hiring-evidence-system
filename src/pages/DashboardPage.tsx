@@ -20,6 +20,7 @@ export function DashboardPage() {
     repository.source === "seed" ? getDashboardData(companyContext.companyId) : undefined
   );
   const [loadMessage, setLoadMessage] = useState("Loading company workspace.");
+  const [isAdmin, setIsAdmin] = useState(companyContext.role === "admin");
   const [connectionStatus, setConnectionStatus] = useState<DevelopmentConnectionStatus>(() =>
     getDevelopmentConnectionStatus({ repositorySource: repository.source })
   );
@@ -29,7 +30,10 @@ export function DashboardPage() {
 
     repository
       .getActiveCompanyContext()
-      .then((context) => repository.getDashboardData(context.companyId, context.userId))
+      .then((context) => {
+        setIsAdmin(context.role === "admin");
+        return repository.getDashboardData(context.companyId, context.userId);
+      })
       .then((nextDashboard) => {
         if (isMounted) {
           setDashboard(nextDashboard);
@@ -65,6 +69,7 @@ export function DashboardPage() {
         subtitle="Review queue, evidence status, and decision sign-off work for hiring teams."
         primaryAction="New report"
         reviewerName={companyContext.userName}
+        showAccessRequests={isAdmin}
       >
         <main className="workspace-content">
           <DevelopmentConnectionStatusPanel status={connectionStatus} />
@@ -87,6 +92,7 @@ export function DashboardPage() {
       subtitle="Review queue, evidence status, and decision sign-off work for hiring teams."
       primaryAction="New report"
       reviewerName={dashboard.activeReviewerName}
+      showAccessRequests={isAdmin}
     >
       <main className="workspace-content">
         <DevelopmentConnectionStatusPanel status={connectionStatus} />

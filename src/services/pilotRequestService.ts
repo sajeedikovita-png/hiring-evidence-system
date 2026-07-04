@@ -1,3 +1,5 @@
+import { createHiringSupabaseClient } from "./supabaseClient";
+
 export type PilotRequestInput = {
   companyName: string;
   workEmail: string;
@@ -14,10 +16,9 @@ export type PilotRequestValidationResult = {
   errors: PilotRequestErrors;
 };
 
-export type PilotRequestRecord = PilotRequestInput & {
+export type PilotRequestRecord = {
   id: string;
-  status: "pending_contact";
-  createdAt: string;
+  status: "pending";
 };
 
 export type PilotRequestSubmissionResult =
@@ -30,60 +31,26 @@ export type PilotRequestSubmissionResult =
       errors: PilotRequestErrors;
     };
 
-const pilotRequestStorageKey = "hiring-evidence-pilot-requests";
-
-type PilotRequestStorage = {
-  getItem: (key: string) => string | null;
-  setItem: (key: string, value: string) => void;
+type FunctionsClient = {
+  functions: {
+    invoke: (
+      name: string,
+      options: { body: PilotRequestInput }
+    ) => Promise<{
+      data: unknown;
+      error: { message?: string } | null;
+    }>;
+  };
 };
 
 function normalize(value: string) {
   return value.trim();
 }
 
-function isValidEmail(value: string) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
-}
-
-function getPilotRequestStorage(): PilotRequestStorage | undefined {
-  const storage = globalThis.localStorage as unknown;
-
-  if (
-    storage &&
-    typeof storage === "object" &&
-    "getItem" in storage &&
-    "setItem" in storage &&
-    typeof (storage as PilotRequestStorage).getItem === "function" &&
-    typeof (storage as PilotRequestStorage).setItem === "function"
-  ) {
-    return storage as PilotRequestStorage;
-  }
-
-  return undefined;
-}
-
-export function validatePilotRequest(input: PilotRequestInput): PilotRequestValidationResult {
-  const errors: PilotRequestErrors = {};
-
-  if (!normalize(input.companyName)) errors.companyName = "Enter a company name.";
-  if (!isValidEmail(normalize(input.workEmail))) errors.workEmail = "Enter a valid work email.";
-  if (!normalize(input.requesterRole)) errors.requesterRole = "Enter your role.";
-  if (!normalize(input.hiringVolume)) errors.hiringVolume = "Choose the hiring volume.";
-  if (!normalize(input.firstRoleToReview)) errors.firstRoleToReview = "Enter the first role to review.";
-
+function normalizePilotRequest(input: PilotRequestInput): PilotRequestInput {
   return {
-    valid: Object.keys(errors).length === 0,
-    errors
-  };
-}
-
-export function createPilotRequestRecord(input: PilotRequestInput, createdAt = new Date().toISOString()): PilotRequestRecord {
-  return {
-    id: `pilot-${createdAt.replace(/[^0-9]/g, "").slice(0, 14)}`,
-    status: "pending_contact",
-    createdAt,
     companyName: normalize(input.companyName),
-    workEmail: normalize(input.workEmail),
+    workEmail: normalize(input.workEmail).toLowerCase(),
     requesterRole: normalize(input.requesterRole),
     hiringVolume: normalize(input.hiringVolume),
     firstRoleToReview: normalize(input.firstRoleToReview),
@@ -91,22 +58,32 @@ export function createPilotRequestRecord(input: PilotRequestInput, createdAt = n
   };
 }
 
-export function readStoredPilotRequests(): PilotRequestRecord[] {
-  const storage = getPilotRequestStorage();
-  if (!storage) return [];
-
-  try {
-    const rawRequests = storage.getItem(pilotRequestStorageKey);
-    if (!rawRequests) return [];
-    const parsed = JSON.parse(rawRequests);
-    return Array.isArray(parsed) ? (parsed as PilotRequestRecord[]) : [];
-  } catch {
-    return [];
-  }
+function isValidEmail(value: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 }
 
-export function submitPilotRequest(input: PilotRequestInput): PilotRequestSubmissionResult {
-  const validation = validatePilotRequest(input);
+export function validatePilotRequest(input: PilotRequestInput): PilotRequestValidationResult {
+  const normalized = normalizePilotRequest(input);
+  const errors: PilotRequestErrors = {};
+
+  if (!normalized.companyName) errors.companyName = "Enter a company name.";
+  if (!isValidEmail(normalized.workEmail)) errors.workEmail = "Enter a valid work email.";
+  if (!normalized.requesterRole) errors.requesterRole = "Enter your role.";
+  if (!normalized.hiringVolume) errors.hiringVolume = "Choose the hiring volume.";
+  if (!normalized.firstRoleToReview) errors.firstRoleToReview = "Enter the first role to review.";
+
+  return {
+    valid: Object.keys(errors).length === 0,
+    errors
+  };
+}
+
+export async function submitPilotRequest(
+  input: PilotRequestInput,
+  client: FunctionsClient = createHiringSupabaseClient()
+): Promise<PilotRequestSubmissionResult> {
+  const normalized = normalizePilotRequest(input);
+  const validation = validatePilotRequest(normalized);
 
   if (!validation.valid) {
     return {
@@ -115,17 +92,36 @@ export function submitPilotRequest(input: PilotRequestInput): PilotRequestSubmis
     };
   }
 
-  const request = createPilotRequestRecord(input);
+  const { data, error } = await client.functions.invoke("request-access", {
+    body: normalized
+  });
 
-  const storage = getPilotRequestStorage();
+  if (error) {
+    throw new Error(error.message ?? "Unable to submit access request");
+  }
 
-  if (storage) {
-    const requests = [request, ...readStoredPilotRequests()];
-    storage.setItem(pilotRequestStorageKey, JSON.stringify(requests));
+  const response = data as {
+    requestId?: string;
+    status?: string;
+    errors?: PilotRequestErrors;
+  } | null;
+
+  if (response?.status === "validation_failed") {
+    return {
+      status: "validation_failed",
+      errors: response.errors ?? {}
+    };
+  }
+
+  if (!response?.requestId || response.status !== "pending") {
+    throw new Error("Access request was not confirmed by the server");
   }
 
   return {
     status: "pending_contact",
-    request
+    request: {
+      id: response.requestId,
+      status: "pending"
+    }
   };
 }

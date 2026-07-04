@@ -23,13 +23,15 @@ export function RequestPilotPage() {
   const [form, setForm] = useState<PilotRequestInput>(initialPilotRequest);
   const [errors, setErrors] = useState<PilotRequestErrors>({});
   const [submissionStatus, setSubmissionStatus] = useState<"idle" | "pending_contact">("idle");
+  const [submissionMessage, setSubmissionMessage] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   function updateField(field: keyof PilotRequestInput, value: string) {
     setForm((currentForm) => ({ ...currentForm, [field]: value }));
     setErrors((currentErrors) => ({ ...currentErrors, [field]: undefined }));
   }
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     const validation = validatePilotRequest(form);
@@ -39,16 +41,29 @@ export function RequestPilotPage() {
       return;
     }
 
-    const result = submitPilotRequest(form);
-    if (result.status === "validation_failed") {
-      setErrors(result.errors);
-      setSubmissionStatus("idle");
-      return;
-    }
+    setIsSubmitting(true);
+    setSubmissionMessage("Submitting for human review.");
 
-    setForm(initialPilotRequest);
-    setErrors({});
-    setSubmissionStatus("pending_contact");
+    try {
+      const result = await submitPilotRequest(form);
+      if (result.status === "validation_failed") {
+        setErrors(result.errors);
+        setSubmissionStatus("idle");
+        return;
+      }
+
+      setForm(initialPilotRequest);
+      setErrors({});
+      setSubmissionStatus("pending_contact");
+      setSubmissionMessage("");
+    } catch (error) {
+      setSubmissionStatus("idle");
+      setSubmissionMessage(
+        error instanceof Error ? error.message : "Unable to submit access request"
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
@@ -78,9 +93,14 @@ export function RequestPilotPage() {
 
             {submissionStatus === "pending_contact" ? (
               <div className="pilot-success" role="status">
-                <strong>Pilot request recorded.</strong>
-                <span>We will use these details to prepare a one-role evidence review workspace.</span>
+                <strong>Access request pending human review.</strong>
+                <span>An administrator must approve access before a login invitation is sent.</span>
               </div>
+            ) : null}
+            {submissionMessage ? (
+              <p className="login-footnote" role="status">
+                {submissionMessage}
+              </p>
             ) : null}
 
             <label>
@@ -154,7 +174,9 @@ export function RequestPilotPage() {
               />
             </label>
 
-            <Button type="submit">Request pilot access</Button>
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? "Submitting request" : "Request pilot access"}
+            </Button>
             <a className="button button-secondary" href="/reports/candidate-evidence">
               View sample report
             </a>

@@ -13,13 +13,14 @@ import UsersRound from "lucide-react/dist/esm/icons/users-round.js";
 import { Button } from "../../../components/ui/Button";
 
 type RecruiterShellProps = {
-  active: "dashboard" | "candidates" | "reports";
+  active: "dashboard" | "candidates" | "reports" | "access";
   title: string;
   subtitle: string;
   children: ReactNode;
   reviewerName?: string;
   primaryAction?: string;
   secondaryAction?: string;
+  showAccessRequests?: boolean;
 };
 
 const navItems = [
@@ -39,8 +40,21 @@ export function RecruiterShell({
   children,
   reviewerName = "Sarah Tan",
   primaryAction,
-  secondaryAction
+  secondaryAction,
+  showAccessRequests = false
 }: RecruiterShellProps) {
+  const visibleNavItems = showAccessRequests
+    ? [
+        ...navItems,
+        {
+          id: "access",
+          label: "Access requests",
+          href: "/admin/access-requests",
+          icon: UsersRound
+        }
+      ]
+    : navItems;
+
   return (
     <div className="recruiter-shell">
       <aside className="recruiter-sidebar">
@@ -53,7 +67,7 @@ export function RecruiterShell({
         </a>
         <nav aria-label="Recruiter navigation">
           <ul className="workspace-nav">
-            {navItems.map((item) => {
+            {visibleNavItems.map((item) => {
               const Icon = item.icon;
               const isActive = item.id === active;
               return (

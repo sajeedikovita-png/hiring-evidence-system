@@ -6,6 +6,7 @@ export type CompanyContext = {
   companyName: string;
   userId: string;
   userName: string;
+  role: "admin" | "recruiter" | "hiring_manager";
 };
 
 export function requireCompanyId(companyId: string): string {
@@ -25,6 +26,7 @@ export function getActiveCompanyContext(): CompanyContext {
     companyId: requireCompanyId(authContext.companyId),
     companyName: company?.name ?? "Development company workspace",
     userId: authContext.userId,
-    userName: user?.name ?? "Development recruiter"
+    userName: user?.name ?? "Development recruiter",
+    role: authContext.role
   };
 }

@@ -30,7 +30,7 @@ import {
 } from "../src/services/mockSelectors";
 import { getCandidateEvidenceReport, validateHumanReviewDecision } from "../src/services/reportService";
 import { getDashboardData, getJobById, getReportById } from "../src/services/hiringRepository";
-import { submitPilotRequest, validatePilotRequest, type PilotRequestInput } from "../src/services/pilotRequestService";
+import { validatePilotRequest, type PilotRequestInput } from "../src/services/pilotRequestService";
 import {
   getUploadStateLabels,
   isAcceptedUploadFile,
@@ -96,6 +96,7 @@ assert.match(fairnessWithMissingListHtml, /Protected characteristics not used/);
 const landingHtml = renderToStaticMarkup(<App path="/" />);
 const loginHtml = renderToStaticMarkup(<App path="/login" />);
 const setPasswordHtml = renderToStaticMarkup(<App path="/set-password" />);
+const adminAccessHtml = renderToStaticMarkup(<App path="/admin/access-requests" />);
 const requestPilotHtml = renderToStaticMarkup(<App path="/request-pilot" />);
 const demoPresentationHtml = renderToStaticMarkup(<App path="/demo-presentation" />);
 const demoTestLabHtml = renderToStaticMarkup(<App path="/demo-test-lab" />);
@@ -107,6 +108,7 @@ const combinedAppHtml = [
   landingHtml,
   loginHtml,
   setPasswordHtml,
+  adminAccessHtml,
   requestPilotHtml,
   demoPresentationHtml,
   demoTestLabHtml,
@@ -268,7 +270,6 @@ const blankPilotRequest: PilotRequestInput = {
 assert.equal(validatePilotRequest(validPilotRequest).valid, true);
 assert.equal(validatePilotRequest(blankPilotRequest).valid, false);
 assert.equal(validatePilotRequest(blankPilotRequest).errors.workEmail, "Enter a valid work email.");
-assert.equal(submitPilotRequest(validPilotRequest).status, "pending_contact");
 
 assert.match(landingHtml, /Hire with evidence, not guesswork\./);
 assert.match(landingHtml, /View sample report/);
@@ -307,6 +308,8 @@ assert.match(loginHtml, /Sign in/);
 assert.match(loginHtml, /Access candidate evidence reports/);
 assert.match(setPasswordHtml, /Set your password/);
 assert.match(setPasswordHtml, /Confirm password/);
+assert.match(adminAccessHtml, /Access requests/);
+assert.match(adminAccessHtml, /Human administrator approval required/);
 
 assert.match(dashboardHtml, /Evidence Ledger/);
 assert.match(routedDashboardHtml, /Evidence Ledger/);
