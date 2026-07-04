@@ -28,6 +28,29 @@ Production foundation over temporary seed data.
 
 Mock data is development scaffolding only. The final goal is a real working B2B recruiter/company web app that can be marketed and used by real companies.
 
+## July 2026 Access Workflow Update
+
+Implemented:
+
+- Existing-company owner invitation and active admin profile linkage
+- Supabase-backed access request records with admin-only read/update policies
+- Public request capture through a server-side Edge Function
+- Server-side admin approval and Auth invitation through a protected Edge Function
+- Server-side rejection and audit recording
+- Administrator access-request page
+- Invitation password setup page
+- Accurate pending-human-review confirmation copy
+
+Security boundary:
+
+- The browser never creates Supabase Auth users.
+- The Supabase service-role key is referenced only by server-side Edge Function code.
+- Company creation is not part of access approval; an administrator must choose an existing company.
+
+Current blocker:
+
+- The owner invitation has been sent but has not yet been completed. The real dashboard, report, decision save, and audit write remain unverified until the owner sets a password and signs in.
+
 ## Current Completed Work
 
 - Planning docs created
