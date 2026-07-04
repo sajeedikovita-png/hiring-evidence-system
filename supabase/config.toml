@@ -1,0 +1,10 @@
+project_id = "hiring-evidence-system"
+
+[functions.request-access]
+verify_jwt = false
+
+[functions.approve-access-request]
+verify_jwt = true
+
+[functions.reject-access-request]
+verify_jwt = true
