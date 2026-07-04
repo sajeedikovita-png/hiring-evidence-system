@@ -3,6 +3,7 @@ dist/
 .next/
 .playwright-mcp/
 .playwright-cli/
+.worktrees/
 supabase/.temp/
 .env.local
 .DS_Store
