@@ -73,6 +73,13 @@ export function isActiveAdminProfile(profile: {
   return profile.role === "admin" && profile.status === "active";
 }
 
+export function canAdminManageCompany(
+  adminCompanyId: string,
+  targetCompanyId: string
+): boolean {
+  return Boolean(adminCompanyId) && adminCompanyId === targetCompanyId;
+}
+
 export function buildApprovalResponse(input: ApprovalResponseInput) {
   return {
     requestId: input.requestId,

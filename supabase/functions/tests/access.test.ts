@@ -1,5 +1,6 @@
 import {
   buildApprovalResponse,
+  canAdminManageCompany,
   isActiveAdminProfile,
   normalizeAccessRequestInput,
   parseApprovedRole,
@@ -60,6 +61,17 @@ Deno.test("authorizes only an active admin profile", () => {
   assert(
     !isActiveAdminProfile({ role: "admin", status: "disabled" }),
     "disabled admins should not be authorized"
+  );
+});
+
+Deno.test("allows an admin to provision only their own company", () => {
+  assert(
+    canAdminManageCompany("company-northstar", "company-northstar"),
+    "matching company membership should be allowed"
+  );
+  assert(
+    !canAdminManageCompany("company-northstar", "company-rival"),
+    "cross-company provisioning should be rejected"
   );
 });
 

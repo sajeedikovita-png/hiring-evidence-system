@@ -1,5 +1,6 @@
 import {
   buildApprovalResponse,
+  canAdminManageCompany,
   displayNameFromEmail,
   parseApprovedRole
 } from "../_shared/access.ts";
@@ -46,6 +47,10 @@ Deno.serve(async (request: Request) => {
 
   if (!requestId || !companyId || !approvedRole) {
     return errorResponse("Request, company, and approved role are required", 400);
+  }
+
+  if (!canAdminManageCompany(reviewingAdmin.company_id, companyId)) {
+    return errorResponse("Admin permission required for this company", 403);
   }
 
   const { data: accessRequest, error: requestError } = await adminClient
