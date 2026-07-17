@@ -14,8 +14,10 @@ import { jobCriteria, jobs, organizations } from "../data/mockHiringData";
 import type {
   BulkUploadFile,
   EvidenceItem,
+  EvidenceLevel,
   EvidenceReport,
   FairnessCheck,
+  JobCandidateRow,
   ReviewDecision,
   StatusBadge,
   SummaryMetric
@@ -428,32 +430,93 @@ export function generateDemoEvidenceReport(fileName: string, fallbackJobId: stri
   };
 }
 
-// --- sessionStorage-backed store so the /reports route can open generated reports ---
+// --- localStorage-backed store so uploaded demo reports survive a page refresh
+//     (the prospect's uploaded candidate stays in their own browser) ---
 
 const STORE_PREFIX = "demoReport:";
+const UPLOADED_INDEX_KEY = "demoUploadedCandidates";
 
-function hasSession(): boolean {
-  return typeof sessionStorage !== "undefined";
+function demoStore(): Storage | undefined {
+  if (typeof window !== "undefined" && window.localStorage) return window.localStorage;
+  return undefined;
+}
+
+function deriveEvidenceLevel(report: EvidenceReport): EvidenceLevel {
+  const confidences = report.requirementEvidence.map((item) => item.confidence);
+  if (confidences.length === 0) return "Needs human review";
+  const hasHigh = confidences.includes("High");
+  const hasWeak = confidences.some((confidence) => confidence === "Low" || confidence === "None");
+  if (report.status === "Evidence report ready" && confidences.every((confidence) => confidence === "High")) {
+    return "Strong evidence";
+  }
+  if (!hasHigh && hasWeak) return "Missing key evidence";
+  if (hasHigh && hasWeak) return "Good evidence, verification needed";
+  if (report.status === "Evidence report ready") return "Good evidence, verification needed";
+  return "Needs human review";
+}
+
+function uploadedRowFromReport(report: EvidenceReport): JobCandidateRow {
+  const ready = report.status === "Evidence report ready";
+  return {
+    id: `demo-row-${report.reportId}`,
+    candidateName: report.candidate.name,
+    applicationId: report.application.id,
+    evidenceLevel: deriveEvidenceLevel(report),
+    reportStatus: { label: report.status, tone: ready ? "success" : "warning" },
+    reviewStatus:
+      report.status === "Recruiter decision recorded"
+        ? { label: "Decision recorded", tone: "success" }
+        : { label: "Human review required", tone: "warning" },
+    uploadedFile: report.documentSources[0]?.fileName ?? "Uploaded résumé",
+    updatedAt: "Uploaded just now",
+    reportPath: `/reports/${report.reportId}`
+  };
+}
+
+type UploadedIndexEntry = { jobId: string; row: JobCandidateRow };
+
+function readUploadedIndex(store: Storage): UploadedIndexEntry[] {
+  try {
+    const parsed = JSON.parse(store.getItem(UPLOADED_INDEX_KEY) ?? "[]");
+    return Array.isArray(parsed) ? (parsed as UploadedIndexEntry[]) : [];
+  } catch {
+    return [];
+  }
 }
 
 export function saveDemoReport(report: EvidenceReport): void {
-  if (!hasSession()) return;
+  const store = demoStore();
+  if (!store) return;
   try {
-    sessionStorage.setItem(STORE_PREFIX + report.reportId, JSON.stringify(report));
+    store.setItem(STORE_PREFIX + report.reportId, JSON.stringify(report));
+    const rowId = `demo-row-${report.reportId}`;
+    const index = readUploadedIndex(store).filter((entry) => entry.row.id !== rowId);
+    index.unshift({ jobId: report.jobRole.id, row: uploadedRowFromReport(report) });
+    store.setItem(UPLOADED_INDEX_KEY, JSON.stringify(index.slice(0, 100)));
   } catch {
     // storage full / unavailable — demo reports are best-effort only.
   }
 }
 
 export function getDemoReport(reportId: string): EvidenceReport | undefined {
-  if (!hasSession()) return undefined;
-  const raw = sessionStorage.getItem(STORE_PREFIX + reportId);
+  const store = demoStore();
+  if (!store) return undefined;
+  const raw = store.getItem(STORE_PREFIX + reportId);
   if (!raw) return undefined;
   try {
     return JSON.parse(raw) as EvidenceReport;
   } catch {
     return undefined;
   }
+}
+
+/** Uploaded demo candidates for a job, newest first, so the candidate list can show them. */
+export function listDemoUploadedRows(jobId: string): JobCandidateRow[] {
+  const store = demoStore();
+  if (!store) return [];
+  return readUploadedIndex(store)
+    .filter((entry) => entry.jobId === jobId)
+    .map((entry) => entry.row);
 }
 
 export type SaveDemoDecisionResult = { valid: boolean; message?: string; report?: EvidenceReport };

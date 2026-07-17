@@ -95,7 +95,7 @@ export function getDashboardMetrics(): DashboardMetric[] {
   const decisionsNeedingSignOff = reviewDecisions.filter((decision) => decision.status === "draft").length;
 
   return [
-    { label: "Active jobs", value: String(activeJobs), detail: `${activeJobs} open roles in this mock workspace` },
+    { label: "Active jobs", value: String(activeJobs), detail: `${activeJobs} open roles in this workspace` },
     {
       label: "Candidates waiting for review",
       value: String(candidatesWaitingForReview),

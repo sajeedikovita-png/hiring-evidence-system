@@ -10,6 +10,7 @@ import {
   getDevelopmentConnectionStatus,
   type DevelopmentConnectionStatus
 } from "../services/connectionStatusService";
+import { listDemoUploadedRows } from "../services/demoUploadEngine";
 import { getAsyncHiringRepository, getJobIdBySlug } from "../services/hiringRepository";
 import type { JobCandidateListViewModel } from "../types/hiring";
 
@@ -38,8 +39,16 @@ export function JobCandidateListPage() {
       .then((nextCandidateList) => {
         if (!isMounted) return;
 
-        setCandidateList(nextCandidateList);
-        if (nextCandidateList && repository.source === "supabase") {
+        // Show résumés the user uploaded this session (persisted in the browser)
+        // at the top of the list so the demo behaves like a real pipeline.
+        const uploadedRows = listDemoUploadedRows(jobId);
+        const mergedCandidateList =
+          nextCandidateList && uploadedRows.length > 0
+            ? { ...nextCandidateList, rows: [...uploadedRows, ...nextCandidateList.rows] }
+            : nextCandidateList;
+
+        setCandidateList(mergedCandidateList);
+        if (mergedCandidateList && repository.source === "supabase") {
           setConnectionStatus(getDevelopmentConnectionStatus({ repositorySource: repository.source, issue: "ready" }));
         }
         if (!nextCandidateList) {

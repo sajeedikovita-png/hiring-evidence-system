@@ -137,7 +137,7 @@ export function getDevelopmentConnectionStatus(input: ConnectionStatusInput): De
     detail:
       input.repositorySource === "supabase"
         ? "Supabase env vars are configured. Confirm auth, company context, dashboard, report, decision, and audit writes."
-        : "Seed data is active because Supabase is not configured for this browser session.",
+        : "Seed demo data is active. Sign in to load your company's live data.",
     tone: input.repositorySource === "supabase" ? "success" : "info"
   };
 }
