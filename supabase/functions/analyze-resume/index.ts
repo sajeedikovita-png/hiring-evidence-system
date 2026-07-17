@@ -173,9 +173,11 @@ Deno.serve(async (req) => {
 
   const resumeText = (body.resumeText ?? "").trim();
   const jobTitle = (body.job?.title ?? "").trim();
-  const criteria = Array.isArray(body.job?.criteria)
+  // Cap the number of criteria so a single request can't balloon the prompt.
+  const criteria = (Array.isArray(body.job?.criteria)
     ? body.job!.criteria!.filter((c) => c && typeof c.id === "string" && typeof c.label === "string")
-    : [];
+    : []
+  ).slice(0, 12);
 
   if (!resumeText) return bad(400, "resumeText is required");
   if (!jobTitle) return bad(400, "job.title is required");
@@ -195,6 +197,8 @@ Deno.serve(async (req) => {
       },
       body: JSON.stringify({
         model,
+        // Cap output so a single analysis has a bounded, predictable cost.
+        max_tokens: 1500,
         messages: [
           { role: "system", content: SYSTEM_PROMPT },
           { role: "user", content: userPrompt }
