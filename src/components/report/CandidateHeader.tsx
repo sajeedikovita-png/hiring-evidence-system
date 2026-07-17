@@ -27,8 +27,8 @@ export function CandidateHeader({ candidate }: CandidateHeaderProps) {
           </p>
         </div>
         <div className="status-cluster">
-          {candidate.statusBadges.map((badge) => (
-            <Badge key={badge.label} tone={badge.tone}>
+          {candidate.statusBadges.map((badge, index) => (
+            <Badge key={`${badge.label}-${index}`} tone={badge.tone}>
               {badge.label}
             </Badge>
           ))}

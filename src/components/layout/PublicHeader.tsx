@@ -1,23 +1,26 @@
 import React from "react";
+import { Check } from "lucide-react";
 
 export function PublicHeader() {
   return (
     <header className="public-header">
-      <a className="public-brand" href="/">
-        <span className="brand-mark">HE</span>
-        <span>Hiring Evidence System</span>
-      </a>
-      <nav className="public-nav" aria-label="Public navigation">
-        <a href="/#problem">Problem</a>
-        <a href="/#how-it-works">How it works</a>
-        <a href="/#sample-report">Sample report</a>
-        <a href="/demo-presentation">Slideshow</a>
-        <a href="/demo-test-lab">Demo lab</a>
-        <a href="/login">Login</a>
-      </nav>
-      <a className="button button-primary" href="/request-pilot">
-        Request pilot access
-      </a>
+      <div className="public-header-inner">
+        <a className="public-brand" href="/">
+          <span className="public-mark" aria-hidden="true">
+            <Check size={15} strokeWidth={2.6} />
+          </span>
+          <span>Hiring Evidence System</span>
+        </a>
+        <nav className="public-nav" aria-label="Public navigation">
+          <a href="/#problem">01 / Problem</a>
+          <a href="/#how">02 / Process</a>
+          <a href="/#report">03 / Report</a>
+          <a href="/#compliance">04 / Compliance</a>
+        </nav>
+        <a className="public-cta" href="/request-pilot">
+          Request pilot access
+        </a>
+      </div>
     </header>
   );
 }

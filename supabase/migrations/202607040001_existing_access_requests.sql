@@ -1,0 +1,3 @@
+-- Placeholder to align local migration history with the remote migration
+-- codex already applied (which created the initial access_requests table).
+-- No-op: the real definition lives in the next migration.

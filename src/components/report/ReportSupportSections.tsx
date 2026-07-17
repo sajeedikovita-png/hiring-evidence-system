@@ -1,4 +1,5 @@
-import React from "react";
+import React, { useState } from "react";
+import { Button } from "../../../components/ui/Button";
 import { NoteTextArea } from "../../../components/ui/NoteTextArea";
 import type { AuditLogEntry, UploadedDocument } from "../../types/hiring";
 
@@ -19,6 +20,16 @@ export function ReportSupportSections({
   documentSources = [],
   auditTrailPreview = []
 }: ReportSupportSectionsProps) {
+  const [notes, setNotes] = useState<string[]>(recruiterNotes);
+  const [draftNote, setDraftNote] = useState("");
+
+  function addNote() {
+    const trimmed = draftNote.trim();
+    if (!trimmed) return;
+    setNotes((current) => [...current, trimmed]);
+    setDraftNote("");
+  }
+
   return (
     <div className="support-grid">
       <section className="workspace-card">
@@ -46,16 +57,26 @@ export function ReportSupportSections({
           ))}
         </ol>
       </section>
-      <section className="workspace-card support-grid-wide">
+      <section className="workspace-card support-grid-wide" id="recruiter-notes">
         <p className="section-kicker">Recruiter decision notes</p>
         <div className="note-chip-row">
-          {recruiterNotes.map((note) => (
-            <span key={note}>{note}</span>
+          {notes.map((note, index) => (
+            <span key={`${note}-${index}`}>{note}</span>
           ))}
         </div>
-        <NoteTextArea label="Recruiter notes" placeholder="Add job-related evidence notes, interview questions, or verification reminders." />
+        <NoteTextArea
+          label="Recruiter notes"
+          placeholder="Add job-related evidence notes, interview questions, or verification reminders."
+          value={draftNote}
+          onChange={(event) => setDraftNote(event.currentTarget.value)}
+        />
+        <div className="note-actions">
+          <Button variant="secondary" onClick={addNote} disabled={!draftNote.trim()}>
+            Add note
+          </Button>
+        </div>
       </section>
-      <section className="workspace-card">
+      <section className="workspace-card" id="document-sources">
         <p className="section-kicker">Document sources</p>
         <h2>Uploaded evidence sources</h2>
         <ul className="evidence-list">

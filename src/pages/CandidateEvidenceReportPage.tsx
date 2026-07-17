@@ -19,6 +19,7 @@ import {
   type DevelopmentConnectionStatus
 } from "../services/connectionStatusService";
 import { getAsyncHiringRepository, getReportById } from "../services/hiringRepository";
+import { getDemoReport, isDemoReportId, saveDemoHumanReviewDecision } from "../services/demoUploadEngine";
 import type { CandidateProfile, EvidenceReport, ReviewDecision } from "../types/hiring";
 
 export function CandidateEvidenceReportPage() {
@@ -27,8 +28,10 @@ export function CandidateEvidenceReportPage() {
   const companyContext = getActiveCompanyContext();
   const [activeContext, setActiveContext] = useState<CompanyContext>(companyContext);
   const selectedReportId = reportId ?? "report-amanda-lee";
+  const isDemoReport = isDemoReportId(selectedReportId);
   const [evidenceReport, setEvidenceReport] = useState<EvidenceReport | undefined>(() =>
-    repository.source === "seed" ? getReportById(companyContext.companyId, selectedReportId) : undefined
+    (repository.source === "seed" ? getReportById(companyContext.companyId, selectedReportId) : undefined) ??
+    getDemoReport(selectedReportId)
   );
   const [connectionStatus, setConnectionStatus] = useState<DevelopmentConnectionStatus>(() =>
     getDevelopmentConnectionStatus({ repositorySource: repository.source })
@@ -47,11 +50,15 @@ export function CandidateEvidenceReportPage() {
       .then((nextReport) => {
         if (!isMounted) return;
 
-        setEvidenceReport(nextReport);
-        if (nextReport && repository.source === "supabase") {
+        // Fall back to the seeded sample (e.g. the public "candidate-evidence"
+        // report) so the marketing sample link keeps working in Supabase mode.
+        const resolved =
+          nextReport ?? getDemoReport(selectedReportId) ?? getReportById(companyContext.companyId, selectedReportId);
+        setEvidenceReport(resolved);
+        if (resolved && repository.source === "supabase") {
           setConnectionStatus(getDevelopmentConnectionStatus({ repositorySource: repository.source, issue: "ready" }));
         }
-        if (!nextReport) {
+        if (!resolved) {
           setReportLoadMessage("Report cannot load");
           setConnectionStatus(
             getDevelopmentConnectionStatus({
@@ -63,18 +70,27 @@ export function CandidateEvidenceReportPage() {
         }
       })
       .catch((error) => {
-        if (isMounted) {
-          const issue = classifyConnectionIssue(error, "report_read_failed");
-          setEvidenceReport(undefined);
-          setConnectionStatus(getDevelopmentConnectionStatus({ repositorySource: repository.source, issue, error }));
-          setReportLoadMessage(
-            issue === "auth_user_missing"
-              ? "Auth user missing"
-              : issue === "company_context_missing"
-                ? "Company context missing"
-                : "Report cannot load"
-          );
+        if (!isMounted) return;
+
+        // A logged-out visitor hitting the public sample link falls through here
+        // (no authenticated user); serve the demo/seeded report instead of an error.
+        const fallbackReport =
+          getDemoReport(selectedReportId) ?? getReportById(companyContext.companyId, selectedReportId);
+        if (fallbackReport) {
+          setEvidenceReport(fallbackReport);
+          return;
         }
+
+        const issue = classifyConnectionIssue(error, "report_read_failed");
+        setEvidenceReport(undefined);
+        setConnectionStatus(getDevelopmentConnectionStatus({ repositorySource: repository.source, issue, error }));
+        setReportLoadMessage(
+          issue === "auth_user_missing"
+            ? "Auth user missing"
+            : issue === "company_context_missing"
+              ? "Company context missing"
+              : "Report cannot load"
+        );
       });
 
     return () => {
@@ -88,8 +104,7 @@ export function CandidateEvidenceReportPage() {
         active="reports"
         title="Candidate Evidence Report"
         subtitle="The requested report is not available in this company workspace."
-        primaryAction="Final decision"
-        secondaryAction="Share report"
+        secondaryAction={{ label: "Back to dashboard", href: "/dashboard" }}
         reviewerName={activeContext.userName}
       >
         <main className="workspace-content">
@@ -102,6 +117,14 @@ export function CandidateEvidenceReportPage() {
       </RecruiterShell>
     );
   }
+
+  const statusBadges = ([
+    { label: "Evidence report ready", tone: "success" },
+    { label: evidenceReport.status, tone: evidenceReport.status === "Evidence report ready" ? "success" : "info" },
+    { label: "Decision pending", tone: "warning" }
+  ] as CandidateProfile["statusBadges"]).filter(
+    (badge, index, all) => all.findIndex((item) => item.label === badge.label) === index
+  );
 
   const candidateProfile: CandidateProfile = {
     name: evidenceReport.candidate.name,
@@ -117,11 +140,7 @@ export function CandidateEvidenceReportPage() {
     consentStatus: evidenceReport.application.consentId ? "Consent recorded" : "Consent missing",
     questionnaireStatus: "Completed",
     resumeLabel: evidenceReport.documentSources[0]?.fileName ?? "Resume not attached",
-    statusBadges: [
-      { label: "Evidence report ready", tone: "success" },
-      { label: evidenceReport.status, tone: evidenceReport.status === "Evidence report ready" ? "success" : "info" },
-      { label: "Decision pending", tone: "warning" }
-    ]
+    statusBadges
   };
 
   return (
@@ -129,12 +148,33 @@ export function CandidateEvidenceReportPage() {
       active="reports"
       title="Candidate Evidence Report"
       subtitle="Review job-related evidence, missing proof, fairness checks, and human decision notes."
-      primaryAction="Final decision"
-      secondaryAction="Share report"
+      primaryAction={{
+        label: "Final decision",
+        onClick: () => document.getElementById("human-decision")?.scrollIntoView({ behavior: "smooth", block: "start" })
+      }}
+      secondaryAction={{
+        label: "Share report",
+        onClick: () => {
+          void navigator.clipboard?.writeText(window.location.href);
+        }
+      }}
       reviewerName={activeContext.userName}
     >
       <main className="workspace-content">
         <DevelopmentConnectionStatusPanel status={connectionStatus} />
+        {isDemoReport ? (
+          evidenceReport.generatedAt.startsWith("AI") ? (
+            <WarningCard title="AI-generated preview">
+              This evidence report was generated by AI from your uploaded résumé to show the review workflow. It is held only for
+              this browser session and is not yet saved to your workspace.
+            </WarningCard>
+          ) : (
+            <WarningCard title="Demo preview report">
+              This report was generated from an uploaded sample file to show the review workflow. It is a scripted demo preview, not
+              real AI parsing of the document. It is stored only for this browser session.
+            </WarningCard>
+          )
+        ) : null}
         <CandidateHeader candidate={candidateProfile} />
 
         <section className="dashboard-metrics">
@@ -158,6 +198,7 @@ export function CandidateEvidenceReportPage() {
           <div className="report-main-column">
             <EvidenceMatrix rows={evidenceReport.requirementEvidence} />
             <ReportSupportSections
+              key={evidenceReport.id}
               missingEvidence={evidenceReport.missingEvidence}
               verificationNeeded={evidenceReport.verificationNeeded}
               interviewQuestions={evidenceReport.suggestedInterviewQuestions}
@@ -166,9 +207,24 @@ export function CandidateEvidenceReportPage() {
               auditTrailPreview={evidenceReport.auditTrailPreview}
             />
             <FairnessCheckCard fairness={evidenceReport.fairnessCheck} />
-            <HumanDecisionPanel
-              options={evidenceReport.humanDecision.options}
+            <div id="human-decision">
+              <HumanDecisionPanel
+                options={evidenceReport.humanDecision.options}
               onSaveDecision={async (decision: ReviewDecision["decision"], reason: string) => {
+                if (isDemoReport) {
+                  const demoResult = saveDemoHumanReviewDecision({
+                    reportId: evidenceReport.id,
+                    decision,
+                    reason,
+                    userId: activeContext.userId,
+                    timestamp: new Date().toISOString()
+                  });
+                  if (demoResult.valid && demoResult.report) {
+                    setEvidenceReport(demoResult.report);
+                  }
+                  return { valid: demoResult.valid, message: demoResult.message };
+                }
+
                 try {
                   const result = await repository.saveHumanReviewDecision({
                     companyId: activeContext.companyId,
@@ -200,10 +256,11 @@ export function CandidateEvidenceReportPage() {
                   return { valid: false, message: "Decision save failed" };
                 }
               }}
-            />
+              />
+            </div>
             <div className="report-export-row">
-              <p className="muted">PDF export is a front-end placeholder in this MVP phase.</p>
-              <Button variant="secondary">Export PDF</Button>
+              <p className="muted">Use your browser&rsquo;s print dialog to save this report as a PDF.</p>
+              <Button variant="secondary" onClick={() => window.print()}>Export PDF</Button>
             </div>
           </div>
         </div>

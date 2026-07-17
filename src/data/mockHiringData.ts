@@ -8,6 +8,7 @@ import type {
   CandidateDocument,
   CandidateReport,
   EvidenceItem,
+  FairnessCheck,
   Job,
   JobCriterion,
   Organization,
@@ -16,6 +17,31 @@ import type {
   ReviewDecision,
   User
 } from "../types/hiring";
+
+const standardFairness: FairnessCheck = {
+  status: "Fairness check passed",
+  protectedCharacteristicsStatus: "Protected characteristics not used",
+  decisionWordingWarning: "None",
+  reminder: "Human review reminder: verify the evidence and decision wording before saving a final outcome.",
+  protectedCharacteristics: [
+    "Age",
+    "Gender",
+    "Race",
+    "Religion",
+    "Marital status",
+    "Pregnancy or caregiving status",
+    "Disability or mental health status",
+    "Photo",
+    "Nationality unless job-relevant"
+  ]
+};
+
+const standardDecisionOptions: ReviewDecision["decision"][] = [
+  "Shortlist for interview",
+  "Hold for review",
+  "Not proceeding",
+  "Request more information"
+];
 
 export const organizations: Organization[] = [
   {
@@ -187,6 +213,50 @@ export const candidates: Candidate[] = [
     email: "elena@example.com",
     source: "application_link",
     createdAt: "2026-05-22T04:30:00.000Z"
+  },
+  {
+    id: "candidate-david-lim",
+    organizationId: "org-northstar",
+    name: "David Lim",
+    email: "david.lim@example.com",
+    source: "bulk_upload",
+    createdAt: "2026-05-22T05:00:00.000Z"
+  },
+  {
+    id: "candidate-hannah-cole",
+    organizationId: "org-northstar",
+    name: "Hannah Cole",
+    source: "bulk_upload",
+    createdAt: "2026-05-22T05:03:00.000Z"
+  },
+  {
+    id: "candidate-marcus-vance",
+    organizationId: "org-northstar",
+    name: "Marcus Vance",
+    source: "bulk_upload",
+    createdAt: "2026-05-22T05:06:00.000Z"
+  },
+  {
+    id: "candidate-nadia-hassan",
+    organizationId: "org-northstar",
+    name: "Nadia Hassan",
+    email: "nadia.hassan@example.com",
+    source: "bulk_upload",
+    createdAt: "2026-05-22T05:30:00.000Z"
+  },
+  {
+    id: "candidate-ben-carter",
+    organizationId: "org-northstar",
+    name: "Ben Carter",
+    source: "bulk_upload",
+    createdAt: "2026-05-22T05:33:00.000Z"
+  },
+  {
+    id: "candidate-sofia-ruiz",
+    organizationId: "org-northstar",
+    name: "Sofia Ruiz",
+    source: "bulk_upload",
+    createdAt: "2026-05-22T05:36:00.000Z"
   }
 ];
 
@@ -234,6 +304,54 @@ export const applications: Application[] = [
     status: "submitted",
     appliedAt: "2026-05-22T04:30:00.000Z",
     consentId: "consent-elena-csm"
+  },
+  {
+    id: "application-david-csm",
+    organizationId: "org-northstar",
+    jobId: "job-customer-success-manager",
+    candidateId: "candidate-david-lim",
+    status: "report_ready",
+    appliedAt: "2026-05-22T05:00:00.000Z"
+  },
+  {
+    id: "application-hannah-csm",
+    organizationId: "org-northstar",
+    jobId: "job-customer-success-manager",
+    candidateId: "candidate-hannah-cole",
+    status: "needs_review",
+    appliedAt: "2026-05-22T05:03:00.000Z"
+  },
+  {
+    id: "application-marcus-csm",
+    organizationId: "org-northstar",
+    jobId: "job-customer-success-manager",
+    candidateId: "candidate-marcus-vance",
+    status: "failed",
+    appliedAt: "2026-05-22T05:06:00.000Z"
+  },
+  {
+    id: "application-nadia-data",
+    organizationId: "org-northstar",
+    jobId: "job-data-analyst",
+    candidateId: "candidate-nadia-hassan",
+    status: "report_ready",
+    appliedAt: "2026-05-22T05:30:00.000Z"
+  },
+  {
+    id: "application-ben-data",
+    organizationId: "org-northstar",
+    jobId: "job-data-analyst",
+    candidateId: "candidate-ben-carter",
+    status: "report_ready",
+    appliedAt: "2026-05-22T05:33:00.000Z"
+  },
+  {
+    id: "application-sofia-data",
+    organizationId: "org-northstar",
+    jobId: "job-data-analyst",
+    candidateId: "candidate-sofia-ruiz",
+    status: "needs_review",
+    appliedAt: "2026-05-22T05:36:00.000Z"
   }
 ];
 
@@ -316,6 +434,61 @@ export const candidateDocuments: CandidateDocument[] = [
     uploadStatus: "Uploaded",
     parsingStatus: "Queued",
     createdAt: "2026-05-22T04:30:00.000Z"
+  },
+  {
+    id: "document-david-resume",
+    applicationId: "application-david-csm",
+    candidateId: "candidate-david-lim",
+    fileName: "David Lim CV.pdf",
+    fileUrl: "/mock-files/david-lim-cv.pdf",
+    fileType: "pdf",
+    uploadStatus: "Uploaded",
+    parsingStatus: "Parsed",
+    createdAt: "2026-05-22T05:00:00.000Z"
+  },
+  {
+    id: "document-hannah-resume",
+    applicationId: "application-hannah-csm",
+    candidateId: "candidate-hannah-cole",
+    fileName: "Hannah Cole resume.docx",
+    fileUrl: "/mock-files/hannah-cole-resume.docx",
+    fileType: "docx",
+    uploadStatus: "Uploaded",
+    parsingStatus: "Parsed",
+    createdAt: "2026-05-22T05:03:00.000Z"
+  },
+  {
+    id: "document-nadia-resume",
+    applicationId: "application-nadia-data",
+    candidateId: "candidate-nadia-hassan",
+    fileName: "Nadia Hassan resume.pdf",
+    fileUrl: "/mock-files/nadia-hassan-resume.pdf",
+    fileType: "pdf",
+    uploadStatus: "Uploaded",
+    parsingStatus: "Parsed",
+    createdAt: "2026-05-22T05:30:00.000Z"
+  },
+  {
+    id: "document-ben-resume",
+    applicationId: "application-ben-data",
+    candidateId: "candidate-ben-carter",
+    fileName: "Ben Carter CV.pdf",
+    fileUrl: "/mock-files/ben-carter-cv.pdf",
+    fileType: "pdf",
+    uploadStatus: "Uploaded",
+    parsingStatus: "Parsed",
+    createdAt: "2026-05-22T05:33:00.000Z"
+  },
+  {
+    id: "document-sofia-resume",
+    applicationId: "application-sofia-data",
+    candidateId: "candidate-sofia-ruiz",
+    fileName: "Sofia Ruiz resume.docx",
+    fileUrl: "/mock-files/sofia-ruiz-resume.docx",
+    fileType: "docx",
+    uploadStatus: "Uploaded",
+    parsingStatus: "Parsed",
+    createdAt: "2026-05-22T05:36:00.000Z"
   }
 ];
 
@@ -421,6 +594,322 @@ export const candidateReports: CandidateReport[] = [
       "Verify AWS ownership before moving past interview review."
     ],
     decisionOptions: ["Shortlist for interview", "Hold for review", "Not proceeding", "Request more information"]
+  },
+  {
+    id: "report-priya-shah",
+    organizationId: "org-northstar",
+    jobId: "job-frontend-developer",
+    applicationId: "application-priya-frontend",
+    candidateId: "candidate-priya-shah",
+    reportId: "HER-2026-0521-PS",
+    generatedAt: "Today, 4:18 PM",
+    reviewStatus: { label: "Evidence report ready", tone: "success" },
+    evidenceLevel: "Strong evidence",
+    fairness: {
+      status: "Fairness check passed",
+      protectedCharacteristicsStatus: "Protected characteristics not used",
+      decisionWordingWarning: "None",
+      reminder: "Human review reminder: verify the evidence and decision wording before saving a final outcome.",
+      protectedCharacteristics: [
+        "Age",
+        "Gender",
+        "Race",
+        "Religion",
+        "Marital status",
+        "Pregnancy or caregiving status",
+        "Disability or mental health status",
+        "Photo",
+        "Nationality unless job-relevant"
+      ]
+    },
+    summaryCards: [
+      {
+        label: "Evidence match",
+        value: "Strong evidence",
+        detail: "Every required criterion has job-related evidence.",
+        tone: "success"
+      },
+      {
+        label: "Verification needed",
+        value: "1 area to confirm",
+        detail: "Confirm AWS deployment depth during the interview.",
+        tone: "warning"
+      },
+      {
+        label: "Missing evidence",
+        value: "No major gaps",
+        detail: "All required criteria are supported by evidence.",
+        tone: "success"
+      },
+      {
+        label: "Human decision",
+        value: "Decision reason required",
+        detail: "Final decisions stay with the hiring team.",
+        tone: "info"
+      }
+    ],
+    missingEvidence: [
+      "No major evidence gaps. Confirm the depth of AWS deployment ownership during the interview."
+    ],
+    interviewQuestions: [
+      "Walk us through the shared React component library you led and how other teams adopted it.",
+      "Which parts of the AWS deployment pipeline did you personally own end to end?",
+      "Describe how you partnered with product and design on a recent release."
+    ],
+    recruiterNotes: [
+      "Strong, well-evidenced React delivery across multiple products.",
+      "Confirm AWS ownership depth, then this looks ready to shortlist for interview."
+    ],
+    decisionOptions: ["Shortlist for interview", "Hold for review", "Not proceeding", "Request more information"]
+  },
+  {
+    id: "report-daniel-morris",
+    organizationId: "org-northstar",
+    jobId: "job-frontend-developer",
+    applicationId: "application-daniel-frontend",
+    candidateId: "candidate-daniel-morris",
+    reportId: "HER-2026-0521-DM",
+    generatedAt: "Today, 4:21 PM",
+    reviewStatus: { label: "Human review required", tone: "info" },
+    evidenceLevel: "Needs human review",
+    fairness: {
+      status: "Fairness check passed",
+      protectedCharacteristicsStatus: "Protected characteristics not used",
+      decisionWordingWarning: "None",
+      reminder: "Human review reminder: verify the evidence and decision wording before saving a final outcome.",
+      protectedCharacteristics: [
+        "Age",
+        "Gender",
+        "Race",
+        "Religion",
+        "Marital status",
+        "Pregnancy or caregiving status",
+        "Disability or mental health status",
+        "Photo",
+        "Nationality unless job-relevant"
+      ]
+    },
+    summaryCards: [
+      {
+        label: "Evidence match",
+        value: "Needs human review",
+        detail: "The resume file could not be fully read by the system.",
+        tone: "info"
+      },
+      {
+        label: "Verification needed",
+        value: "3 criteria to verify",
+        detail: "Re-request a readable PDF before reviewing the evidence.",
+        tone: "warning"
+      },
+      {
+        label: "Missing evidence",
+        value: "Evidence not confirmed",
+        detail: "Key resume sections were unreadable.",
+        tone: "danger"
+      },
+      {
+        label: "Human decision",
+        value: "Decision reason required",
+        detail: "Final decisions stay with the hiring team.",
+        tone: "info"
+      }
+    ],
+    missingEvidence: [
+      "The resume file could not be fully parsed; several sections were unreadable.",
+      "No AWS deployment evidence was confirmed in the readable text."
+    ],
+    interviewQuestions: [
+      "Request a PDF version of the resume so the evidence review can be completed.",
+      "Which React projects did the candidate personally build and maintain?",
+      "What deployment work, if any, did the candidate own?"
+    ],
+    recruiterNotes: [
+      "Document needs manual review — formatting blocked text extraction.",
+      "Do not record a decision until a readable resume has been reviewed."
+    ],
+    decisionOptions: ["Shortlist for interview", "Hold for review", "Not proceeding", "Request more information"]
+  },
+  {
+    id: "report-elena-garcia",
+    organizationId: "org-northstar",
+    jobId: "job-customer-success-manager",
+    applicationId: "application-elena-csm",
+    candidateId: "candidate-elena-garcia",
+    reportId: "HER-2026-0522-EG",
+    generatedAt: "Today, 11:05 AM",
+    reviewStatus: { label: "Evidence report ready", tone: "success" },
+    evidenceLevel: "Strong evidence",
+    fairness: standardFairness,
+    summaryCards: [
+      { label: "Evidence match", value: "Strong evidence", detail: "Enterprise account ownership is clearly evidenced.", tone: "success" },
+      { label: "Verification needed", value: "No open items", detail: "All required criteria are evidenced.", tone: "success" },
+      { label: "Missing evidence", value: "No major gaps", detail: "Required criteria are supported by evidence.", tone: "success" },
+      { label: "Human decision", value: "Decision reason required", detail: "Final decisions stay with the hiring team.", tone: "info" }
+    ],
+    missingEvidence: ["No major evidence gaps. Confirm the scale and outcomes of the renewal-risk work during the interview."],
+    interviewQuestions: [
+      "Walk us through how you rebuilt the renewal-risk workflow and what changed afterward.",
+      "How large were the enterprise accounts you owned, and what were the outcomes?",
+      "How did you partner with support and sales on at-risk accounts?"
+    ],
+    recruiterNotes: [
+      "Strong, well-evidenced enterprise customer success experience.",
+      "Confirm outcomes, then consider shortlisting for interview."
+    ],
+    decisionOptions: standardDecisionOptions
+  },
+  {
+    id: "report-david-lim",
+    organizationId: "org-northstar",
+    jobId: "job-customer-success-manager",
+    applicationId: "application-david-csm",
+    candidateId: "candidate-david-lim",
+    reportId: "HER-2026-0522-DL",
+    generatedAt: "Today, 11:08 AM",
+    reviewStatus: { label: "Human review required", tone: "info" },
+    evidenceLevel: "Good evidence, verification needed",
+    fairness: standardFairness,
+    summaryCards: [
+      { label: "Evidence match", value: "Good evidence, verification needed", detail: "Core customer success experience is present.", tone: "success" },
+      { label: "Verification needed", value: "Enterprise scope to confirm", detail: "Confirm enterprise account ownership in the interview.", tone: "warning" },
+      { label: "Missing evidence", value: "Minor gaps", detail: "Renewal-risk ownership is only partly evidenced.", tone: "warning" },
+      { label: "Human decision", value: "Decision reason required", detail: "Final decisions stay with the hiring team.", tone: "info" }
+    ],
+    missingEvidence: [
+      "Enterprise account ownership is limited on the resume; confirm scope during the interview.",
+      "The renewal-risk handoff process is not clearly documented."
+    ],
+    interviewQuestions: [
+      "What is the largest account you have personally owned, and what was your role?",
+      "Walk us through how you handle an account showing churn-risk signals.",
+      "How did you work with a senior CSM on renewals — what did you own?"
+    ],
+    recruiterNotes: [
+      "Promising customer success foundation.",
+      "Verify enterprise scope before moving past interview review."
+    ],
+    decisionOptions: standardDecisionOptions
+  },
+  {
+    id: "report-hannah-cole",
+    organizationId: "org-northstar",
+    jobId: "job-customer-success-manager",
+    applicationId: "application-hannah-csm",
+    candidateId: "candidate-hannah-cole",
+    reportId: "HER-2026-0522-HC",
+    generatedAt: "Today, 11:11 AM",
+    reviewStatus: { label: "Human review required", tone: "info" },
+    evidenceLevel: "Missing key evidence",
+    fairness: standardFairness,
+    summaryCards: [
+      { label: "Evidence match", value: "Missing key evidence", detail: "Background is customer support, not account management.", tone: "danger" },
+      { label: "Verification needed", value: "Multiple gaps", detail: "Ask directly about account ownership.", tone: "warning" },
+      { label: "Missing evidence", value: "Key evidence missing", detail: "No renewal or enterprise account ownership found.", tone: "danger" },
+      { label: "Human decision", value: "Decision reason required", detail: "Final decisions stay with the hiring team.", tone: "info" }
+    ],
+    missingEvidence: [
+      "No account ownership or renewal experience found; background is customer support.",
+      "Ask the candidate directly about any enterprise account-management experience."
+    ],
+    interviewQuestions: [
+      "Do you have direct experience owning customer accounts and renewals?",
+      "What account-management work is not captured on your resume?"
+    ],
+    recruiterNotes: [
+      "Key account-management evidence appears to be missing.",
+      "Confirm directly before deciding; do not assume from a support background."
+    ],
+    decisionOptions: standardDecisionOptions
+  },
+  {
+    id: "report-nadia-hassan",
+    organizationId: "org-northstar",
+    jobId: "job-data-analyst",
+    applicationId: "application-nadia-data",
+    candidateId: "candidate-nadia-hassan",
+    reportId: "HER-2026-0522-NH",
+    generatedAt: "Today, 11:35 AM",
+    reviewStatus: { label: "Evidence report ready", tone: "success" },
+    evidenceLevel: "Strong evidence",
+    fairness: standardFairness,
+    summaryCards: [
+      { label: "Evidence match", value: "Strong evidence", detail: "SQL analysis and stakeholder communication are both evidenced.", tone: "success" },
+      { label: "Verification needed", value: "No open items", detail: "All required criteria are evidenced.", tone: "success" },
+      { label: "Missing evidence", value: "No major gaps", detail: "Required criteria are supported by evidence.", tone: "success" },
+      { label: "Human decision", value: "Decision reason required", detail: "Final decisions stay with the hiring team.", tone: "info" }
+    ],
+    missingEvidence: ["No major evidence gaps. Confirm the impact of the churn analysis during the interview."],
+    interviewQuestions: [
+      "Walk us through a complex SQL investigation you ran and what it changed.",
+      "How do you present analysis to non-technical stakeholders?",
+      "Tell us about a dashboard you built that others relied on."
+    ],
+    recruiterNotes: [
+      "Strong, well-evidenced analysis and communication.",
+      "Confirm impact, then consider shortlisting for interview."
+    ],
+    decisionOptions: standardDecisionOptions
+  },
+  {
+    id: "report-ben-carter",
+    organizationId: "org-northstar",
+    jobId: "job-data-analyst",
+    applicationId: "application-ben-data",
+    candidateId: "candidate-ben-carter",
+    reportId: "HER-2026-0522-BC",
+    generatedAt: "Today, 11:38 AM",
+    reviewStatus: { label: "Human review required", tone: "info" },
+    evidenceLevel: "Good evidence, verification needed",
+    fairness: standardFairness,
+    summaryCards: [
+      { label: "Evidence match", value: "Good evidence, verification needed", detail: "SQL is evidenced; communication is less clear.", tone: "success" },
+      { label: "Verification needed", value: "Communication to confirm", detail: "Confirm how insights are communicated to stakeholders.", tone: "warning" },
+      { label: "Missing evidence", value: "Minor gaps", detail: "Audience and impact of the charts is unclear.", tone: "warning" },
+      { label: "Human decision", value: "Decision reason required", detail: "Final decisions stay with the hiring team.", tone: "info" }
+    ],
+    missingEvidence: ["Evidence of explaining insights to stakeholders is thin; confirm during the interview."],
+    interviewQuestions: [
+      "Give an example of a report you wrote in SQL and who used it.",
+      "How do you make analysis understandable to a non-technical audience?",
+      "What was the impact of a chart or report you built?"
+    ],
+    recruiterNotes: [
+      "Solid SQL foundation.",
+      "Verify stakeholder communication before moving past interview review."
+    ],
+    decisionOptions: standardDecisionOptions
+  },
+  {
+    id: "report-sofia-ruiz",
+    organizationId: "org-northstar",
+    jobId: "job-data-analyst",
+    applicationId: "application-sofia-data",
+    candidateId: "candidate-sofia-ruiz",
+    reportId: "HER-2026-0522-SR",
+    generatedAt: "Today, 11:41 AM",
+    reviewStatus: { label: "Human review required", tone: "info" },
+    evidenceLevel: "Missing key evidence",
+    fairness: standardFairness,
+    summaryCards: [
+      { label: "Evidence match", value: "Missing key evidence", detail: "No SQL experience listed; reporting is spreadsheet-based.", tone: "danger" },
+      { label: "Verification needed", value: "Ask directly", detail: "Confirm any SQL or analysis experience.", tone: "warning" },
+      { label: "Missing evidence", value: "Key evidence missing", detail: "SQL analysis is a required criterion and was not found.", tone: "danger" },
+      { label: "Human decision", value: "Decision reason required", detail: "Final decisions stay with the hiring team.", tone: "info" }
+    ],
+    missingEvidence: [
+      "No SQL experience listed; reporting appears to be done in Excel.",
+      "Ask the candidate directly whether they have any SQL or analysis experience."
+    ],
+    interviewQuestions: [
+      "Do you have any experience writing SQL? Please describe it.",
+      "How do you communicate the insights from your reports?"
+    ],
+    recruiterNotes: [
+      "A required criterion (SQL) appears to be missing.",
+      "Confirm directly before deciding."
+    ],
+    decisionOptions: standardDecisionOptions
   }
 ];
 
@@ -460,6 +949,222 @@ export const evidenceItems: EvidenceItem[] = [
     confidence: "Medium",
     verificationNeeded: "Ask stakeholder communication follow-up",
     status: { label: "Human review required", tone: "info" }
+  },
+  {
+    id: "evidence-priya-react",
+    reportId: "report-priya-shah",
+    applicationId: "application-priya-frontend",
+    criteriaId: "criteria-react-production",
+    requirement: "React production experience",
+    evidence: "Resume shows four years shipping production React apps and leading a shared component library used across three products.",
+    source: "Resume",
+    confidence: "High",
+    verificationNeeded: "None",
+    status: { label: "Strong evidence", tone: "success" }
+  },
+  {
+    id: "evidence-priya-aws",
+    reportId: "report-priya-shah",
+    applicationId: "application-priya-frontend",
+    criteriaId: "criteria-aws-deployment",
+    requirement: "AWS deployment work",
+    evidence: "Resume lists owning the CI/CD pipeline that deploys the web app to AWS (S3 and CloudFront).",
+    source: "Resume",
+    confidence: "Medium",
+    verificationNeeded: "Confirm depth of deployment ownership in the interview",
+    status: { label: "Needs verification", tone: "warning" }
+  },
+  {
+    id: "evidence-priya-collaboration",
+    reportId: "report-priya-shah",
+    applicationId: "application-priya-frontend",
+    criteriaId: "criteria-collaboration",
+    requirement: "Role-related collaboration",
+    evidence: "Resume describes working embedded with product and design and running weekly design-review syncs.",
+    source: "Resume",
+    confidence: "High",
+    verificationNeeded: "None",
+    status: { label: "Strong evidence", tone: "success" }
+  },
+  {
+    id: "evidence-daniel-react",
+    reportId: "report-daniel-morris",
+    applicationId: "application-daniel-frontend",
+    criteriaId: "criteria-react-production",
+    requirement: "React production experience",
+    evidence: "Resume mentions React, but file formatting prevented the system from extracting project details.",
+    source: "Resume",
+    confidence: "Low",
+    verificationNeeded: "Re-request a PDF resume and confirm React project scope",
+    status: { label: "Human review required", tone: "info" }
+  },
+  {
+    id: "evidence-daniel-aws",
+    reportId: "report-daniel-morris",
+    applicationId: "application-daniel-frontend",
+    criteriaId: "criteria-aws-deployment",
+    requirement: "AWS deployment work",
+    evidence: "No deployment evidence was detected in the readable sections of the file.",
+    source: "Resume",
+    confidence: "None",
+    verificationNeeded: "Confirm deployment experience directly with the candidate",
+    status: { label: "Missing evidence", tone: "danger" }
+  },
+  {
+    id: "evidence-daniel-collaboration",
+    reportId: "report-daniel-morris",
+    applicationId: "application-daniel-frontend",
+    criteriaId: "criteria-collaboration",
+    requirement: "Role-related collaboration",
+    evidence: "An unreadable section may contain teamwork detail; it could not be confirmed.",
+    source: "Resume",
+    confidence: "Low",
+    verificationNeeded: "Review a readable resume to confirm collaboration evidence",
+    status: { label: "Human review required", tone: "info" }
+  },
+  {
+    id: "evidence-elena-enterprise",
+    reportId: "report-elena-garcia",
+    applicationId: "application-elena-csm",
+    criteriaId: "criteria-csm-enterprise",
+    requirement: "Enterprise account management",
+    evidence: "Resume shows ownership of an enterprise portfolio worth several million in ARR.",
+    source: "Resume",
+    confidence: "High",
+    verificationNeeded: "None",
+    status: { label: "Strong evidence", tone: "success" }
+  },
+  {
+    id: "evidence-elena-risk",
+    reportId: "report-elena-garcia",
+    applicationId: "application-elena-csm",
+    criteriaId: "criteria-csm-risk",
+    requirement: "Customer risk follow-up",
+    evidence: "Questionnaire describes rebuilding a renewal-risk workflow and tracking follow-up completion.",
+    source: "Questionnaire",
+    confidence: "High",
+    verificationNeeded: "None",
+    status: { label: "Strong evidence", tone: "success" }
+  },
+  {
+    id: "evidence-david-enterprise",
+    reportId: "report-david-lim",
+    applicationId: "application-david-csm",
+    criteriaId: "criteria-csm-enterprise",
+    requirement: "Enterprise account management",
+    evidence: "Resume shows small-business account support; enterprise ownership is limited.",
+    source: "Resume",
+    confidence: "Medium",
+    verificationNeeded: "Confirm enterprise account ownership in the interview",
+    status: { label: "Needs verification", tone: "warning" }
+  },
+  {
+    id: "evidence-david-risk",
+    reportId: "report-david-lim",
+    applicationId: "application-david-csm",
+    criteriaId: "criteria-csm-risk",
+    requirement: "Customer risk follow-up",
+    evidence: "Assisted with renewals alongside a senior CSM; the handoff process is not documented.",
+    source: "Resume",
+    confidence: "Medium",
+    verificationNeeded: "Confirm ownership of risk follow-up",
+    status: { label: "Needs verification", tone: "warning" }
+  },
+  {
+    id: "evidence-hannah-enterprise",
+    reportId: "report-hannah-cole",
+    applicationId: "application-hannah-csm",
+    criteriaId: "criteria-csm-enterprise",
+    requirement: "Enterprise account management",
+    evidence: "No account ownership found; background is inbound customer support tickets.",
+    source: "Resume",
+    confidence: "Low",
+    verificationNeeded: "Ask directly about account-management experience",
+    status: { label: "Missing evidence", tone: "danger" }
+  },
+  {
+    id: "evidence-hannah-risk",
+    reportId: "report-hannah-cole",
+    applicationId: "application-hannah-csm",
+    criteriaId: "criteria-csm-risk",
+    requirement: "Customer risk follow-up",
+    evidence: "No structured customer-risk follow-up evidence found.",
+    source: "Resume",
+    confidence: "None",
+    verificationNeeded: "Ask the candidate directly",
+    status: { label: "Missing evidence", tone: "danger" }
+  },
+  {
+    id: "evidence-nadia-sql",
+    reportId: "report-nadia-hassan",
+    applicationId: "application-nadia-data",
+    criteriaId: "criteria-data-sql",
+    requirement: "SQL analysis",
+    evidence: "Resume shows complex SQL used to answer operational and product questions.",
+    source: "Resume",
+    confidence: "High",
+    verificationNeeded: "None",
+    status: { label: "Strong evidence", tone: "success" }
+  },
+  {
+    id: "evidence-nadia-storytelling",
+    reportId: "report-nadia-hassan",
+    applicationId: "application-nadia-data",
+    criteriaId: "criteria-data-storytelling",
+    requirement: "Insight communication",
+    evidence: "Resume describes presenting monthly insight reviews to non-technical department heads.",
+    source: "Resume",
+    confidence: "High",
+    verificationNeeded: "None",
+    status: { label: "Strong evidence", tone: "success" }
+  },
+  {
+    id: "evidence-ben-sql",
+    reportId: "report-ben-carter",
+    applicationId: "application-ben-data",
+    criteriaId: "criteria-data-sql",
+    requirement: "SQL analysis",
+    evidence: "Resume shows SQL used for weekly operational reports.",
+    source: "Resume",
+    confidence: "High",
+    verificationNeeded: "None",
+    status: { label: "Strong evidence", tone: "success" }
+  },
+  {
+    id: "evidence-ben-storytelling",
+    reportId: "report-ben-carter",
+    applicationId: "application-ben-data",
+    criteriaId: "criteria-data-storytelling",
+    requirement: "Insight communication",
+    evidence: "Charts were built for the team, but the audience and impact are unclear.",
+    source: "Resume",
+    confidence: "Medium",
+    verificationNeeded: "Confirm stakeholder communication examples in the interview",
+    status: { label: "Needs verification", tone: "warning" }
+  },
+  {
+    id: "evidence-sofia-sql",
+    reportId: "report-sofia-ruiz",
+    applicationId: "application-sofia-data",
+    criteriaId: "criteria-data-sql",
+    requirement: "SQL analysis",
+    evidence: "No SQL experience listed; reporting is done in Excel from exported files.",
+    source: "Resume",
+    confidence: "None",
+    verificationNeeded: "Ask whether the candidate has any SQL experience",
+    status: { label: "Missing evidence", tone: "danger" }
+  },
+  {
+    id: "evidence-sofia-storytelling",
+    reportId: "report-sofia-ruiz",
+    applicationId: "application-sofia-data",
+    criteriaId: "criteria-data-storytelling",
+    requirement: "Insight communication",
+    evidence: "Builds Excel reports and formats slides; stakeholder impact is unclear.",
+    source: "Resume",
+    confidence: "Low",
+    verificationNeeded: "Confirm how insights are communicated",
+    status: { label: "Needs verification", tone: "warning" }
   }
 ];
 
@@ -485,6 +1190,78 @@ export const auditLogs: AuditLog[] = [
     entityId: "report-amanda-lee",
     action: "evidence_report_generated",
     createdAt: "2026-05-21T08:15:00.000Z"
+  },
+  {
+    id: "audit-priya-report-generated",
+    organizationId: "org-northstar",
+    userId: "user-maya-chen",
+    entityType: "candidate_report",
+    entityId: "report-priya-shah",
+    action: "evidence_report_generated",
+    createdAt: "2026-05-21T08:18:00.000Z"
+  },
+  {
+    id: "audit-daniel-report-generated",
+    organizationId: "org-northstar",
+    userId: "user-sarah-tan",
+    entityType: "candidate_report",
+    entityId: "report-daniel-morris",
+    action: "evidence_report_generated",
+    createdAt: "2026-05-21T08:21:00.000Z"
+  },
+  {
+    id: "audit-elena-report-generated",
+    organizationId: "org-northstar",
+    userId: "user-maya-chen",
+    entityType: "candidate_report",
+    entityId: "report-elena-garcia",
+    action: "evidence_report_generated",
+    createdAt: "2026-05-22T11:05:00.000Z"
+  },
+  {
+    id: "audit-david-report-generated",
+    organizationId: "org-northstar",
+    userId: "user-maya-chen",
+    entityType: "candidate_report",
+    entityId: "report-david-lim",
+    action: "evidence_report_generated",
+    createdAt: "2026-05-22T11:08:00.000Z"
+  },
+  {
+    id: "audit-hannah-report-generated",
+    organizationId: "org-northstar",
+    userId: "user-maya-chen",
+    entityType: "candidate_report",
+    entityId: "report-hannah-cole",
+    action: "evidence_report_generated",
+    createdAt: "2026-05-22T11:11:00.000Z"
+  },
+  {
+    id: "audit-nadia-report-generated",
+    organizationId: "org-northstar",
+    userId: "user-sarah-tan",
+    entityType: "candidate_report",
+    entityId: "report-nadia-hassan",
+    action: "evidence_report_generated",
+    createdAt: "2026-05-22T11:35:00.000Z"
+  },
+  {
+    id: "audit-ben-report-generated",
+    organizationId: "org-northstar",
+    userId: "user-sarah-tan",
+    entityType: "candidate_report",
+    entityId: "report-ben-carter",
+    action: "evidence_report_generated",
+    createdAt: "2026-05-22T11:38:00.000Z"
+  },
+  {
+    id: "audit-sofia-report-generated",
+    organizationId: "org-northstar",
+    userId: "user-sarah-tan",
+    entityType: "candidate_report",
+    entityId: "report-sofia-ruiz",
+    action: "evidence_report_generated",
+    createdAt: "2026-05-22T11:41:00.000Z"
   }
 ];
 
@@ -499,6 +1276,28 @@ export const bulkUploadBatches: BulkUploadBatch[] = [
     processedFiles: 4,
     failedFiles: 1,
     createdAt: "2026-05-21T06:00:00.000Z"
+  },
+  {
+    id: "batch-csm-20260522",
+    jobId: "job-customer-success-manager",
+    organizationId: "org-northstar",
+    uploadedBy: "user-sarah-tan",
+    status: "Report ready",
+    totalFiles: 4,
+    processedFiles: 3,
+    failedFiles: 1,
+    createdAt: "2026-05-22T05:00:00.000Z"
+  },
+  {
+    id: "batch-data-20260522",
+    jobId: "job-data-analyst",
+    organizationId: "org-northstar",
+    uploadedBy: "user-sarah-tan",
+    status: "Report ready",
+    totalFiles: 3,
+    processedFiles: 3,
+    failedFiles: 0,
+    createdAt: "2026-05-22T05:30:00.000Z"
   }
 ];
 
@@ -566,6 +1365,98 @@ export const bulkUploadFiles: BulkUploadFile[] = [
     evidenceReportStatus: "Failed",
     errorMessage: "Unsupported file type. Upload PDF or DOCX resumes only.",
     createdAt: "2026-05-21T06:12:00.000Z"
+  },
+  {
+    id: "bulk-file-elena",
+    batchId: "batch-csm-20260522",
+    fileName: "Elena Garcia resume.pdf",
+    fileUrl: "/mock-files/elena-garcia-resume.pdf",
+    status: "Uploaded",
+    candidateId: "candidate-elena-garcia",
+    applicationId: "application-elena-csm",
+    candidateName: "Elena Garcia",
+    parsingStatus: "Parsed",
+    evidenceReportStatus: "Report ready",
+    createdAt: "2026-05-22T05:00:00.000Z"
+  },
+  {
+    id: "bulk-file-david",
+    batchId: "batch-csm-20260522",
+    fileName: "David Lim CV.pdf",
+    fileUrl: "/mock-files/david-lim-cv.pdf",
+    status: "Uploaded",
+    candidateId: "candidate-david-lim",
+    applicationId: "application-david-csm",
+    candidateName: "David Lim",
+    parsingStatus: "Parsed",
+    evidenceReportStatus: "Report ready",
+    createdAt: "2026-05-22T05:00:00.000Z"
+  },
+  {
+    id: "bulk-file-hannah",
+    batchId: "batch-csm-20260522",
+    fileName: "Hannah Cole resume.docx",
+    fileUrl: "/mock-files/hannah-cole-resume.docx",
+    status: "Uploaded",
+    candidateId: "candidate-hannah-cole",
+    applicationId: "application-hannah-csm",
+    candidateName: "Hannah Cole",
+    parsingStatus: "Parsed",
+    evidenceReportStatus: "Report ready",
+    createdAt: "2026-05-22T05:03:00.000Z"
+  },
+  {
+    id: "bulk-file-marcus-vance",
+    batchId: "batch-csm-20260522",
+    fileName: "Marcus Vance resume.pdf",
+    fileUrl: "/mock-files/marcus-vance-resume.pdf",
+    status: "Uploaded",
+    candidateId: "candidate-marcus-vance",
+    applicationId: "application-marcus-csm",
+    candidateName: "Marcus Vance",
+    parsingStatus: "Parsed",
+    evidenceReportStatus: "Failed",
+    errorMessage: "Evidence report failed. Needs manual review before any decision.",
+    createdAt: "2026-05-22T05:06:00.000Z"
+  },
+  {
+    id: "bulk-file-nadia",
+    batchId: "batch-data-20260522",
+    fileName: "Nadia Hassan resume.pdf",
+    fileUrl: "/mock-files/nadia-hassan-resume.pdf",
+    status: "Uploaded",
+    candidateId: "candidate-nadia-hassan",
+    applicationId: "application-nadia-data",
+    candidateName: "Nadia Hassan",
+    parsingStatus: "Parsed",
+    evidenceReportStatus: "Report ready",
+    createdAt: "2026-05-22T05:30:00.000Z"
+  },
+  {
+    id: "bulk-file-ben",
+    batchId: "batch-data-20260522",
+    fileName: "Ben Carter CV.pdf",
+    fileUrl: "/mock-files/ben-carter-cv.pdf",
+    status: "Uploaded",
+    candidateId: "candidate-ben-carter",
+    applicationId: "application-ben-data",
+    candidateName: "Ben Carter",
+    parsingStatus: "Parsed",
+    evidenceReportStatus: "Report ready",
+    createdAt: "2026-05-22T05:33:00.000Z"
+  },
+  {
+    id: "bulk-file-sofia",
+    batchId: "batch-data-20260522",
+    fileName: "Sofia Ruiz resume.docx",
+    fileUrl: "/mock-files/sofia-ruiz-resume.docx",
+    status: "Uploaded",
+    candidateId: "candidate-sofia-ruiz",
+    applicationId: "application-sofia-data",
+    candidateName: "Sofia Ruiz",
+    parsingStatus: "Parsed",
+    evidenceReportStatus: "Report ready",
+    createdAt: "2026-05-22T05:36:00.000Z"
   }
 ];
 

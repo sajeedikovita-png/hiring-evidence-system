@@ -1,38 +1,36 @@
 import React from "react";
-import { Badge } from "../../../components/ui/Badge";
 import { getCandidateReport } from "../../services/mockSelectors";
+
+const chipForTone: Record<string, { cls: string; label: string }> = {
+  success: { cls: "found", label: "Found" },
+  warning: { cls: "verify", label: "Verify" },
+  danger: { cls: "missing", label: "Missing" },
+  info: { cls: "review", label: "Review" }
+};
 
 export function SampleReportPreview() {
   const candidateReport = getCandidateReport();
+  const rows = candidateReport.evidenceRows.slice(0, 3);
 
   return (
-    <article className="sample-report-card">
-      <div className="sample-report-header">
-        <div>
-          <p className="section-kicker">Sample report preview</p>
-          <h3>{candidateReport.candidate.name}</h3>
-          <p>
-            {candidateReport.candidate.role} · {candidateReport.candidate.company}
-          </p>
-        </div>
-        <Badge tone="info">Human review required</Badge>
+    <div className="panel">
+      <div className="panel-head">
+        <span>Record · {candidateReport.candidate.reportId}</span>
+        <span className="st">Human review required</span>
       </div>
-      <div className="sample-report-metrics">
-        {candidateReport.summaryCards.slice(0, 3).map((card) => (
-          <div key={card.label}>
-            <span>{card.label}</span>
-            <strong>{card.value}</strong>
+      {rows.map((row) => {
+        const chip = chipForTone[row.status.tone] ?? chipForTone.info;
+        return (
+          <div className="prow" key={row.requirement}>
+            <div>
+              <div className="req">{row.requirement}</div>
+              <div className="src">{row.source}</div>
+            </div>
+            <span className={`chip ${chip.cls}`}>{chip.label}</span>
           </div>
-        ))}
-      </div>
-      <ul className="mini-evidence-list">
-        {candidateReport.evidenceRows.map((row) => (
-          <li key={row.requirement}>
-            <strong>{row.requirement}</strong>
-            <span>{row.status.label}</span>
-          </li>
-        ))}
-      </ul>
-    </article>
+        );
+      })}
+      <div className="panel-foot">AI-assisted · human review required before any decision</div>
+    </div>
   );
 }

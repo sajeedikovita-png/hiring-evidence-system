@@ -18,7 +18,7 @@ import {
 import { getCandidateEvidenceReport, saveHumanReviewDecision, type SaveHumanReviewDecisionInput, type SaveHumanReviewDecisionResult } from "./reportService";
 import { createHiringSupabaseClient } from "./supabaseClient";
 import { createSupabaseHiringRepository } from "./supabaseHiringRepository";
-import { hasSupabaseConfig, type SupabaseRuntimeEnv } from "./supabaseConfig";
+import { hasActiveSupabaseSession, hasSupabaseConfig, type SupabaseRuntimeEnv } from "./supabaseConfig";
 
 export * from "./mockSelectors";
 
@@ -115,7 +115,10 @@ const seedAsyncHiringRepository: AsyncHiringRepository = {
 };
 
 export function getHiringRepositoryMode(env?: SupabaseRuntimeEnv): RepositorySource {
-  return hasSupabaseConfig(env) ? "supabase" : "seed";
+  // Real per-account data only once a recruiter has signed in; otherwise the
+  // login-free seed demo. This keeps the demo unbreakable (no auth required) and
+  // still serves real data to a signed-in founder.
+  return hasSupabaseConfig(env) && hasActiveSupabaseSession() ? "supabase" : "seed";
 }
 
 export function getAsyncHiringRepository(env?: SupabaseRuntimeEnv): AsyncHiringRepository {

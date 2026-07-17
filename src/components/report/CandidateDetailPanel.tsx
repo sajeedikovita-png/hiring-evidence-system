@@ -32,7 +32,14 @@ export function CandidateDetailPanel({ candidate, fairness }: CandidateDetailPan
             </div>
           ))}
         </dl>
-        <a className="side-action-link" href="#">
+        <a
+          className="side-action-link"
+          href="#document-sources"
+          onClick={(event) => {
+            event.preventDefault();
+            document.getElementById("document-sources")?.scrollIntoView({ behavior: "smooth", block: "start" });
+          }}
+        >
           View resume
         </a>
       </section>
@@ -46,7 +53,12 @@ export function CandidateDetailPanel({ candidate, fairness }: CandidateDetailPan
       <section>
         <p className="section-kicker">Recruiter note</p>
         <p className="muted">Evidence is organized for human review. No acceptance or rejection is automated.</p>
-        <Button variant="secondary">Add to recruiter notes</Button>
+        <Button
+          variant="secondary"
+          onClick={() => document.getElementById("recruiter-notes")?.scrollIntoView({ behavior: "smooth", block: "start" })}
+        >
+          Add to recruiter notes
+        </Button>
       </section>
     </aside>
   );

@@ -1,22 +1,24 @@
-import React, { FormEvent, useMemo, useState } from "react";
+import React, { FormEvent, useState } from "react";
 import { signInRecruiterWithPassword } from "../services/authService";
-import { getHiringRepositoryMode } from "../services/hiringRepository";
+import { getPublicSupabaseClient } from "../services/publicSupabaseClient";
 import { createHiringSupabaseClient } from "../services/supabaseClient";
+import { hasSupabaseConfig } from "../services/supabaseConfig";
 
 export function LoginPage() {
-  const repositoryMode = useMemo(() => getHiringRepositoryMode(), []);
-  const [email, setEmail] = useState("sarah@northstar.example");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [message, setMessage] = useState(
-    repositoryMode === "supabase" ? "Sign in with the Supabase development recruiter user." : "Seed fallback mode is active."
-  );
+  const [message, setMessage] = useState("Sign in to open your workspace.");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    if (repositoryMode !== "supabase") {
-      setMessage("Add Supabase env vars before using recruiter sign in.");
+    // Prefer the recruiter workspace client so the session lands where the
+    // dashboard/report data layer reads it; fall back to the public client.
+    const client = hasSupabaseConfig() ? createHiringSupabaseClient() : getPublicSupabaseClient();
+
+    if (!client) {
+      setMessage("Sign-in is not available right now.");
       return;
     }
 
@@ -24,16 +26,11 @@ export function LoginPage() {
     setMessage("Signing in.");
 
     try {
-      await signInRecruiterWithPassword({
-        client: createHiringSupabaseClient(),
-        email,
-        password
-      });
+      await signInRecruiterWithPassword({ client, email, password });
       window.location.assign("/dashboard");
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Unable to sign in");
-    } finally {
       setIsSubmitting(false);
+      setMessage(error instanceof Error ? error.message : "Unable to sign in");
     }
   }
 
@@ -45,9 +42,9 @@ export function LoginPage() {
           <span>Hiring Evidence System</span>
         </a>
         <div className="login-heading">
-          <p className="section-kicker">Recruiter workspace</p>
+          <p className="section-kicker">Workspace</p>
           <h1>Sign in</h1>
-          <p>Access candidate evidence reports and human decision notes.</p>
+          <p>Access your access requests and evidence reports.</p>
         </div>
         <form className="login-form" onSubmit={handleSubmit}>
           <label>
@@ -69,10 +66,6 @@ export function LoginPage() {
               onChange={(event) => setPassword(event.currentTarget.value)}
               required
             />
-          </label>
-          <label className="checkbox-row">
-            <input type="checkbox" />
-            <span>Remember this device</span>
           </label>
           <button className="button button-primary" type="submit" disabled={isSubmitting}>
             {isSubmitting ? "Signing in" : "Sign in"}

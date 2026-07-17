@@ -7,6 +7,7 @@ import {
   type PilotRequestErrors,
   type PilotRequestInput
 } from "../services/pilotRequestService";
+import { saveAccessRequestToBackend } from "../services/accessRequestService";
 
 const initialPilotRequest: PilotRequestInput = {
   companyName: "",
@@ -29,7 +30,7 @@ export function RequestPilotPage() {
     setErrors((currentErrors) => ({ ...currentErrors, [field]: undefined }));
   }
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     const validation = validatePilotRequest(form);
@@ -45,6 +46,9 @@ export function RequestPilotPage() {
       setSubmissionStatus("idle");
       return;
     }
+
+    // Save the request to the real backend (best-effort; the local record above is a fallback).
+    await saveAccessRequestToBackend(form);
 
     setForm(initialPilotRequest);
     setErrors({});

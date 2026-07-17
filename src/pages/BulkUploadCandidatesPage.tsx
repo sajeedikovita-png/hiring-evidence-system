@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { useParams } from "react-router-dom";
 import { BulkUploadCandidatesPanel } from "../components/bulk-upload/BulkUploadCandidatesPanel";
 import { DevelopmentConnectionStatusPanel } from "../components/dev/DevelopmentConnectionStatusPanel";
 import { RecruiterShell } from "../components/layout/RecruiterShell";
@@ -7,11 +8,13 @@ import {
   getDevelopmentConnectionStatus,
   type DevelopmentConnectionStatus
 } from "../services/connectionStatusService";
-import { getAsyncHiringRepository } from "../services/hiringRepository";
+import { getAsyncHiringRepository, getJobIdBySlug } from "../services/hiringRepository";
 import type { BulkUploadWorkspaceViewModel } from "../types/hiring";
 
 export function BulkUploadCandidatesPage() {
   const repository = useMemo(() => getAsyncHiringRepository(), []);
+  const { jobSlug } = useParams();
+  const jobId = getJobIdBySlug(jobSlug ?? "frontend-developer") ?? "job-frontend-developer";
   const [workspace, setWorkspace] = useState<BulkUploadWorkspaceViewModel | undefined>();
   const [reviewerName, setReviewerName] = useState("Recruiter");
   const [loadMessage, setLoadMessage] = useState("Loading company workspace.");
@@ -26,7 +29,7 @@ export function BulkUploadCandidatesPage() {
       .getActiveCompanyContext()
       .then((context) => {
         if (isMounted) setReviewerName(context.userName);
-        return repository.getBulkUploadWorkspace(context.companyId, "job-frontend-developer");
+        return repository.getBulkUploadWorkspace(context.companyId, jobId);
       })
       .then((nextWorkspace) => {
         if (!isMounted) return;
@@ -63,7 +66,7 @@ export function BulkUploadCandidatesPage() {
     return () => {
       isMounted = false;
     };
-  }, [repository]);
+  }, [repository, jobId]);
 
   if (!workspace) {
     return (
@@ -71,8 +74,7 @@ export function BulkUploadCandidatesPage() {
         active="candidates"
         title="Upload Candidates"
         subtitle="Add multiple resumes to one job-based hiring review."
-        secondaryAction="Back to candidates"
-        primaryAction="Upload candidates"
+        secondaryAction={{ label: "Back to candidates", href: `/jobs/${jobSlug ?? "frontend-developer"}/candidates` }}
         reviewerName={reviewerName}
       >
         <main className="workspace-content">
@@ -94,8 +96,7 @@ export function BulkUploadCandidatesPage() {
       active="candidates"
       title="Upload Candidates"
       subtitle="Add multiple resumes to one job-based hiring review."
-      secondaryAction="Back to candidates"
-      primaryAction="Upload candidates"
+      secondaryAction={{ label: "Back to candidates", href: `/jobs/${jobSlug ?? "frontend-developer"}/candidates` }}
       reviewerName={reviewerName}
     >
       <main className="workspace-content">

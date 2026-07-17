@@ -42,9 +42,11 @@ Mock data is development scaffolding only. The final goal is a real working B2B 
 
 ## Current Next Goal
 
-Replace temporary seed data behind the service layer with real database/API-backed data without rewriting the app pages.
+**Go-to-market first (as of 2026-07-03): sell free design-partner pilots to small/mid Singapore recruiting agencies using the working demo. Do not build new features or payments before the first pilot.**
 
-Status: production-facing architecture is being prepared. The next pass should add real database/auth/upload pipeline decisions, then implement them behind the existing repository and service interfaces.
+Read `docs/plans/2026-07-03-go-to-market-handoff.md` for the full current situation: strategy, pricing decisions, competitive research, outreach plan, timeline, and rules for any session picking this up. Supporting files: `docs/SALES_OUTREACH_KIT.md`, `docs/FOUNDER_PLAYBOOK.md`.
+
+Deferred (build for the first committed pilot, not before): replace temporary seed data behind the service layer with real database/API-backed data without rewriting the app pages — production-facing architecture is already prepared behind the repository and service interfaces.
 
 ## Not Built Yet
 

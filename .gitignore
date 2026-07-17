@@ -4,7 +4,10 @@ dist/
 .playwright-mcp/
 .playwright-cli/
 supabase/.temp/
-.env.local
+.env
+.env.*
+!.env.example
 .DS_Store
 *.log
 tsconfig.tsbuildinfo
+.vercel

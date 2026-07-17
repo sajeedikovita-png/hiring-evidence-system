@@ -30,11 +30,30 @@ const supabaseConfig = loadSupabaseConfig(envWithSupabase);
 assert.equal(supabaseConfig.url, "https://example.supabase.co");
 assert.equal(supabaseConfig.anonKey, "example-anon-key");
 
-assert.equal(getHiringRepositoryMode(envWithSupabase), "supabase");
+// Session-aware repository: config alone (no signed-in session) serves the
+// login-free seed demo; a live browser session switches to real per-account data.
+assert.equal(getHiringRepositoryMode(envWithSupabase), "seed");
 assert.equal(getHiringRepositoryMode({}), "seed");
 
-const supabaseRepository = getAsyncHiringRepository(envWithSupabase);
-assert.equal(supabaseRepository.source, "supabase");
+const sessionExpiry = Math.floor(Date.now() / 1000) + 3600;
+const fakeAuthStore: Record<string, string> = {
+  "sb-example-auth-token": JSON.stringify({ access_token: "test-access-token", expires_at: sessionExpiry })
+};
+(globalThis as { window?: unknown }).window = {
+  localStorage: {
+    length: Object.keys(fakeAuthStore).length,
+    key: (index: number) => Object.keys(fakeAuthStore)[index] ?? null,
+    getItem: (storageKey: string) => fakeAuthStore[storageKey] ?? null,
+    setItem: () => {},
+    removeItem: () => {}
+  }
+};
+try {
+  assert.equal(getHiringRepositoryMode(envWithSupabase), "supabase");
+  assert.equal(getAsyncHiringRepository(envWithSupabase).source, "supabase");
+} finally {
+  delete (globalThis as { window?: unknown }).window;
+}
 assert.notEqual(createHiringSupabaseClient(envWithSupabase), createHiringSupabaseClient(envWithSupabase));
 
 const originalSupabaseUrl = process.env.VITE_SUPABASE_URL;

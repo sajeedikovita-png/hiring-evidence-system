@@ -3,13 +3,25 @@ import UploadCloud from "lucide-react/dist/esm/icons/upload-cloud.js";
 import { Badge } from "../../../components/ui/Badge";
 import { Button } from "../../../components/ui/Button";
 import { DataTable } from "../../../components/ui/DataTable";
-import { createMockBulkUploadFile, getBulkUploadWorkspace } from "../../services/mockSelectors";
-import { getSafeUploadErrorMessage, getUploadFlowStateForFile, getUploadStateLabels } from "../../services/uploadService";
+import { getBulkUploadWorkspace } from "../../services/mockSelectors";
+import { analyzeResumeFile } from "../../services/resumeAnalysis";
+import {
+  getSafeUploadErrorMessage,
+  getUploadFlowStateForFile,
+  getUploadStateLabels,
+  validateUploadFile
+} from "../../services/uploadService";
 import type { BulkUploadFile, BulkUploadWorkspaceViewModel } from "../../types/hiring";
 
 type BulkUploadCandidatesPanelProps = {
   workspace?: BulkUploadWorkspaceViewModel;
 };
+
+function makeUploadRowId(fileName: string, index: number): string {
+  const base = fileName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") || `resume-${index + 1}`;
+  const suffix = typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : `${index}-${Math.round(Math.random() * 1e9)}`;
+  return `upload-${base}-${suffix}`;
+}
 
 function getStatusTone(status: string) {
   if (status === "Uploaded" || status === "Parsed" || status === "Report ready") return "success";
@@ -32,8 +44,82 @@ export function BulkUploadCandidatesPanel({ workspace = getBulkUploadWorkspace()
 
   function addFiles(fileList: FileList | null) {
     if (!fileList) return;
-    const incomingFiles = Array.from(fileList).map((file, index) => createMockBulkUploadFile(file.name, index));
-    setLocalFiles((currentFiles) => [...incomingFiles, ...currentFiles]);
+    const incoming = Array.from(fileList);
+
+    // 1. Show a row per file immediately: rejected files fail fast, accepted
+    //    files enter a "generating" state while the AI analysis runs.
+    const initialRows: BulkUploadFile[] = incoming.map((file, index) => {
+      const validation = validateUploadFile({ name: file.name, size: file.size });
+      const id = makeUploadRowId(file.name, index);
+      const createdAt = new Date().toISOString();
+
+      if (!validation.accepted) {
+        return {
+          id,
+          batchId: "local-upload-batch",
+          fileName: file.name,
+          fileUrl: "",
+          status: "Failed",
+          parsingStatus: "Failed",
+          evidenceReportStatus: "Failed",
+          errorMessage:
+            validation.message === "File too large"
+              ? "File too large. Maximum size is 10 MB."
+              : "Unsupported file type. Upload PDF or DOCX resumes only.",
+          createdAt
+        };
+      }
+
+      return {
+        id,
+        batchId: "local-upload-batch",
+        fileName: file.name,
+        fileUrl: `/local-upload/${encodeURIComponent(file.name)}`,
+        status: "Uploaded",
+        parsingStatus: "Parsing",
+        evidenceReportStatus: "Report generating",
+        createdAt
+      };
+    });
+
+    setLocalFiles((current) => [...initialRows, ...current]);
+
+    // 2. Analyze each accepted file and update its row when the report is ready.
+    incoming.forEach((file, index) => {
+      const row = initialRows[index];
+      if (row.status === "Failed") return;
+
+      analyzeResumeFile(file, workspace.job.id)
+        .then((result) => {
+          const report = result.report;
+          const done: BulkUploadFile = {
+            ...row,
+            status: "Uploaded",
+            candidateId: report.candidate.id,
+            applicationId: report.application.id,
+            candidateName: report.candidate.name,
+            parsingStatus: "Parsed",
+            evidenceReportStatus: "Report ready",
+            reportPath: `/reports/${report.reportId}`
+          };
+          setLocalFiles((current) => current.map((item) => (item.id === row.id ? done : item)));
+        })
+        .catch(() => {
+          setLocalFiles((current) =>
+            current.map((item) =>
+              item.id === row.id
+                ? {
+                    ...item,
+                    status: "Needs manual review",
+                    parsingStatus: "Needs manual review",
+                    evidenceReportStatus: "Needs manual review",
+                    errorMessage: "Could not generate a report for this file."
+                  }
+                : item
+            )
+          );
+        });
+    });
   }
 
   function handleDrop(event: React.DragEvent<HTMLLabelElement>) {

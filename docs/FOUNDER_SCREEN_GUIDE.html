@@ -1,0 +1,618 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Founder Screen Guide — Hiring Evidence System</title>
+<style>
+  :root{
+    --ground:#f5f7f6;
+    --paper:#ffffff;
+    --ink:#16232b;
+    --muted:#5a6771;
+    --line:#e3e8e5;
+    --accent:#17342c;      /* deep evergreen — structure & links */
+    --accent-soft:#e9f1ee;
+    --lime:#c6ec53;        /* product brand touch, header only */
+    --ok-t:#1c7a45; --ok-b:#e6f4ea;
+    --soon-t:#8a5a00; --soon-b:#fbf0d5;
+    --bad-t:#b42318; --bad-b:#fbe7e5;
+    --radius:14px;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  @media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+  body{
+    margin:0;
+    background:var(--ground);
+    color:var(--ink);
+    font-family:"Segoe UI",system-ui,-apple-system,Roboto,Helvetica,Arial,sans-serif;
+    font-size:17.5px;
+    line-height:1.65;
+    -webkit-font-smoothing:antialiased;
+  }
+  .mono{font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;font-size:.92em}
+  a{color:var(--accent);text-underline-offset:2px}
+  a:focus-visible{outline:3px solid var(--lime);outline-offset:2px;border-radius:3px}
+
+  /* top bar */
+  header.top{
+    position:sticky;top:0;z-index:30;
+    background:#0f231d;color:#eef3ef;
+    border-bottom:3px solid var(--lime);
+  }
+  header.top .inner{
+    max-width:1120px;margin:0 auto;padding:12px 22px;
+    display:flex;align-items:center;gap:14px;flex-wrap:wrap;
+  }
+  header.top .mark{
+    width:28px;height:28px;border-radius:8px;background:var(--lime);color:#0f231d;
+    display:grid;place-items:center;font-weight:800;font-size:15px;flex:none;
+  }
+  header.top b{font-size:16px;letter-spacing:.2px}
+  header.top .tag{color:#9fb7ad;font-size:13.5px;margin-left:auto}
+
+  .wrap{max-width:1120px;margin:0 auto;padding:0 22px}
+
+  /* masthead */
+  .masthead{padding:44px 0 8px}
+  .eyebrow{
+    font-size:12.5px;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--accent);font-weight:700;margin:0 0 10px
+  }
+  h1{
+    font-size:clamp(30px,5vw,44px);line-height:1.1;margin:0 0 14px;
+    letter-spacing:-.01em;text-wrap:balance;font-weight:800
+  }
+  .lede{font-size:19px;color:var(--muted);max-width:60ch;margin:0}
+
+  /* layout: sticky toc + main */
+  .layout{display:grid;grid-template-columns:230px 1fr;gap:40px;align-items:start;padding:34px 0 60px}
+  nav.toc{position:sticky;top:74px}
+  nav.toc p{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 0 10px}
+  nav.toc ol{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px;counter-reset:t}
+  nav.toc a{
+    display:block;text-decoration:none;color:var(--ink);font-size:14.5px;
+    padding:7px 10px;border-radius:8px;border-left:2px solid transparent
+  }
+  nav.toc a:hover{background:var(--accent-soft);border-left-color:var(--accent)}
+  main{min-width:0}
+
+  /* info cards */
+  .cards{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:0 0 30px}
+  .card{background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);padding:18px 20px}
+  .card h3{margin:0 0 8px;font-size:16px}
+  .card p{margin:0;color:var(--muted);font-size:15.5px}
+  .card ol,.card ul{margin:6px 0 0;padding-left:20px;color:var(--muted);font-size:15.5px}
+
+  /* screens */
+  section.screen{
+    background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);
+    padding:26px 26px 30px;margin:0 0 26px;scroll-margin-top:78px
+  }
+  section.screen h2{font-size:23px;margin:0 0 4px;letter-spacing:-.01em;text-wrap:balance}
+  .urlrow{margin:0 0 4px;color:var(--muted);font-size:14.5px}
+  .urlrow .mono{color:var(--ink);background:var(--accent-soft);padding:1px 6px;border-radius:5px}
+  .purpose{margin:12px 0 18px;font-size:16px}
+  .purpose b{color:var(--accent)}
+  h4.sub{font-size:16px;margin:22px 0 8px}
+
+  /* tables */
+  .tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:10px;margin:6px 0 4px}
+  table{border-collapse:collapse;width:100%;font-size:15px;min-width:560px}
+  th,td{text-align:left;padding:10px 13px;vertical-align:top;border-bottom:1px solid var(--line)}
+  thead th{background:#f0f4f2;font-size:12.5px;letter-spacing:.04em;text-transform:uppercase;color:var(--accent);white-space:nowrap}
+  tbody tr:last-child td{border-bottom:none}
+  td.num{color:var(--muted);font-variant-numeric:tabular-nums;width:34px;text-align:center}
+  table strong{font-weight:700}
+
+  /* badges */
+  .b{display:inline-block;font-size:12.5px;font-weight:700;line-height:1.4;padding:2px 9px;border-radius:999px;white-space:nowrap}
+  .ok{color:var(--ok-t);background:var(--ok-b)}
+  .soon{color:var(--soon-t);background:var(--soon-b)}
+  .bad{color:var(--bad-t);background:var(--bad-b)}
+  .b + small{color:var(--muted);font-size:12.5px;display:block;margin-top:3px}
+
+  /* callouts */
+  .say{
+    display:flex;gap:12px;background:var(--accent-soft);border:1px solid #cfe0d9;
+    border-radius:12px;padding:14px 16px;margin:18px 0 0
+  }
+  .say .k{font-size:12px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);flex:none;padding-top:2px}
+  .say p{margin:0;font-size:16px}
+  .note{background:#fbf6e8;border:1px solid #efe0b8;border-radius:12px;padding:12px 16px;margin:16px 0;font-size:15px;color:#5b4a1e}
+  .warn{background:#eef2f6;border:1px solid #d8e0e8;border-radius:12px;padding:12px 16px;margin:14px 0;font-size:15px;color:#3c4a58}
+  .note b,.warn b{color:inherit}
+
+  /* legend + rules block */
+  .legend{display:flex;flex-wrap:wrap;gap:10px;margin:14px 0 26px}
+  .legend .item{display:flex;align-items:center;gap:10px;background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:9px 14px;font-size:14.5px;color:var(--muted)}
+
+  ul.clean{margin:8px 0 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:10px}
+  ul.clean li{padding-left:26px;position:relative;font-size:15.5px}
+  ul.clean li::before{content:"🔶";position:absolute;left:0;top:0}
+
+  .broken{border-color:#f0c9c4}
+  .broken h2{color:var(--bad-t)}
+  .notbuilt h2{color:var(--soon-t)}
+
+  footer{color:var(--muted);font-size:14px;text-align:center;padding:8px 0 50px}
+
+  @media (max-width:900px){
+    .layout{grid-template-columns:1fr;gap:8px;padding:20px 0 50px}
+    nav.toc{position:static;margin-bottom:10px}
+    nav.toc ol{flex-direction:row;flex-wrap:wrap;gap:6px}
+    nav.toc a{border:1px solid var(--line);border-left:1px solid var(--line);font-size:13.5px;padding:6px 11px}
+    .cards{grid-template-columns:1fr}
+  }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="inner">
+    <span class="mark">HE</span>
+    <b>Hiring Evidence System</b>
+    <span class="tag">Founder Screen Guide · read this before showing the app</span>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="masthead">
+    <p class="eyebrow">Simple guide · one screen at a time</p>
+    <h1>What every screen does, in plain words</h1>
+    <p class="lede">This guide walks through the whole app, screen by screen. For each one it lists
+    the buttons, tables, and links one by one — what they do, and what you can say to a customer.
+    You do not need to know any code to read it.</p>
+  </div>
+</div>
+
+<div class="wrap">
+<div class="layout">
+
+  <nav class="toc" aria-label="On this page">
+    <p>On this page</p>
+    <ol>
+      <li><a href="#start">Start here</a></li>
+      <li><a href="#home">1 · Home page</a></li>
+      <li><a href="#login">2 · Login</a></li>
+      <li><a href="#pilot">3 · Request pilot</a></li>
+      <li><a href="#demo-pres">4 · Demo Presentation</a></li>
+      <li><a href="#demo-lab">5 · Demo Test Lab</a></li>
+      <li><a href="#dashboard">6 · Dashboard</a></li>
+      <li><a href="#candidates">7 · Candidate list</a></li>
+      <li><a href="#upload">8 · Upload candidates</a></li>
+      <li><a href="#report">9 · Evidence report</a></li>
+      <li><a href="#broken">✅ Broken — fixed</a></li>
+      <li><a href="#notbuilt">✅ Now working / 🔶 not built</a></li>
+    </ol>
+  </nav>
+
+  <main>
+
+    <!-- START HERE -->
+    <section class="screen" id="start">
+      <p class="eyebrow">Start here</p>
+      <h2>Before you show anyone</h2>
+
+      <div class="say" style="margin-top:6px">
+        <span class="k">Say this</span>
+        <p>“You give it a job and a resume. It gives you back one clear report: what the person
+        has proven, what is missing, and what to ask in the interview. A person still makes the
+        final choice — the software never decides for you.”</p>
+      </div>
+
+      <h4 class="sub">How to open the app</h4>
+      <div class="cards">
+        <div class="card">
+          <h3>Three steps</h3>
+          <ol>
+            <li>Open a terminal in the project folder.</li>
+            <li>Type <span class="mono">npm run dev</span></li>
+            <li>Open <span class="mono">http://localhost:3000</span></li>
+          </ol>
+        </div>
+        <div class="card">
+          <h3>If port 3000 is busy</h3>
+          <p>It opens on <span class="mono">http://localhost:3001</span> instead. Both are the
+          same app — just use whichever address the terminal shows you.</p>
+        </div>
+      </div>
+
+      <h4 class="sub">The three marks used all through this guide</h4>
+      <div class="legend">
+        <span class="item"><span class="b ok">works</span> Does what it should. Safe to show.</span>
+        <span class="item"><span class="b soon">not built</span> On purpose, not real yet. Not broken.</span>
+        <span class="item"><span class="b bad">broken</span> A real problem: an error or wrong behaviour.</span>
+      </div>
+
+      <h4 class="sub">The golden word rule (very important)</h4>
+      <p>When you talk about this product, and everywhere in the app, we <b>never</b> use words that
+      sound like the computer made the choice by itself, that name someone the top pick, that say
+      the software throws anyone out on its own, or that promise hiring is completely free of bias.</p>
+      <p>We say instead: <b>evidence found</b>, <b>evidence missing</b>, <b>needs verification</b>,
+      <b>human review required</b>, <b>strong evidence</b>, <b>decision reason required</b>. The whole
+      product is built on one idea: <em>the computer shows the proof, a person makes the call.</em></p>
+      <div class="note">The full written list of words to avoid is in
+      <span class="mono">docs/UX_COPY_RULES.md</span>. Please read it before writing any new copy.</div>
+
+      <h4 class="sub">Two things you will see on many screens</h4>
+      <p><strong>1) The yellow “Seed fallback mode / Missing env vars” box.</strong> On the inside
+      screens you will see a yellow box asking to add some settings. <b>Do not worry.</b> It is a
+      note for the developer only — it means the app is running on built-in demo data instead of a
+      real database. It is <b>not</b> an error, and it does <b>not</b> appear in the real live
+      version. You can ignore it, or ask the developer to hide it before a customer sees it.
+      <span class="b soon">not built</span></p>
+
+      <p style="margin-bottom:6px"><strong>2) The left menu (only on the inside screens).</strong>
+      Only three items go somewhere real right now:</p>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>Menu item</th><th>Where it goes</th><th>Mark</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Dashboard</strong></td><td>The recruiter home screen</td><td><span class="b ok">works</span></td></tr>
+            <tr><td><strong>Candidates</strong></td><td>Opens the Frontend Developer candidate list</td><td><span class="b ok">works</span></td></tr>
+            <tr><td><strong>Reports</strong></td><td>Opens Amanda Lee’s evidence report</td><td><span class="b ok">works</span></td></tr>
+            <tr><td>Jobs</td><td>Goes back to the Dashboard (no Jobs page yet)</td><td><span class="b soon">not built</span></td></tr>
+            <tr><td>Fairness checks</td><td>Goes back to the Dashboard (no page yet)</td><td><span class="b soon">not built</span></td></tr>
+            <tr><td>Decisions</td><td>Goes back to the Dashboard (no page yet)</td><td><span class="b soon">not built</span></td></tr>
+            <tr><td>Settings</td><td>Goes back to the Dashboard (no page yet)</td><td><span class="b soon">not built</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="warn">The top bar’s big buttons (like “New report”, “Upload candidates”, “Final decision”,
+      “Share report”) <b>now work</b> and go to a sensible place. Only the <b>search box, bell, and help (?)</b>
+      icons are still decorative and do nothing.
+      <span class="b ok">buttons work</span> <span class="b soon">search / bell / help not built</span></div>
+    </section>
+
+    <!-- 1 HOME -->
+    <section class="screen" id="home">
+      <p class="eyebrow">Page 1</p>
+      <h2>Home page — the first thing the outside world sees</h2>
+      <p class="urlrow">URL: <span class="mono">http://localhost:3000/</span></p>
+      <p class="purpose"><b>What this page is for:</b> the sales page. It tells a visitor what the
+      product does and asks them to request a pilot. Start here — this is the page you show most.</p>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th class="num">#</th><th>What you see</th><th>What it does when clicked</th><th>Why it matters</th><th>Mark</th></tr></thead>
+          <tbody>
+            <tr><td class="num">1</td><td><strong>“Hiring Evidence System”</strong> logo</td><td>Goes back to this home page</td><td>Always a way home</td><td><span class="b ok">works</span></td></tr>
+            <tr><td class="num">2</td><td>Top menu: 01 Problem · 02 Process · 03 Report · 04 Compliance</td><td>Jumps down to that part of the page</td><td>Fast scroll</td><td><span class="b ok">works</span></td></tr>
+            <tr><td class="num">3</td><td>Green <strong>“Request pilot access”</strong> button</td><td>Opens the Request pilot form</td><td>Turns a visitor into a lead</td><td><span class="b ok">works</span></td></tr>
+            <tr><td class="num">4</td><td>Big headline <strong>“Evidence over opinion.”</strong></td><td>Just text</td><td>Grabs attention</td><td><span class="b ok">works</span></td></tr>
+            <tr><td class="num">5</td><td>Short paragraph under it</td><td>A job + a resume becomes one clear record</td><td>Tells the story</td><td><span class="b ok">works</span></td></tr>
+            <tr><td class="num">6</td><td>Green <strong>“Request pilot access”</strong> button</td><td>Opens the Request pilot form</td><td>Main call to action</td><td><span class="b ok">works</span></td></tr>
+            <tr><td class="num">7</td><td><strong>“View a sample report”</strong> link</td><td>Opens a real example report (Amanda Lee)</td><td>Lets them see the product</td><td><span class="b ok">works</span></td></tr>
+            <tr><td class="num">8</td><td>Line: Human decides · PDPA-aware · Full audit trail</td><td>Just text</td><td>Builds trust</td><td><span class="b ok">works</span></td></tr>
+            <tr><td class="num">9</td><td>The <strong>card on the right</strong> (Record · HER-2026-0521-AL)</td><td>A small preview of a real report</td><td>Shows the product at a glance</td><td><span class="b ok">works</span></td></tr>
+            <tr><td class="num">10</td><td><strong>Process strip</strong> (four steps)</td><td>Just text steps</td><td>Shows how it works</td><td><span class="b ok">works</span></td></tr>
+            <tr><td class="num">11</td><td><strong>Number strip</strong> (100% human reason, 00, 03m, FULL)</td><td>Just text. “00” means the system never turns anyone away on its own</td><td>Simple proof points</td><td><span class="b ok">works</span></td></tr>
+            <tr><td class="num">12</td><td><strong>01 / Problem</strong> section (A, B, C)</td><td>Why a black-box score is risky</td><td>Names the pain</td><td><span class="b ok">works</span></td></tr>
+            <tr><td class="num">13</td><td><strong>02 / Why</strong> section (three cards)</td><td>Just text cards</td><td>Reasons to buy</td><td><span class="b ok">works</span></td></tr>
+            <tr><td class="num">14</td><td><strong>03 / Output</strong> + “Open the sample report” + “Watch the demo”</td><td>Open the report → Amanda; Watch the demo → the slideshow page</td><td>Shows the real output</td><td><span class="b ok">works</span></td></tr>
+            <tr><td class="num">15</td><td><strong>04 / Compliance</strong> section (dark)</td><td>Just text</td><td>Compliance is the headline</td><td><span class="b ok">works</span></td></tr>
+            <tr><td class="num">16</td><td><strong>Final section</strong> + two buttons</td><td>Same two links as before</td><td>Last chance to act</td><td><span class="b ok">works</span></td></tr>
+            <tr><td class="num">17</td><td><strong>Footer</strong> links + disclaimer</td><td>Each link goes to that page</td><td>Standard footer</td><td><span class="b ok">works</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="say"><span class="k">Say this</span><p>“This is our promise — we turn a job and a
+      resume into one clear evidence report, and a human always makes the final decision.”</p></div>
+    </section>
+
+    <!-- 2 LOGIN -->
+    <section class="screen" id="login">
+      <p class="eyebrow">Page 2</p>
+      <h2>Login</h2>
+      <p class="urlrow">URL: <span class="mono">http://localhost:3000/login</span></p>
+      <p class="purpose"><b>What this page is for:</b> the recruiter sign-in screen. It is a real
+      design, but real sign-in is not turned on yet in this demo.</p>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th class="num">#</th><th>What you see</th><th>What it does</th><th>Why it matters</th><th>Mark</th></tr></thead>
+          <tbody>
+            <tr><td class="num">1</td><td>Logo “Hiring Evidence System”</td><td>Goes to the home page</td><td>Way home</td><td><span class="b ok">works</span></td></tr>
+            <tr><td class="num">2</td><td><strong>Email address</strong> box</td><td>Already filled; you can type in it</td><td>Where a user signs in</td><td><span class="b ok">works</span></td></tr>
+            <tr><td class="num">3</td><td><strong>Password</strong> box</td><td>You can type; it hides the text</td><td>Standard field</td><td><span class="b ok">works</span></td></tr>
+            <tr><td class="num">4</td><td><strong>“Remember this device”</strong> tick box</td><td>You can tick it, but it does nothing yet</td><td>Normal login option</td><td><span class="b soon">not built</span></td></tr>
+            <tr><td class="num">5</td><td>Purple <strong>“Sign in”</strong> button</td><td>Does <b>not</b> log you in yet; shows a small developer message</td><td>Real sign-in is next</td><td><span class="b soon">not built</span></td></tr>
+            <tr><td class="num">6</td><td>Line: “Seed fallback mode is active.”</td><td>A status note for the developer</td><td>Tells us we are on demo data</td><td><span class="b soon">not built</span></td></tr>
+            <tr><td class="num">7</td><td><strong>“Request access”</strong> button</td><td>Opens the Request pilot form</td><td>For new visitors</td><td><span class="b ok">works</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="note"><b>Important:</b> because sign-in is not real yet, you do <b>not</b> reach the
+      dashboard by clicking “Sign in.” You reach the inside screens by typing the address (for example
+      <span class="mono">/dashboard</span>) or by clicking the links on the home page and sample report.
+      This is expected.</div>
+      <div class="say"><span class="k">Say this</span><p>“This is the recruiter sign-in. In the pilot
+      we connect it to your real company accounts.”</p></div>
+    </section>
+
+    <!-- 3 PILOT -->
+    <section class="screen" id="pilot">
+      <p class="eyebrow">Page 3</p>
+      <h2>Request pilot access</h2>
+      <p class="urlrow">URL: <span class="mono">http://localhost:3000/request-pilot</span></p>
+      <p class="purpose"><b>What this page is for:</b> a short form so a company can ask for a pilot.
+      It checks the fields and shows a thank-you message.</p>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th class="num">#</th><th>What you see</th><th>What it does</th><th>Why it matters</th><th>Mark</th></tr></thead>
+          <tbody>
+            <tr><td class="num">1</td><td>Left-side text + three small tags</td><td>Just text</td><td>Sets the offer</td><td><span class="b ok">works</span></td></tr>
+            <tr><td class="num">2</td><td><strong>Company name</strong> box</td><td>Type the company name (required)</td><td>Who is asking</td><td><span class="b ok">works</span></td></tr>
+            <tr><td class="num">3</td><td><strong>Work email</strong> box</td><td>Must look like a real email</td><td>So we can reply</td><td><span class="b ok">works</span></td></tr>
+            <tr><td class="num">4</td><td><strong>Your role</strong> box</td><td>Type a job title (required)</td><td>Who is asking</td><td><span class="b ok">works</span></td></tr>
+            <tr><td class="num">5</td><td><strong>Hiring volume</strong> dropdown</td><td>Pick how many roles (required)</td><td>Helps us plan</td><td><span class="b ok">works</span></td></tr>
+            <tr><td class="num">6</td><td><strong>First role to review</strong> box</td><td>Type a role name (required)</td><td>Where the pilot starts</td><td><span class="b ok">works</span></td></tr>
+            <tr><td class="num">7</td><td><strong>Pilot note</strong> box</td><td>Extra notes (not required)</td><td>Free space for details</td><td><span class="b ok">works</span></td></tr>
+            <tr><td class="num">8</td><td><strong>“Request pilot access”</strong> button</td><td>Missing field → red message under it. All filled → green “Pilot request recorded.” and the form clears</td><td>Captures the lead</td><td><span class="b ok">works</span></td></tr>
+            <tr><td class="num">9</td><td><strong>“View sample report”</strong> button</td><td>Opens Amanda’s report</td><td>Lets them see proof</td><td><span class="b ok">works</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="note">The request is saved inside your own browser only. It is <b>not</b> emailed to
+      you yet — sending it to your inbox is a later step. <span class="b soon">not built</span></div>
+      <div class="say"><span class="k">Say this</span><p>“Fill this in and we set up a one-role pilot
+      for you, on your own candidates.”</p></div>
+    </section>
+
+    <!-- 4 DEMO PRESENTATION -->
+    <section class="screen" id="demo-pres">
+      <p class="eyebrow">Page 4</p>
+      <h2>Demo Presentation — the 6-click story</h2>
+      <p class="urlrow">URL: <span class="mono">http://localhost:3000/demo-presentation</span></p>
+      <p class="purpose"><b>What this page is for:</b> a simple slideshow you can put in front of one
+      person to explain the product in one pass. Six slides.</p>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th class="num">#</th><th>What you see</th><th>What it does</th><th>Why it matters</th><th>Mark</th></tr></thead>
+          <tbody>
+            <tr><td class="num">1</td><td>Left text: “Show the product story in 6 clicks.”</td><td>Just text</td><td>Sets the scene</td><td><span class="b ok">works</span></td></tr>
+            <tr><td class="num">2</td><td><strong>“Open practical demo”</strong> button</td><td>Opens the Demo Test Lab page</td><td>Go deeper</td><td><span class="b ok">works</span></td></tr>
+            <tr><td class="num">3</td><td><strong>“View sample evidence report”</strong> button</td><td>Opens Amanda’s report</td><td>Show the real output</td><td><span class="b ok">works</span></td></tr>
+            <tr><td class="num">4</td><td>The dark <strong>slide card</strong> (“Slide 1 of 6”)</td><td>Shows the current slide’s words</td><td>The story itself</td><td><span class="b ok">works</span></td></tr>
+            <tr><td class="num">5</td><td>The row of <strong>dots</strong></td><td>Click a dot → jump to that slide</td><td>Move around</td><td><span class="b ok">works</span></td></tr>
+            <tr><td class="num">6</td><td><strong>“Previous” / “Next”</strong> buttons</td><td>Move one slide back or forward (loops around)</td><td>Step through the story</td><td><span class="b ok">works</span></td></tr>
+            <tr><td class="num">7</td><td>Lower part: company + role + metric tiles</td><td>Northstar Digital / Frontend Developer + demo numbers</td><td>Grounds it in an example</td><td><span class="b ok">works</span></td></tr>
+            <tr><td class="num">8</td><td><strong>“Click a resume category”</strong> list</td><td>Click a category → the card on the right changes</td><td>Shows how each type looks</td><td><span class="b ok">works</span></td></tr>
+            <tr><td class="num">9</td><td>The <strong>sample card</strong> on the right</td><td>Shows evidence found, evidence missing, recruiter action</td><td>Makes it concrete</td><td><span class="b ok">works</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="say"><span class="k">Say this</span><p>“Let me walk you through the whole idea in
+      six slides, then show you the real report.”</p></div>
+    </section>
+
+    <!-- 5 DEMO LAB -->
+    <section class="screen" id="demo-lab">
+      <p class="eyebrow">Page 5</p>
+      <h2>Demo Test Lab — many resumes at once</h2>
+      <p class="urlrow">URL: <span class="mono">http://localhost:3000/demo-test-lab</span></p>
+      <p class="purpose"><b>What this page is for:</b> it proves the product can sort a big, messy
+      pile of resumes into the groups you expect. It uses <b>60 made-up resumes</b> for one role.</p>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th class="num">#</th><th>What you see</th><th>What it shows</th><th>Why it matters</th><th>Mark</th></tr></thead>
+          <tbody>
+            <tr><td class="num">1</td><td>Big heading about evidence grouping</td><td>Just text</td><td>Sets the goal</td><td><span class="b ok">works</span></td></tr>
+            <tr><td class="num">2</td><td>Right card: Company / Role / Test set</td><td>Northstar Digital, Frontend Developer, Frontend evidence pilot set</td><td>The example setup</td><td><span class="b ok">works</span></td></tr>
+            <tr><td class="num">3</td><td><strong>Metric tiles</strong> (60, 39, 17, 48, 59)</td><td>How the pile was sorted</td><td>Proof it works at scale</td><td><span class="b ok">works</span></td></tr>
+            <tr><td class="num">4</td><td><strong>Scenario categories</strong> cards</td><td>Eight real-life groups with counts</td><td>Shows every case</td><td><span class="b ok">works</span></td></tr>
+            <tr><td class="num">5</td><td>Big <strong>table</strong> (expected vs. observed)</td><td>Each row is one made-up resume; green “Expected outcome match” or yellow “Review demo result”</td><td>Expected vs. what happened</td><td><span class="b ok">works</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="note">These 60 resumes are made-up demo data, not real people. This page reads the
+      data only — nothing here is clickable except reading the table.</div>
+      <div class="say"><span class="k">Say this</span><p>“Here is a whole pile of 60 resumes sorted
+      into the groups we expected — this is how it handles a real company’s inbox.”</p></div>
+    </section>
+
+    <!-- 6 DASHBOARD -->
+    <section class="screen" id="dashboard">
+      <p class="eyebrow">Page 6</p>
+      <h2>Dashboard — the recruiter’s home</h2>
+      <p class="urlrow">URL: <span class="mono">http://localhost:3000/dashboard</span></p>
+      <p class="purpose"><b>What this page is for:</b> the home screen after a recruiter logs in.
+      It shows the work waiting for them: numbers at the top, a review queue, and the list of jobs.</p>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th class="num">#</th><th>What you see</th><th>What it does</th><th>Why it matters</th><th>Mark</th></tr></thead>
+          <tbody>
+            <tr><td class="num">1</td><td>Yellow “Seed fallback mode” box</td><td>Developer note only</td><td>Ignore for customers</td><td><span class="b soon">not built</span></td></tr>
+            <tr><td class="num">2</td><td>“Welcome back, Sarah Tan” + count line</td><td>Name and number come from the data</td><td>Friendly start</td><td><span class="b ok">works</span></td></tr>
+            <tr><td class="num">3</td><td><strong>“Open sample report”</strong> button</td><td>Opens the first report in the queue (Amanda)</td><td>Quick way in</td><td><span class="b ok">works</span></td></tr>
+            <tr><td class="num">4</td><td>Green <strong>“Upload candidates”</strong> button</td><td>Opens the upload screen for Frontend Developer</td><td>Add new resumes</td><td><span class="b ok">works</span></td></tr>
+            <tr><td class="num">5</td><td>Four <strong>metric tiles</strong> (3, 9, 9, 1)</td><td>Active jobs, Waiting for review, Reports completed, Decisions needing sign-off</td><td>Health at a glance</td><td><span class="b ok">works</span></td></tr>
+            <tr><td class="num">6</td><td><strong>Review queue</strong> list + “Open report” links</td><td>Click “Open report” → that person’s report</td><td>The daily to-do list</td><td><span class="b ok">works</span></td></tr>
+            <tr><td class="num">7</td><td><strong>“Review decisions”</strong> button (dark card)</td><td>Opens a report that still needs a decision</td><td>Shows work left to sign off</td><td><span class="b ok">works</span></td></tr>
+            <tr><td class="num">8</td><td><strong>Recent jobs</strong> table (three roles)</td><td>Job, department, candidate count, evidence status, last updated</td><td>The list of open roles</td><td><span class="b ok">works</span></td></tr>
+            <tr><td class="num">9</td><td>Job title + candidate-count links</td><td>Open that job’s candidate list</td><td>Go into a role</td><td><span class="b ok">works</span></td></tr>
+            <tr><td class="num">10</td><td>“Upload candidates” link (last column)</td><td>Opens the upload screen for that job</td><td>Add resumes to that role</td><td><span class="b ok">works</span></td></tr>
+            <tr><td class="num">11</td><td><strong>“Create job”</strong> button</td><td>Removed for now — making a new job comes with the real database step</td><td>Avoids a dead button in the demo</td><td><span class="b soon">removed</span></td></tr>
+            <tr><td class="num">12</td><td>Top-bar <strong>“New report”</strong> button</td><td>Opens the upload screen (uploading a resume makes a report)</td><td>Start a new report</td><td><span class="b ok">works</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="note"><b>About the numbers:</b> some older notes say “4 waiting” and “3 reports.” The
+      app now has all three roles filled in, so the true numbers are <b>9 waiting</b> and <b>9 reports</b>.
+      That is correct, not a bug.</div>
+      <div class="say"><span class="k">Say this</span><p>“This is the recruiter’s home — it shows who
+      is waiting for review and how each open role is doing.”</p></div>
+    </section>
+
+    <!-- 7 CANDIDATES -->
+    <section class="screen" id="candidates">
+      <p class="eyebrow">Page 7</p>
+      <h2>Candidate list — one role at a time</h2>
+      <p class="urlrow">URL (Frontend Developer): <span class="mono">http://localhost:3000/jobs/frontend-developer/candidates</span></p>
+      <p class="purpose"><b>What this page is for:</b> shows the people for <b>one job</b>, grouped by
+      how strong their evidence is. This is the point of the product: the list is <b>not all green</b> —
+      real life is mixed.</p>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th class="num">#</th><th>What you see</th><th>What it does</th><th>Why it matters</th><th>Mark</th></tr></thead>
+          <tbody>
+            <tr><td class="num">1</td><td>Heading with the job title</td><td>Just text</td><td>You know which role</td><td><span class="b ok">works</span></td></tr>
+            <tr><td class="num">2</td><td>Green <strong>“Upload candidates”</strong> button</td><td>Opens the upload screen for this job</td><td>Add more resumes</td><td><span class="b ok">works</span></td></tr>
+            <tr><td class="num">3</td><td>Row of <strong>filter chips</strong> (plus an “All candidates” chip)</td><td>Click one → the table shows only that evidence group. Click it again or “All candidates” to clear</td><td>Focus on one group</td><td><span class="b ok">works</span></td></tr>
+            <tr><td class="num">4</td><td>The <strong>candidate table</strong></td><td>One row per person, with status columns</td><td>The heart of the page</td><td><span class="b ok">works</span></td></tr>
+            <tr><td class="num">5</td><td><strong>“View report”</strong> link on each row</td><td>Opens that person’s evidence report</td><td>Read the proof</td><td><span class="b ok">works</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <h4 class="sub">The four Frontend Developer people you will see</h4>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>Candidate</th><th>Evidence group</th><th>Can you open a report?</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Amanda Lee</strong></td><td>Good evidence, verification needed</td><td><span class="b ok">yes</span></td></tr>
+            <tr><td><strong>Daniel Morris</strong></td><td>Needs human review (file could not be read)</td><td><span class="b ok">yes</span></td></tr>
+            <tr><td><strong>Priya Shah</strong></td><td>Strong evidence</td><td><span class="b ok">yes</span></td></tr>
+            <tr><td><strong>Marcus Wong</strong></td><td>Report failed</td><td><span class="b soon">no report</span><small>His “View report” link just returns you to this same list. On purpose — the system does not invent a result when a report fails.</small></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="note"><b>The other two roles work the same way — try them:</b><br>
+      Customer Success Manager: <span class="mono">/jobs/customer-success-manager/candidates</span>
+      (Elena Garcia = strong, David Lim = good/verify, Hannah Cole = missing, Marcus Vance = report failed)<br>
+      Data Analyst: <span class="mono">/jobs/data-analyst/candidates</span>
+      (Nadia Hassan = strong, Ben Carter = good/verify, Sofia Ruiz = missing)</div>
+      <div class="say"><span class="k">Say this</span><p>“Notice it is not all green — each person gets
+      an honest, different result, and you can open the proof behind every one.”</p></div>
+    </section>
+
+    <!-- 8 UPLOAD -->
+    <section class="screen" id="upload">
+      <p class="eyebrow">Page 8</p>
+      <h2>Upload candidates — add resumes</h2>
+      <p class="urlrow">URL: <span class="mono">http://localhost:3000/jobs/frontend-developer/candidates/upload</span></p>
+      <p class="purpose"><b>What this page is for:</b> drop in resume files for one job. The screen
+      checks each file and prepares a report for the good ones.</p>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th class="num">#</th><th>What you see</th><th>What it does</th><th>Why it matters</th><th>Mark</th></tr></thead>
+          <tbody>
+            <tr><td class="num">1</td><td>Heading + short text</td><td>Tells you the job you are adding to</td><td>Context</td><td><span class="b ok">works</span></td></tr>
+            <tr><td class="num">2</td><td>The big <strong>drop area</strong></td><td>Drag files in, or click to choose files</td><td>The main action</td><td><span class="b ok">works</span></td></tr>
+            <tr><td class="num">3</td><td>Line: “Accepted PDF, DOCX. Max 10 MB.”</td><td>Just the rules</td><td>Sets limits</td><td><span class="b ok">works</span></td></tr>
+            <tr><td class="num">4</td><td><strong>Tick box</strong> “I confirm… permission…”</td><td>You must tick this first</td><td>Privacy / consent guardrail</td><td><span class="b ok">works</span></td></tr>
+            <tr><td class="num">5</td><td>Green <strong>“Upload candidates”</strong> button</td><td>Greyed out until you tick the box, then it works</td><td>Stops uploads without consent</td><td><span class="b ok">works</span></td></tr>
+            <tr><td class="num">6</td><td><strong>Total / Processed / Failed</strong> counters</td><td>Go up as you add files</td><td>See progress</td><td><span class="b ok">works</span></td></tr>
+            <tr><td class="num">7</td><td>A strip of <strong>state words</strong></td><td>Labels that explain the steps a file goes through</td><td>Teaches the flow</td><td><span class="b ok">works</span></td></tr>
+            <tr><td class="num">8</td><td>The <strong>“Uploaded files”</strong> table</td><td>One row per file, with statuses and a link</td><td>Watch each file</td><td><span class="b ok">works</span></td></tr>
+            <tr><td class="num">9</td><td><strong>“View report”</strong> link on a good file</td><td>Opens the made report, with a yellow “Demo preview report” banner</td><td>Read the made report</td><td><span class="b ok">works</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <h4 class="sub">What happens when you drop files (this really works)</h4>
+      <ul class="clean" style="list-style:none">
+        <li style="padding-left:26px">A good <b>PDF or DOCX</b> → row shows <b>Uploaded / Report ready</b> and gets a “View report” link. <span class="b ok">works</span></li>
+        <li style="padding-left:26px">A <b>wrong type</b> (like a .png or .zip) → row shows <b>Failed — “Unsupported file type”</b>. <span class="b ok">works</span></li>
+        <li style="padding-left:26px">A file <b>over 10 MB</b> → row shows <b>Failed — “File too large”</b>. <span class="b ok">works</span></li>
+      </ul>
+      <div class="note"><b>Be clear-eyed about this (say it honestly if asked):</b> the report made from
+      an upload is <b>scripted from the file’s category, not read from the real words in the file yet</b>.
+      That is why every uploaded report carries a “Demo preview report” banner. Real reading of the
+      document by AI is the next build step. Also, uploaded files and their reports <b>disappear when
+      you refresh the page</b> — the page only remembers them until you refresh. This is expected.
+      <span class="b soon">not built</span></div>
+      <div class="say"><span class="k">Say this</span><p>“Drop in a pile of resumes — good PDFs and Word
+      files are accepted, wrong or huge files are refused, and each good one gets its own evidence
+      report.”</p></div>
+    </section>
+
+    <!-- 9 REPORT -->
+    <section class="screen" id="report">
+      <p class="eyebrow">Page 9</p>
+      <h2>Evidence report — the core product</h2>
+      <p class="urlrow">Sample report: <span class="mono">/reports/candidate-evidence</span> (shows <strong>Amanda Lee</strong>)</p>
+      <p class="urlrow">A strong report: <span class="mono">/reports/HER-2026-0521-PS</span> (shows <strong>Priya Shah</strong>)</p>
+      <p class="purpose"><b>What this page is for:</b> this is the main thing you sell. It turns one
+      job + one resume into a full, honest report. Read it top to bottom.</p>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th class="num">#</th><th>What you see</th><th>What it shows</th><th>Mark</th></tr></thead>
+          <tbody>
+            <tr><td class="num">1</td><td>Yellow “Seed fallback mode” box</td><td>Developer note only</td><td><span class="b soon">not built</span></td></tr>
+            <tr><td class="num">2</td><td>Yellow <strong>“Demo preview report”</strong> box</td><td>Shows only on reports made from an upload, to say “this is a demo preview”</td><td><span class="b ok">works</span></td></tr>
+            <tr><td class="num">3</td><td><strong>Candidate header</strong> (name, role, company, dates, report ID, recruiter)</td><td>Who this is about</td><td><span class="b ok">works</span></td></tr>
+            <tr><td class="num">4</td><td><strong>Status tags</strong> (top right)</td><td>Small coloured tags for the report status (the old duplicate-tag bug is now fixed)</td><td><span class="b ok">works</span></td></tr>
+            <tr><td class="num">5</td><td>Four <strong>summary tiles</strong></td><td>Evidence match, Verification needed, Missing evidence, Human decision</td><td><span class="b ok">works</span></td></tr>
+            <tr><td class="num">6</td><td>Blue banner “AI-assisted analysis…”</td><td>The safety line — keeps the human in charge</td><td><span class="b ok">works</span></td></tr>
+            <tr><td class="num">7</td><td><strong>Left panel</strong> (candidate detail, fairness summary, buttons)</td><td>Facts + consent. “View resume” jumps to the document sources; “Add to recruiter notes” jumps to the notes box</td><td><span class="b ok">works</span></td></tr>
+            <tr><td class="num">8</td><td><strong>Evidence Matrix</strong> table</td><td>Each requirement: evidence, source, confidence, what to verify, status — the star of the show</td><td><span class="b ok">works</span></td></tr>
+            <tr><td class="num">9</td><td><strong>Missing evidence</strong> box</td><td>The gaps to check</td><td><span class="b ok">works</span></td></tr>
+            <tr><td class="num">10</td><td><strong>Suggested interview questions</strong></td><td>Ready questions tied to the gaps</td><td><span class="b ok">works</span></td></tr>
+            <tr><td class="num">11</td><td><strong>Recruiter decision notes</strong> area</td><td>Type a note and press <b>Add note</b> → it is added to the notes for this session (not kept after a refresh yet)</td><td><span class="b ok">works</span></td></tr>
+            <tr><td class="num">12</td><td><strong>Document sources</strong> box</td><td>The file(s) the evidence came from</td><td><span class="b ok">works</span></td></tr>
+            <tr><td class="num">13</td><td><strong>Audit trail preview</strong></td><td>A short list of what the system recorded</td><td><span class="b ok">works</span></td></tr>
+            <tr><td class="num">14</td><td><strong>Fairness Check</strong> panel</td><td>“Passed”, characteristics never used, wording warning “None”</td><td><span class="b ok">works</span></td></tr>
+            <tr><td class="num">15</td><td><strong>Human Decision</strong> panel</td><td>Four choices, a required reason box, and a “Save decision” button — see below</td><td><span class="b ok">works</span></td></tr>
+            <tr><td class="num">16</td><td><strong>Export PDF</strong> row</td><td>Opens your browser’s print dialog → choose “Save as PDF”. The page is cleaned up for printing automatically</td><td><span class="b ok">works</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <h4 class="sub">The Human Decision panel — the part that really works</h4>
+      <p>This is the strongest “it actually works” moment. Try it live:</p>
+      <ol style="margin:6px 0 0;padding-left:22px;font-size:15.5px;color:var(--ink)">
+        <li>Pick a choice (for example <b>Shortlist for interview</b>) but leave the reason box <b>empty</b> and press <b>“Save decision”</b>.</li>
+        <li>It <b>blocks you</b> and says <b>“Decision reason required.”</b> <span class="b ok">works</span></li>
+        <li>Now type a real reason and press <b>“Save decision”</b>.</li>
+        <li>It accepts and says <b>“Recruiter decision recorded.”</b> <span class="b ok">works</span></li>
+        <li>If you refresh, the saved decision is gone — expected here, there is no real database yet. The check and the save action still run for real. <span class="b soon">not built</span></li>
+      </ol>
+      <div class="say"><span class="k">Say this</span><p>“This is the report — every requirement has its
+      proof, its gaps, and the questions to ask. And notice: the software will not let anyone save a
+      decision without writing a job-related reason first.”</p></div>
+    </section>
+
+    <!-- BROKEN (now fixed) -->
+    <section class="screen" id="broken">
+      <p class="eyebrow" style="color:var(--ok-t)">All clear</p>
+      <h2>✅ Broken list — fixed</h2>
+      <p>Every page loads, with no blank pages or crashes. The one bug that was found — a green
+      <b>“Evidence report ready”</b> tag showing <b>twice</b> on strong reports (Priya, Elena, Nadia)
+      — has been <b>fixed</b>. The tag now shows once, and the hidden developer console warning is gone.</p>
+    </section>
+
+    <!-- RECENTLY FIXED + NOT BUILT -->
+    <section class="screen" id="notbuilt">
+      <p class="eyebrow" style="color:var(--ok-t)">Just made to work</p>
+      <h2>✅ Buttons that now work</h2>
+      <p>These used to do nothing. They have now been wired up:</p>
+      <ul class="clean" style="margin-bottom:6px">
+        <li style="padding-left:26px"><b>Candidate-list filter chips</b> → now filter the table by evidence group (plus an “All candidates” chip). <span class="b ok">works</span></li>
+        <li style="padding-left:26px"><b>Export PDF</b> (report) → opens your browser’s print dialog, where you can Save as PDF. The printed page is cleaned up (no menu or dev box). <span class="b ok">works</span></li>
+        <li style="padding-left:26px"><b>Add note</b> (report) → the note you type is added to the recruiter notes for this session. <span class="b ok">works</span></li>
+        <li style="padding-left:26px"><b>View resume</b> and <b>Add to recruiter notes</b> (report side panel) → jump to the right part of the report. <span class="b ok">works</span></li>
+        <li style="padding-left:26px">Top buttons <b>New report, Upload candidates, Back to candidates, Final decision, Share report, Review decisions</b> → all go to a sensible place (Share report copies the link). <span class="b ok">works</span></li>
+      </ul>
+      <p style="color:var(--muted);font-size:15px;margin-top:10px">The old “Create job” button was removed for now, because making a job is a bigger job (part of the real database step below).</p>
+
+      <p class="eyebrow" style="color:var(--soon-t);margin-top:26px">Do not worry — this is normal at this stage</p>
+      <h2>🔶 Still not built yet</h2>
+      <ul class="clean">
+        <li>Real <b>sign-in</b> — the “Sign in” button does not log you in yet; it shows a developer message.</li>
+        <li>The top-bar <b>search box, bell, help (?)</b> — still decorative.</li>
+        <li>Left menu items <b>Jobs, Fairness checks, Decisions, Settings</b> — they still return to the Dashboard (no separate pages yet).</li>
+        <li>The report <b>recruiter notes and saved decisions are not kept after you refresh</b> (no database yet).</li>
+        <li><b>Uploaded resumes and their reports disappear when you refresh</b> — the page only remembers them until you refresh.</li>
+        <li>Uploaded reports are <b>scripted from the file’s category, not read from the real file text yet</b> — that is why they carry a “Demo preview report” banner.</li>
+        <li><b>Request pilot</b> form saves only inside your browser; it is not emailed to you yet.</li>
+        <li>The yellow <b>“Seed fallback mode”</b> developer box shows on the inside screens; it will not appear in the real live version.</li>
+        <li><b>Marcus Wong / Marcus Vance</b> (“Report failed”) — no report opens; the link returns to the list. This is correct on purpose: the system does not invent a result when a report fails.</li>
+      </ul>
+    </section>
+
+    <footer>Nothing in the app was changed to make this guide — it only looks and reports.</footer>
+
+  </main>
+</div>
+</div>
+
+</body>
+</html>

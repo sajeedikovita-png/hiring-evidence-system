@@ -12,15 +12,39 @@ import ShieldCheck from "lucide-react/dist/esm/icons/shield-check.js";
 import UsersRound from "lucide-react/dist/esm/icons/users-round.js";
 import { Button } from "../../../components/ui/Button";
 
+type ShellAction = {
+  label: string;
+  href?: string;
+  onClick?: () => void;
+};
+
 type RecruiterShellProps = {
   active: "dashboard" | "candidates" | "reports";
   title: string;
   subtitle: string;
   children: ReactNode;
   reviewerName?: string;
-  primaryAction?: string;
-  secondaryAction?: string;
+  primaryAction?: ShellAction;
+  secondaryAction?: ShellAction;
 };
+
+function ShellActionButton({ action, variant }: { action?: ShellAction; variant: "primary" | "secondary" }) {
+  if (!action) return null;
+
+  if (action.href) {
+    return (
+      <a className={`button button-${variant}`} href={action.href}>
+        {action.label}
+      </a>
+    );
+  }
+
+  return (
+    <Button variant={variant} onClick={action.onClick}>
+      {action.label}
+    </Button>
+  );
+}
 
 const navItems = [
   { id: "dashboard", label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -91,8 +115,8 @@ export function RecruiterShell({
             <button className="icon-button" aria-label="Help">
               <CircleHelp size={18} />
             </button>
-            {secondaryAction ? <Button variant="secondary">{secondaryAction}</Button> : null}
-            {primaryAction ? <Button>{primaryAction}</Button> : null}
+            <ShellActionButton action={secondaryAction} variant="secondary" />
+            <ShellActionButton action={primaryAction} variant="primary" />
           </div>
         </header>
         {children}

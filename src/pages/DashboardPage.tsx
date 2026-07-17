@@ -63,7 +63,7 @@ export function DashboardPage() {
         active="dashboard"
         title="Evidence Ledger"
         subtitle="Review queue, evidence status, and decision sign-off work for hiring teams."
-        primaryAction="New report"
+        primaryAction={{ label: "New report", href: "/jobs/frontend-developer/candidates/upload" }}
         reviewerName={companyContext.userName}
       >
         <main className="workspace-content">
@@ -85,7 +85,7 @@ export function DashboardPage() {
       active="dashboard"
       title="Evidence Ledger"
       subtitle="Review queue, evidence status, and decision sign-off work for hiring teams."
-      primaryAction="New report"
+      primaryAction={{ label: "New report", href: "/jobs/frontend-developer/candidates/upload" }}
       reviewerName={dashboard.activeReviewerName}
     >
       <main className="workspace-content">
@@ -142,7 +142,9 @@ export function DashboardPage() {
             <p className="section-kicker">Decisions needing sign-off</p>
             <h2>{dashboard.metrics.find((metric) => metric.label === "Decisions needing sign-off")?.value ?? "0"}</h2>
             <p className="muted">Decision reason required before candidate status is finalized.</p>
-            <Button>Review decisions</Button>
+            <Button onClick={() => window.location.assign(dashboard.reviewQueue[0]?.reportPath ?? "/dashboard")}>
+              Review decisions
+            </Button>
           </section>
         </div>
 
@@ -152,7 +154,6 @@ export function DashboardPage() {
               <p className="section-kicker">Recent jobs</p>
               <h2>Evidence status by role</h2>
             </div>
-            <Button variant="secondary">Create job</Button>
           </div>
           <DataTable
             caption="Recent jobs table"

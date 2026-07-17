@@ -1,0 +1,173 @@
+/* ============================================================
+   Report + workspace redesign — unify to teal brand
+   Imported last so it overrides earlier workspace styles.
+   ============================================================ */
+
+/* ---- Recruiter sidebar: purple -> deep teal brand ---- */
+.recruiter-sidebar {
+  background: #102a30;
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 8px 0 28px rgba(11, 28, 48, 0.12);
+  color: #eef5f4;
+}
+
+.workspace-brand {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.workspace-brand .brand-mark {
+  background: #ffffff;
+  color: var(--primary);
+}
+
+.workspace-brand small {
+  color: #a9cdc9;
+}
+
+.workspace-link {
+  color: #cfe2df;
+}
+
+.workspace-link:hover,
+.workspace-link.active {
+  background: rgba(255, 255, 255, 0.09);
+  border-color: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+}
+
+.workspace-link.active {
+  box-shadow: inset 3px 0 0 var(--teal-soft);
+}
+
+.workspace-link svg {
+  color: #9cc3bf;
+}
+
+.workspace-link:hover svg,
+.workspace-link.active svg {
+  color: #ffffff;
+}
+
+.reviewer-card {
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #d6e4e2;
+}
+
+.reviewer-card strong {
+  color: #ffffff;
+}
+
+/* ---- Content rhythm ---- */
+.workspace-content {
+  display: grid;
+  gap: 22px;
+}
+
+/* ---- Cards: softer, more generous ---- */
+.metric-card,
+.workspace-card,
+.candidate-detail-panel,
+.card {
+  border-radius: 14px;
+}
+
+.dashboard-metrics {
+  gap: 16px;
+}
+
+.metric-card {
+  padding: 22px;
+  position: relative;
+}
+
+.metric-card strong {
+  color: var(--primary);
+  font-size: 32px;
+}
+
+.summary-card-heading .metric {
+  color: var(--text-strong);
+  font-size: 22px;
+  line-height: 1.25;
+  margin: 0;
+}
+
+/* ---- Evidence matrix: neutral/teal, clearer table ---- */
+.evidence-matrix-card {
+  border-color: var(--border);
+  border-radius: 14px;
+  box-shadow: var(--shadow);
+}
+
+.evidence-matrix-card caption {
+  background: var(--surface);
+  color: var(--text-strong);
+}
+
+.evidence-matrix-card .table-wrap {
+  border-top: 1px solid var(--border);
+}
+
+.evidence-matrix-card th {
+  background: #eef4f3;
+  color: var(--primary);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 12px 16px;
+}
+
+.evidence-matrix-card td {
+  color: var(--text);
+  padding: 14px 16px;
+  vertical-align: top;
+}
+
+.evidence-matrix-card tbody tr:nth-child(even) td {
+  background: #fbfcfc;
+}
+
+.evidence-matrix-card tr:hover td {
+  background: #f3f8f7;
+}
+
+/* ---- Badges: a touch more presence ---- */
+.badge {
+  padding: 6px 11px;
+}
+
+.badge-info {
+  background: #e8f3f1;
+  color: var(--primary);
+}
+
+/* ---- AI-assisted notice: calmer, intentional ---- */
+.workspace-content > .warning-card {
+  background: #fbf7ec;
+  border-color: #e8d7a8;
+  border-radius: 14px;
+}
+
+/* ---- Candidate detail sidebar ---- */
+.candidate-detail-panel {
+  box-shadow: var(--shadow);
+}
+
+.candidate-detail-panel h2 {
+  font-size: 20px;
+}
+
+/* ---- Export row ---- */
+.report-export-row {
+  border-color: var(--border);
+  border-radius: 14px;
+  padding: 18px 20px;
+}
+
+/* ---- Section kickers inside workspace cards ---- */
+.workspace-card .section-kicker,
+.candidate-detail-panel .section-kicker {
+  color: var(--primary);
+}

@@ -34,6 +34,14 @@ import { validateUploadFile } from "./uploadService";
 const privacyConfirmationText =
   "I confirm that my organisation has permission or a valid basis to upload and process these candidate resumes for this hiring review.";
 
+export function jobSlug(jobTitle: string): string {
+  return jobTitle.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+}
+
+export function getJobIdBySlug(slug: string): string | undefined {
+  return jobs.find((job) => jobSlug(job.title) === slug)?.id;
+}
+
 const reviewableStatuses = new Set<Application["status"]>(["submitted", "report_ready", "needs_review"]);
 
 function requireRecord<T>(record: T | undefined, message: string): T {
@@ -166,8 +174,8 @@ export function getRecentJobs(): JobRow[] {
       candidates: `${jobApplications.length} candidates`,
       evidenceStatus,
       lastUpdated: formatDateLabel(job.updatedAt),
-      candidateListPath: job.id === "job-frontend-developer" ? "/jobs/frontend-developer/candidates" : "/dashboard",
-      uploadPath: job.id === "job-frontend-developer" ? "/jobs/frontend-developer/candidates/upload" : "/dashboard"
+      candidateListPath: `/jobs/${jobSlug(job.title)}/candidates`,
+      uploadPath: `/jobs/${jobSlug(job.title)}/candidates/upload`
     };
   });
 }

@@ -162,7 +162,7 @@ assert.equal(reportRecord.evidenceRows.length > 0, true);
 
 assert.equal(users.filter((user) => user.role === "recruiter").length, 2);
 assert.equal(jobs.length, 3);
-assert.equal(candidates.length, 5);
+assert.equal(candidates.length, 11);
 assert.equal(applications.length >= 5, true);
 
 const generatedMetrics = getDashboardMetrics();
@@ -260,13 +260,13 @@ assert.equal(validatePilotRequest(blankPilotRequest).valid, false);
 assert.equal(validatePilotRequest(blankPilotRequest).errors.workEmail, "Enter a valid work email.");
 assert.equal(submitPilotRequest(validPilotRequest).status, "pending_contact");
 
-assert.match(landingHtml, /Hire with evidence, not guesswork\./);
-assert.match(landingHtml, /View sample report/);
+assert.match(landingHtml, /Evidence-led hiring/);
+assert.match(landingHtml, /View a sample report/);
 assert.match(landingHtml, /Request pilot access/);
-assert.match(landingHtml, /Human-led hiring/);
+assert.match(landingHtml, /Built for Singapore hiring/);
 assert.match(landingHtml, /href="\/request-pilot"[^>]*>Request pilot access/);
-assert.match(landingHtml, /href="\/demo-test-lab"[^>]*>Open demo test lab/);
-assert.match(landingHtml, /href="\/demo-presentation"[^>]*>Open demo slideshow/);
+assert.match(landingHtml, /href="\/demo-presentation"[^>]*>Watch the demo/);
+assert.match(landingHtml, /href="\/reports\/candidate-evidence"[^>]*>Open the sample report/);
 
 assert.match(requestPilotHtml, /Request pilot access/);
 assert.match(requestPilotHtml, /Start a controlled pilot with one role/);
@@ -294,11 +294,11 @@ assert.match(demoPresentationHtml, /Open practical demo/);
 assert.match(demoPresentationHtml, /View sample evidence report/);
 
 assert.match(loginHtml, /Sign in/);
-assert.match(loginHtml, /Access candidate evidence reports/);
+assert.match(loginHtml, /Access your access requests and evidence reports/);
 
 assert.match(dashboardHtml, /Evidence Ledger/);
 assert.match(routedDashboardHtml, /Evidence Ledger/);
-assert.match(routedFallbackHtml, /Hire with evidence, not guesswork\./);
+assert.match(routedFallbackHtml, /Evidence-led hiring/);
 assert.match(dashboardHtml, /Active jobs/);
 assert.match(dashboardHtml, /Candidates waiting for review/);
 assert.match(dashboardHtml, /Reports completed/);
