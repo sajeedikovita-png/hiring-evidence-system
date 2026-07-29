@@ -102,7 +102,7 @@ export function SetPasswordPage() {
               <h1>Your password is saved.</h1>
               <p>You can now sign in and open your workspace.</p>
             </div>
-            <a className="button button-primary" href="/admin">
+            <a className="button button-primary" href="/dashboard">
               Go to my workspace
             </a>
           </>

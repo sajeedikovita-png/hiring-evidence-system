@@ -21,6 +21,19 @@ function statusTone(status: AccessRequest["status"]): string {
   return "warning";
 }
 
+function formatSubmittedAt(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+
+  return new Intl.DateTimeFormat("en-GB", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit"
+  }).format(date);
+}
+
 export function AdminPage() {
   const client = getPublicSupabaseClient();
   const [view, setView] = useState<ViewState>("loading");
@@ -181,6 +194,7 @@ export function AdminPage() {
                       .join(" · ")}
                   </span>
                   {request.note ? <p className="muted">{request.note}</p> : null}
+                  <span className="muted">Submitted {formatSubmittedAt(request.created_at)}</span>
                 </div>
                 <div className="admin-request-side">
                   <span className={`badge badge-${statusTone(request.status)}`}>{request.status}</span>
