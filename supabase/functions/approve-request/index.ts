@@ -29,15 +29,28 @@ Deno.serve(async (req) => {
   }
 
   const admin = createClient(URL, SERVICE);
-  const { data: profile } = await admin
-    .from("recruiter_profiles")
-    .select("id, role")
+
+  // Platform authority only. Every provisioned customer owner is an `admin` of their
+  // own company, so a company role must never grant access to other companies'
+  // requests. Authority is tied to this specific Auth user UUID.
+  const { data: platformAdmin } = await admin
+    .from("platform_admins")
+    .select("id")
     .eq("user_id", user.id)
     .eq("status", "active")
     .maybeSingle();
-  if (!profile || profile.role !== "admin") {
-    return new Response(JSON.stringify({ ok: false, error: "not an admin" }), { status: 403, headers: cors });
+  if (!platformAdmin) {
+    return new Response(JSON.stringify({ ok: false, error: "not a platform administrator" }), { status: 403, headers: cors });
   }
+
+  // The reviewer's own recruiter profile is recorded on the request when they have
+  // one; it is not what grants the authority above.
+  const { data: profile } = await admin
+    .from("recruiter_profiles")
+    .select("id")
+    .eq("user_id", user.id)
+    .eq("status", "active")
+    .maybeSingle();
 
   // 2. Read the request.
   let requestId = "";
@@ -95,7 +108,7 @@ Deno.serve(async (req) => {
     p_request_id: requestId,
     p_user_id: invitedUserId,
     p_email: email,
-    p_reviewer_profile_id: profile.id
+    p_reviewer_profile_id: profile?.id ?? null
   });
   if (provisionErr || !companyId) {
     return new Response(JSON.stringify({ ok: false, error: "could not provision the company workspace" }), { status: 500, headers: cors });

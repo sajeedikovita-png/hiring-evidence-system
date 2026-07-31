@@ -1,4 +1,10 @@
 import React, { useEffect, useState } from "react";
+import {
+  convertDemoWorkspace,
+  describeDemoWorkspace,
+  listDemoWorkspaces,
+  type DemoWorkspaceRow
+} from "../services/demoWorkspaceAdminService";
 import { getPublicSupabaseClient } from "../services/publicSupabaseClient";
 
 type AccessRequest = {
@@ -39,6 +45,7 @@ export function AdminPage() {
   const [view, setView] = useState<ViewState>("loading");
   const [adminEmail, setAdminEmail] = useState<string | null>(null);
   const [requests, setRequests] = useState<AccessRequest[]>([]);
+  const [workspaces, setWorkspaces] = useState<DemoWorkspaceRow[]>([]);
   const [errorMessage, setErrorMessage] = useState("");
   const [busyId, setBusyId] = useState<string | null>(null);
 
@@ -72,6 +79,14 @@ export function AdminPage() {
       }
       setRequests((rows ?? []) as AccessRequest[]);
       setView("ready");
+
+      // A workspace listing failure must not hide the requests above it.
+      try {
+        const demoWorkspaces = await listDemoWorkspaces(client);
+        if (isMounted) setWorkspaces(demoWorkspaces);
+      } catch {
+        if (isMounted) setWorkspaces([]);
+      }
     });
 
     return () => {
@@ -108,6 +123,26 @@ export function AdminPage() {
       return;
     }
     setRequests((current) => current.map((request) => (request.id === id ? { ...request, status: "rejected" } : request)));
+  }
+
+  async function markWorkspaceContinuing(companyId: string) {
+    if (!client) return;
+    setBusyId(companyId);
+    setErrorMessage("");
+    try {
+      await convertDemoWorkspace(client, companyId);
+      setWorkspaces((current) =>
+        current.map((workspace) =>
+          workspace.companyId === companyId
+            ? { ...workspace, state: "converted", purgeAt: null, convertedAt: new Date().toISOString() }
+            : workspace
+        )
+      );
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "Could not mark this workspace as continuing.");
+    } finally {
+      setBusyId(null);
+    }
   }
 
   async function signOut() {
@@ -218,6 +253,53 @@ export function AdminPage() {
                       </button>
                     </div>
                   ) : null}
+                </div>
+              </article>
+            ))
+          )}
+        </section>
+
+        <section className="dashboard-intro">
+          <div>
+            <p className="section-kicker">Live demo workspaces</p>
+            <h2>Companies using the product</h2>
+            <p>
+              Each approved company gets 14 days, then seven view-only days before its workspace data is
+              deleted. Mark a company as continuing to keep its workspace permanently.
+            </p>
+          </div>
+        </section>
+
+        <section className="admin-request-list">
+          {workspaces.length === 0 ? (
+            <p className="muted">No demo workspaces yet. Approving a request creates one.</p>
+          ) : (
+            workspaces.map((workspace) => (
+              <article className="admin-request-card" key={workspace.companyId}>
+                <div className="admin-request-main">
+                  <strong>{workspace.companyName}</strong>
+                  <span className="muted">{describeDemoWorkspace(workspace)}</span>
+                  <span className="muted">
+                    {workspace.jobCount} role{workspace.jobCount === 1 ? "" : "s"} · {workspace.candidateCount}{" "}
+                    candidate{workspace.candidateCount === 1 ? "" : "s"}
+                  </span>
+                </div>
+                <div className="admin-request-side">
+                  <span className={`badge badge-${workspace.state === "converted" ? "success" : "info"}`}>
+                    {workspace.state === "converted" ? "continuing" : workspace.state.replace(/_/g, " ")}
+                  </span>
+                  {workspace.state === "converted" ? null : (
+                    <div className="admin-request-actions">
+                      <button
+                        className="button button-secondary"
+                        type="button"
+                        disabled={busyId === workspace.companyId}
+                        onClick={() => markWorkspaceContinuing(workspace.companyId)}
+                      >
+                        {busyId === workspace.companyId ? "Saving" : "Mark as continuing"}
+                      </button>
+                    </div>
+                  )}
                 </div>
               </article>
             ))
