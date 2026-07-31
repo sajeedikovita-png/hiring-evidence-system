@@ -5,6 +5,7 @@ import { DataTable } from "../../components/ui/DataTable";
 import { DevelopmentConnectionStatusPanel } from "../components/dev/DevelopmentConnectionStatusPanel";
 import { RecruiterShell } from "../components/layout/RecruiterShell";
 import { getActiveCompanyContext } from "../services/companyContextService";
+import { activateDemoTrialOnDashboardOpen, getDemoTrialStatusForCompany } from "../services/demoTrialActivationService";
 import {
   classifyConnectionIssue,
   getDevelopmentConnectionStatus,
@@ -12,6 +13,21 @@ import {
 } from "../services/connectionStatusService";
 import { getAsyncHiringRepository, getDashboardData } from "../services/hiringRepository";
 import type { DashboardViewModel } from "../types/hiring";
+import type { DemoTrialStatus } from "../services/demoTrialService";
+
+function demoTrialMessage(status: DemoTrialStatus | null): string | null {
+  if (!status) return null;
+  if (status.state === "active") {
+    return status.daysRemaining <= 4
+      ? `Your live demo ends in ${status.daysRemaining} day${status.daysRemaining === 1 ? "" : "s"}. After that, it becomes view-only for seven days.`
+      : `${status.daysRemaining} days remain in your live demo. Your work will stay viewable for seven days after the demo ends.`;
+  }
+  if (status.state === "read_only") {
+    return `Your live demo is now view-only. Your workspace data will be deleted in ${status.daysRemaining} day${status.daysRemaining === 1 ? "" : "s"} unless you continue.`;
+  }
+  if (status.state === "purge_due") return "This demo has ended. Contact us to continue and preserve this workspace.";
+  return null;
+}
 
 export function DashboardPage() {
   const repository = useMemo(() => getAsyncHiringRepository(), []);
@@ -23,13 +39,21 @@ export function DashboardPage() {
   const [connectionStatus, setConnectionStatus] = useState<DevelopmentConnectionStatus>(() =>
     getDevelopmentConnectionStatus({ repositorySource: repository.source })
   );
+  const [trialStatus, setTrialStatus] = useState<DemoTrialStatus | null>(null);
 
   useEffect(() => {
     let isMounted = true;
 
     repository
       .getActiveCompanyContext()
-      .then((context) => repository.getDashboardData(context.companyId, context.userId))
+      .then(async (context) => {
+        if (repository.source === "supabase") {
+          await activateDemoTrialOnDashboardOpen(context.companyId);
+          const nextTrialStatus = await getDemoTrialStatusForCompany(context.companyId);
+          if (isMounted) setTrialStatus(nextTrialStatus);
+        }
+        return repository.getDashboardData(context.companyId, context.userId);
+      })
       .then((nextDashboard) => {
         if (isMounted) {
           setDashboard(nextDashboard);
@@ -90,6 +114,12 @@ export function DashboardPage() {
     >
       <main className="workspace-content">
         <DevelopmentConnectionStatusPanel status={connectionStatus} />
+        {demoTrialMessage(trialStatus) ? (
+          <section className="warning-card" aria-live="polite">
+            <p className="section-kicker">Live demo access</p>
+            <h2>{demoTrialMessage(trialStatus)}</h2>
+          </section>
+        ) : null}
         <section className="dashboard-intro">
           <div>
             <p className="section-kicker">Welcome back, {dashboard.activeReviewerName}</p>
