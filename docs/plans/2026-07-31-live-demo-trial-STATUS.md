@@ -29,7 +29,7 @@ proven with a real run.
 | 7 | Client upload path that persists instead of using browser storage | **DONE** — committed, **NOT production deployed** | `src/services/pilotUploadService.ts`, `BulkUploadCandidatesPanel.tsx` |
 | 8 | Admin conversion path (mark a company as continuing) | **DONE** — committed, **NOT backend deployed** | `202607310950_demo_conversion_and_purge.sql`, `AdminPage.tsx` |
 | 9 | Scheduled purge of expired demo workspaces | **DONE** — committed, ships disabled, **NOT deployed** | `supabase/functions/purge-expired-demos/index.ts` |
-| 10 | Create-a-role onboarding for a brand-new company | **PENDING** | not started — see "Known gap" below |
+| 10 | Create-a-role onboarding for a brand-new company | **PENDING** — deferred on purpose; approving one company at a time, so the SQL runbook below covers it | not started |
 | 11 | Founder email notification when a request arrives | **PENDING** | not started — founder must watch `/admin` |
 | 12 | Apply migrations + deploy functions to live Supabase | **PENDING** — needs founder | — |
 | 13 | Promote the Vercel deployment to production | **PENDING** — needs founder | — |
@@ -67,6 +67,85 @@ hand-written SQL insert of the customer's first role and criteria.
 Order to do it in: apply the three migrations → redeploy `approve-request` → promote
 the Vercel deployment → insert the customer's first role/criteria → run one full
 rehearsal with a company you control before inviting a real one.
+
+---
+
+## Manual onboarding runbook (approving one company at a time)
+
+While task 10 does not exist, each approved company needs its first role and criteria
+inserted by hand. Run this in the Supabase SQL editor **after** approving them in
+`/admin`. Change only the values in the first block.
+
+```sql
+-- 1. Who you are onboarding, and the role they want to review candidates for.
+with input as (
+  select
+    'ACME Recruiting'::text        as company_name,   -- exactly as it appears in /admin
+    'Frontend Developer'::text     as job_title,
+    'Engineering'::text            as department,
+    'Singapore'::text              as location,
+    'Full time'::text              as employment_type
+),
+target as (
+  select c.id as company_id, i.*
+  from input i
+  join public.companies c on c.name = i.company_name
+),
+new_job as (
+  insert into public.job_roles (company_id, title, department, location, employment_type, status)
+  select company_id, job_title, department, location, employment_type, 'open' from target
+  returning id, company_id
+)
+-- 2. The criteria the evidence report is built against. Edit freely; keep them
+--    job-related and observable. 3-8 works well; the analyzer caps at 12.
+insert into public.job_requirements (company_id, job_id, label, description, priority, sort_order)
+select
+  new_job.company_id, new_job.id, criterion.label, criterion.description,
+  criterion.priority, criterion.sort_order
+from new_job
+cross join (values
+  ('React in production',     'Has shipped and maintained React applications in a work setting.', 'required',  1),
+  ('TypeScript',              'Uses TypeScript day to day, not only JavaScript.',                 'required',  2),
+  ('Testing',                 'Writes automated tests for the code they ship.',                   'required',  3),
+  ('Accessibility',           'Has built interfaces that meet accessibility requirements.',       'preferred', 4)
+) as criterion(label, description, priority, sort_order);
+```
+
+**Then check it worked** — this should return one row per criterion:
+
+```sql
+select c.name as company, j.title, j.status, r.label, r.priority
+from public.job_requirements r
+join public.job_roles j on j.id = r.job_id
+join public.companies c on c.id = j.company_id
+where c.name = 'ACME Recruiting'
+order by r.sort_order;
+```
+
+**And confirm their trial is healthy** after they first open the dashboard:
+
+```sql
+select c.name, e.state, e.activated_at, e.active_until, e.purge_at
+from public.demo_entitlements e
+join public.companies c on c.id = e.company_id
+order by e.created_at desc;
+```
+
+`state` should be `active` with dates filled in. If it is still `pending_activation`
+after they have signed in, the dashboard activation code is not on production yet —
+their workspace is read-only until you promote it.
+
+**Two things to know about this runbook:**
+
+- The demo quota trigger allows **2 roles per company**. A third insert raises
+  `PILOT_JOB_LIMIT`. Raise it per company with
+  `update public.demo_entitlements set max_jobs = 4 where company_id = '…';`
+- `companies.name` is not unique. If you ever approve two companies with the same
+  name, look the company id up manually instead of joining on the name.
+
+Because you are approving one at a time, blocker 1 matters **more**, not less: a
+request that silently fails to insert never appears in `/admin`, so you would never
+know someone asked. Until that is fixed, confirm with anyone you are expecting.
 
 ---
 
