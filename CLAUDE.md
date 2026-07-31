@@ -99,13 +99,32 @@ vercel promote <deployment-url> --yes
 
 Working branch is `codex/demo-test-lab`; `main` is behind and unused for deploys. Full account/domain/DNS/cost reference is `docs/INFRASTRUCTURE.md` — including that **OpenRouter is the only real per-use cost**, the demo needs no login so anyone can trigger paid AI calls, and the kill switch is lowering the OpenRouter spending cap (the app then falls back to scripted reports rather than breaking).
 
+## Start here every session
+
+Read these two before changing anything, and update them before you finish:
+
+- **`docs/DECISION_LOG.md`** — why each non-obvious change was made, what was considered
+  and rejected, and what it would break to undo. Git says what changed; this says why.
+  **Append a new entry after any non-trivial change.** Newest first, never rewrite an
+  old entry — supersede it instead.
+- **`docs/plans/2026-07-31-live-demo-trial-STATUS.md`** — the live task board: what is
+  DONE vs PENDING, what is committed vs deployed, and what only the founder can do.
+  **Mark a task's status the moment it changes**, not at the end of the session.
+
+Chat sessions are disposable and the reasoning behind a change lives nowhere else. A
+change landed without a decision-log entry is a change the next person has to reverse-
+engineer.
+
+Active work on the demo-trial lifecycle lives on branch `feature/live-demo-trial`
+(worktree `.worktrees/live-demo-trial`), not on `codex/demo-test-lab`. Nothing from it
+is deployed.
+
 ## Docs map
 
 - `AGENTS.md` — operating contract (test-enforced).
 - `docs/INFRASTRUCTURE.md` — every account, domain, deploy step, and cost. Start here for anything operational.
 - `docs/PROJECT_STATE.md` — what is built vs. not built.
 - `docs/CODEX_RULES.md`, `docs/SAFETY_AND_COMPLIANCE_RULES.md`, `docs/UX_COPY_RULES.md` — product/AI/copy boundaries.
-- `docs/plans/2026-07-31-live-demo-trial-STATUS.md` — **the task board for the live-demo-trial work.** Says which tasks are done, which are pending, and what only the founder can do. That work lives on branch `feature/live-demo-trial` (worktree `.worktrees/live-demo-trial`), not on `codex/demo-test-lab`. Read it before starting anything in that area, and update it when a task changes state.
 - `docs/plans/` — dated handoffs; the newest describe the live 14-day trial work and what is implemented locally but **not yet deployed**.
 - `demo-test-kit/` — sample CVs, a bulk generator, and `MANUAL_TEST_GUIDE.md`, a click-by-click walkthrough that states exactly which parts are real vs. simulated.
 
