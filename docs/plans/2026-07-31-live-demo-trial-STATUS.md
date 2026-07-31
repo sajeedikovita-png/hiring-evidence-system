@@ -38,6 +38,38 @@ proven with a real run.
 
 ---
 
+## Can a real company test with real CVs today? No — five blockers
+
+What would actually happen if you approved a real request **right now**, before
+deploying anything from this branch:
+
+1. **The request may never arrive.** `RequestPilotPage.tsx:51` awaits
+   `saveAccessRequestToBackend(form)` and ignores the result, then always shows
+   "Pilot request recorded." A rejected insert looks identical to a successful one.
+2. **The first real customer becomes a platform admin.** The live `approve-request`
+   still authorizes on `recruiter_profiles.role = 'admin'`, and provisioning makes each
+   customer owner exactly that. They could list and approve other companies' requests.
+   Fixed by migration `202607310930` + redeploying the function.
+3. **Their workspace is locked.** `demo_workspace_is_writable()` returns false while
+   `active_until is null`, and the only thing that sets it is the dashboard activation
+   call — which is committed but **not promoted to production**. So an approved
+   customer gets a workspace they cannot write to, and the 14 days never start.
+4. **There is nothing to upload against.** A new company has no job and no criteria,
+   and no screen creates one. `BulkUploadCandidatesPage` dead-ends on
+   "Upload workspace cannot load".
+5. **Uploads would not persist.** The deployed panel still runs the scripted demo
+   engine into browser storage, and the private `candidate-documents` bucket does not
+   exist until migration `202607310940` is applied.
+
+**After the deploy steps below, 1–3 and 5 clear.** Blocker 4 needs either task 10 or a
+hand-written SQL insert of the customer's first role and criteria.
+
+Order to do it in: apply the three migrations → redeploy `approve-request` → promote
+the Vercel deployment → insert the customer's first role/criteria → run one full
+rehearsal with a company you control before inviting a real one.
+
+---
+
 ## Known gap that blocks a real customer (task 10)
 
 A newly provisioned company has **no jobs and no criteria**, and there is no screen to
