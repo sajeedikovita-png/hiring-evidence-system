@@ -29,15 +29,28 @@ Deno.serve(async (req) => {
   }
 
   const admin = createClient(URL, SERVICE);
-  const { data: profile } = await admin
-    .from("recruiter_profiles")
-    .select("id, role")
+
+  // Platform authority only. Every provisioned customer owner is an `admin` of their
+  // own company, so a company role must never grant access to other companies'
+  // requests. Authority is tied to this specific Auth user UUID.
+  const { data: platformAdmin } = await admin
+    .from("platform_admins")
+    .select("id")
     .eq("user_id", user.id)
     .eq("status", "active")
     .maybeSingle();
-  if (!profile || profile.role !== "admin") {
-    return new Response(JSON.stringify({ ok: false, error: "not an admin" }), { status: 403, headers: cors });
+  if (!platformAdmin) {
+    return new Response(JSON.stringify({ ok: false, error: "not a platform administrator" }), { status: 403, headers: cors });
   }
+
+  // The reviewer's own recruiter profile is recorded on the request when they have
+  // one; it is not what grants the authority above.
+  const { data: profile } = await admin
+    .from("recruiter_profiles")
+    .select("id")
+    .eq("user_id", user.id)
+    .eq("status", "active")
+    .maybeSingle();
 
   // 2. Read the request.
   let requestId = "";
@@ -52,31 +65,54 @@ Deno.serve(async (req) => {
 
   const { data: reqRow } = await admin
     .from("access_requests")
-    .select("id, work_email, status")
+    .select("id, work_email, company_name, status, provisioned_company_id")
     .eq("id", requestId)
     .maybeSingle();
   if (!reqRow) {
     return new Response(JSON.stringify({ ok: false, error: "request not found" }), { status: 404, headers: cors });
   }
 
-  // 3. Mark approved.
-  await admin
-    .from("access_requests")
-    .update({ status: "approved", reviewed_at: new Date().toISOString(), reviewed_by_profile_id: profile.id })
-    .eq("id", requestId);
+  if (reqRow.provisioned_company_id) {
+    return new Response(JSON.stringify({ ok: true, alreadyProvisioned: true, companyId: reqRow.provisioned_company_id }), { headers: cors });
+  }
 
-  // 4. Email the requester an access link (invite; fall back to recovery if already registered).
+  if (reqRow.status !== "pending") {
+    return new Response(JSON.stringify({ ok: false, error: "request already reviewed" }), { status: 409, headers: cors });
+  }
+
+  // 3. Email the requester an access link (invite; fall back to recovery if already registered).
   const email = String(reqRow.work_email).trim();
   let emailed = false;
   let via = "invite";
-  const { error: inviteErr } = await admin.auth.admin.inviteUserByEmail(email, { redirectTo: `${SITE}/welcome` });
+  const { data: inviteData, error: inviteErr } = await admin.auth.admin.inviteUserByEmail(email, { redirectTo: `${SITE}/welcome` });
+  let invitedUserId = inviteData?.user?.id ?? null;
   if (!inviteErr) {
     emailed = true;
   } else {
     via = "recovery";
     const { error: recErr } = await admin.auth.resetPasswordForEmail(email, { redirectTo: `${SITE}/welcome` });
     emailed = !recErr;
+    if (emailed) {
+      const { data: users } = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 });
+      invitedUserId = users.users.find((candidate) => candidate.email?.toLowerCase() === email.toLowerCase())?.id ?? null;
+    }
   }
 
-  return new Response(JSON.stringify({ ok: true, emailed, via, email }), { headers: cors });
+  if (!emailed || !invitedUserId) {
+    return new Response(JSON.stringify({ ok: false, error: "could not prepare the customer invitation" }), { status: 502, headers: cors });
+  }
+
+  // 4. Provision one isolated company and its 14-day entitlement atomically.
+  // The timer starts only when the customer first opens the dashboard.
+  const { data: companyId, error: provisionErr } = await admin.rpc("provision_demo_workspace", {
+    p_request_id: requestId,
+    p_user_id: invitedUserId,
+    p_email: email,
+    p_reviewer_profile_id: profile?.id ?? null
+  });
+  if (provisionErr || !companyId) {
+    return new Response(JSON.stringify({ ok: false, error: "could not provision the company workspace" }), { status: 500, headers: cors });
+  }
+
+  return new Response(JSON.stringify({ ok: true, emailed, via, email, companyId }), { headers: cors });
 });

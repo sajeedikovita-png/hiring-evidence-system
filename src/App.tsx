@@ -4,6 +4,7 @@ import { getPublicSupabaseClient } from "./services/publicSupabaseClient";
 import { AdminPage } from "./pages/AdminPage";
 import { BulkUploadCandidatesPage } from "./pages/BulkUploadCandidatesPage";
 import { CandidateEvidenceReportPage } from "./pages/CandidateEvidenceReportPage";
+import { CreateJobPage } from "./pages/CreateJobPage";
 import { DashboardPage } from "./pages/DashboardPage";
 import { DemoPresentationPage } from "./pages/DemoPresentationPage";
 import { DemoTestLabPage } from "./pages/DemoTestLabPage";
@@ -28,6 +29,7 @@ export function AppRoutes() {
       <Route path="/demo-presentation" element={<DemoPresentationPage />} />
       <Route path="/demo-test-lab" element={<DemoTestLabPage />} />
       <Route path="/dashboard" element={<DashboardPage />} />
+      <Route path="/jobs/new" element={<CreateJobPage />} />
       <Route path="/jobs/:jobSlug/candidates" element={<JobCandidateListPage />} />
       <Route path="/jobs/:jobSlug/candidates/upload" element={<BulkUploadCandidatesPage />} />
       <Route path="/reports/candidate-evidence" element={<CandidateEvidenceReportPage />} />

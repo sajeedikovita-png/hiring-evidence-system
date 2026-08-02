@@ -3,7 +3,9 @@ import UploadCloud from "lucide-react/dist/esm/icons/upload-cloud.js";
 import { Badge } from "../../../components/ui/Badge";
 import { Button } from "../../../components/ui/Button";
 import { DataTable } from "../../../components/ui/DataTable";
+import { getHiringRepositoryMode } from "../../services/hiringRepository";
 import { getBulkUploadWorkspace } from "../../services/mockSelectors";
+import { uploadAndAnalyzePilotResume } from "../../services/pilotUploadService";
 import { analyzeResumeFile } from "../../services/resumeAnalysis";
 import {
   getSafeUploadErrorMessage,
@@ -38,12 +40,17 @@ export function BulkUploadCandidatesPanel({ workspace = getBulkUploadWorkspace()
   const [privacyConfirmed, setPrivacyConfirmed] = useState(false);
   const [localFiles, setLocalFiles] = useState<BulkUploadFile[]>([]);
 
+  // A signed-in company workspace stores real candidate files privately and keeps
+  // the records. The login-free demo keeps its scripted preview in this browser only.
+  const pilotMode = useMemo(() => getHiringRepositoryMode() === "supabase", []);
+  const uploadsLocked = pilotMode && !privacyConfirmed;
+
   const files = useMemo(() => [...localFiles, ...workspace.files], [localFiles, workspace.files]);
   const processedFiles = files.filter((file) => file.parsingStatus === "Parsed" || file.evidenceReportStatus === "Report ready").length;
   const failedFiles = files.filter((file) => file.status === "Failed" || file.evidenceReportStatus === "Failed").length;
 
   function addFiles(fileList: FileList | null) {
-    if (!fileList) return;
+    if (!fileList || uploadsLocked) return;
     const incoming = Array.from(fileList);
 
     // 1. Show a row per file immediately: rejected files fail fast, accepted
@@ -89,6 +96,13 @@ export function BulkUploadCandidatesPanel({ workspace = getBulkUploadWorkspace()
       const row = initialRows[index];
       if (row.status === "Failed") return;
 
+      if (pilotMode) {
+        // Captured at the moment of upload, so it records what was actually confirmed
+        // then rather than whatever the checkbox reads by the time the call resolves.
+        analyzePilotFile(file, row, privacyConfirmed);
+        return;
+      }
+
       analyzeResumeFile(file, workspace.job.id)
         .then((result) => {
           const report = result.report;
@@ -122,6 +136,55 @@ export function BulkUploadCandidatesPanel({ workspace = getBulkUploadWorkspace()
     });
   }
 
+  /**
+   * Customer workspace upload. A failure here is reported as a failure: the file is
+   * kept and marked for manual review, and no scripted preview is substituted.
+   */
+  function analyzePilotFile(file: File, row: BulkUploadFile, consentConfirmed: boolean) {
+    uploadAndAnalyzePilotResume(file, workspace.job.id, { consentConfirmed })
+      .then((result) => {
+        setLocalFiles((current) =>
+          current.map((item) => {
+            if (item.id !== row.id) return item;
+
+            if (result.ok) {
+              return {
+                ...item,
+                status: "Uploaded",
+                candidateName: result.candidateName,
+                parsingStatus: "Parsed",
+                evidenceReportStatus: "Report ready",
+                reportPath: result.reportPath
+              };
+            }
+
+            return {
+              ...item,
+              status: "Needs manual review",
+              parsingStatus: "Needs manual review",
+              evidenceReportStatus: "Needs manual review",
+              errorMessage: result.message
+            };
+          })
+        );
+      })
+      .catch(() => {
+        setLocalFiles((current) =>
+          current.map((item) =>
+            item.id === row.id
+              ? {
+                  ...item,
+                  status: "Needs manual review",
+                  parsingStatus: "Needs manual review",
+                  evidenceReportStatus: "Needs manual review",
+                  errorMessage: "This upload could not be completed. Human review required."
+                }
+              : item
+          )
+        );
+      });
+  }
+
   function handleDrop(event: React.DragEvent<HTMLLabelElement>) {
     event.preventDefault();
     addFiles(event.dataTransfer.files);
@@ -148,9 +211,13 @@ export function BulkUploadCandidatesPanel({ workspace = getBulkUploadWorkspace()
         <UploadCloud size={28} aria-hidden="true" />
         <strong>Drag and drop PDF or DOCX resumes</strong>
         <span>Accepted file types: PDF, DOCX. Max file size: {workspace.maxFileSizeMb} MB per file.</span>
+        {uploadsLocked ? (
+          <span className="muted">Confirm the authority and privacy statement below before uploading candidate files.</span>
+        ) : null}
         <input
           type="file"
           multiple
+          disabled={uploadsLocked}
           accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
           onChange={(event) => addFiles(event.currentTarget.files)}
         />

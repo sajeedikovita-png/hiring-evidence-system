@@ -7,7 +7,7 @@ import {
   type PilotRequestErrors,
   type PilotRequestInput
 } from "../services/pilotRequestService";
-import { saveAccessRequestToBackend } from "../services/accessRequestService";
+import { getAccessRequestFailureMessage, saveAccessRequestToBackend } from "../services/accessRequestService";
 
 const initialPilotRequest: PilotRequestInput = {
   companyName: "",
@@ -23,7 +23,8 @@ const hiringVolumeOptions = ["1-2 roles this quarter", "3-5 roles this quarter",
 export function RequestPilotPage() {
   const [form, setForm] = useState<PilotRequestInput>(initialPilotRequest);
   const [errors, setErrors] = useState<PilotRequestErrors>({});
-  const [submissionStatus, setSubmissionStatus] = useState<"idle" | "pending_contact">("idle");
+  const [submissionStatus, setSubmissionStatus] = useState<"idle" | "submitting" | "pending_contact">("idle");
+  const [failureMessage, setFailureMessage] = useState("");
 
   function updateField(field: keyof PilotRequestInput, value: string) {
     setForm((currentForm) => ({ ...currentForm, [field]: value }));
@@ -32,6 +33,7 @@ export function RequestPilotPage() {
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    setFailureMessage("");
 
     const validation = validatePilotRequest(form);
     if (!validation.valid) {
@@ -40,15 +42,20 @@ export function RequestPilotPage() {
       return;
     }
 
-    const result = submitPilotRequest(form);
-    if (result.status === "validation_failed") {
-      setErrors(result.errors);
+    setSubmissionStatus("submitting");
+
+    // Success is whatever the backend confirms, and nothing else. The browser copy of
+    // the request is written only afterwards, as a diagnostic — it is not a fallback
+    // and must never stand in for a request that was never saved.
+    const saved = await saveAccessRequestToBackend(form);
+
+    if (!saved.ok) {
       setSubmissionStatus("idle");
+      setFailureMessage(getAccessRequestFailureMessage(saved.message));
       return;
     }
 
-    // Save the request to the real backend (best-effort; the local record above is a fallback).
-    await saveAccessRequestToBackend(form);
+    submitPilotRequest(form);
 
     setForm(initialPilotRequest);
     setErrors({});
@@ -82,9 +89,15 @@ export function RequestPilotPage() {
 
             {submissionStatus === "pending_contact" ? (
               <div className="pilot-success" role="status">
-                <strong>Pilot request recorded.</strong>
+                <strong>Pilot request received.</strong>
                 <span>We will use these details to prepare a one-role evidence review workspace.</span>
               </div>
+            ) : null}
+
+            {failureMessage ? (
+              <p className="form-error" role="alert">
+                {failureMessage}
+              </p>
             ) : null}
 
             <label>
@@ -158,7 +171,9 @@ export function RequestPilotPage() {
               />
             </label>
 
-            <Button type="submit">Request pilot access</Button>
+            <Button type="submit" disabled={submissionStatus === "submitting"}>
+              {submissionStatus === "submitting" ? "Sending request" : "Request pilot access"}
+            </Button>
             <a className="button button-secondary" href="/reports/candidate-evidence">
               View sample report
             </a>

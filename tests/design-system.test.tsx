@@ -102,6 +102,14 @@ const dashboardHtml = renderToStaticMarkup(<App path="/dashboard" />);
 const reportHtml = renderToStaticMarkup(<App path="/reports/candidate-evidence" />);
 const candidateListHtml = renderToStaticMarkup(<App path="/jobs/frontend-developer/candidates" />);
 const bulkUploadHtml = renderToStaticMarkup(<App path="/jobs/frontend-developer/candidates/upload" />);
+const createJobHtml = renderToStaticMarkup(<App path="/jobs/new" />);
+
+// First-role onboarding: without this screen a newly approved company has no job and
+// no criteria, so it cannot upload anything.
+assert.match(createJobHtml, /Create your first role/);
+assert.match(createJobHtml, /Role title/);
+assert.match(createJobHtml, /Mark at least one as required/);
+assert.match(createJobHtml, /Create role/);
 const combinedAppHtml = [landingHtml, loginHtml, requestPilotHtml, demoPresentationHtml, demoTestLabHtml, dashboardHtml, reportHtml].join("\n");
 const allAppHtml = [combinedAppHtml, candidateListHtml, bulkUploadHtml].join("\n");
 const routedDashboardHtml = renderToStaticMarkup(

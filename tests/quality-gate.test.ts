@@ -48,6 +48,18 @@ for (const pagePath of [
   assert.match(pageSource, /getAsyncHiringRepository/, `${path.relative(repoRoot, pagePath)} must use the async hiring repository.`);
 }
 
+// A customer workspace must never be handed a scripted preview report while being
+// told the model read their candidate's CV. Keeping the demo engine out of the
+// pilot upload path is what makes that structural rather than a matter of care.
+const pilotUploadSource = readFileSync(path.join(repoRoot, "src", "services", "pilotUploadService.ts"), "utf8");
+for (const demoModule of ["demoUploadEngine", "mockHiringData", "mockSelectors"]) {
+  assert.doesNotMatch(
+    pilotUploadSource,
+    new RegExp(`from "\\.\\/${demoModule}"`),
+    `pilotUploadService.ts must not import ${demoModule} — customer uploads have no scripted fallback.`
+  );
+}
+
 function findForbiddenPhrases(dir: string): string[] {
   const findings: string[] = [];
   for (const entry of readdirSync(dir)) {
