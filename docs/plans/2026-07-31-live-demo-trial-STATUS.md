@@ -28,40 +28,42 @@ proven with a real run.
 | 2 | `approve-request` provisions company + profile + entitlement atomically | **DONE** — committed + backend deployed | `supabase/functions/approve-request/index.ts` |
 | 3 | Dashboard activates the trial and shows the countdown banner | **DONE** — committed, **NOT production deployed** | `src/pages/DashboardPage.tsx`, `src/services/demoTrial*.ts` |
 | 4 | Trial + pilot tests wired into `npm test` | **DONE** — committed | `package.json`, `tests/demo-trial-lifecycle.test.ts`, `tests/pilot-workspace.test.ts` |
-| 5 | Separate platform authority from company admins | **DONE** — committed, **NOT backend deployed** | `202607310930_platform_admin_authority.sql`, `approve-request` |
-| 6 | Private CV storage, persistent records, server-enforced quotas | **DONE** — committed, **NOT backend deployed** | `202607310940_pilot_candidate_storage.sql` |
+| 5 | Separate platform authority from company admins | **DONE** — backend deployed 2026-08-02 | `202607310930_platform_admin_authority.sql`, `approve-request` |
+| 6 | Private CV storage, persistent records, server-enforced quotas | **DONE** — backend deployed 2026-08-02 | `202607310940_pilot_candidate_storage.sql` |
 | 7 | Client upload path that persists instead of using browser storage | **DONE** — committed, **NOT production deployed** | `src/services/pilotUploadService.ts`, `BulkUploadCandidatesPanel.tsx` |
-| 8 | Admin conversion path (mark a company as continuing) | **DONE** — committed, **NOT backend deployed** | `202607310950_demo_conversion_and_purge.sql`, `AdminPage.tsx` |
+| 8 | Admin conversion path (mark a company as continuing) | **DONE** — backend deployed 2026-08-02; UI not promoted | `202607310950_demo_conversion_and_purge.sql`, `AdminPage.tsx` |
 | 9 | Scheduled purge of expired demo workspaces | **DONE** — committed, ships disabled, **NOT deployed** | `supabase/functions/purge-expired-demos/index.ts` |
-| 10 | Create-a-role onboarding for a brand-new company | **DONE** — committed, **NOT deployed** | `202608020940_first_job_onboarding.sql`, `src/pages/CreateJobPage.tsx`, `jobSetupService.ts` |
+| 10 | Create-a-role onboarding for a brand-new company | **DONE** — backend deployed 2026-08-02; UI not promoted | `202608020940_first_job_onboarding.sql`, `src/pages/CreateJobPage.tsx`, `jobSetupService.ts` |
 | 11 | Founder email notification when a request arrives | **PENDING** | not started — founder must watch `/admin` |
 | 21 | Public request form reports success only after a confirmed save | **DONE** — committed, **NOT deployed** | `RequestPilotPage.tsx`, `accessRequestService.ts` |
-| 12 | Apply migrations + deploy functions to live Supabase | **PENDING** — needs founder | — |
+| 12 | Apply migrations to live Supabase | **DONE 2026-08-02** — all 11 recorded | `supabase db push` |
+| 12b | Redeploy `approve-request`, deploy `purge-expired-demos` | **PENDING** — needs founder | — |
 | 13 | Promote the Vercel deployment to production | **PENDING** — needs founder | — |
 | 14 | End-to-end live test with a fresh test company | **PENDING** — needs founder | — |
 | 15 | Enable the purge only after a preview run proves it safe | **PENDING** — needs founder | — |
-| 16 | Revoke anon access to the security-definer functions | **DONE** — committed, **NOT backend deployed — apply this one first** | `202608020900_restrict_security_definer_functions.sql` |
-| 17 | Consent recorded with a timestamp, enforced in Postgres | **DONE** — committed, **NOT backend deployed** | `202608020930_upload_consent_timestamp.sql`, `pilotUploadService.ts` |
+| 16 | Revoke anon access to the security-definer functions | **DONE** — backend deployed 2026-08-02, **verified blocked** | `202608020900_restrict_security_definer_functions.sql` |
+| 17 | Consent recorded with a timestamp, enforced in Postgres | **DONE** — backend deployed 2026-08-02 | `202608020930_upload_consent_timestamp.sql`, `pilotUploadService.ts` |
 | 18 | Virus scanning of uploads | **DEFERRED** by decision 2026-08-02 — later phase | — |
 | 19 | AI usage/cost logging (module, model, tokens, cost) | **DEFERRED** by decision 2026-08-02 — later phase | — |
 | 20 | Candidate-facing consent capture (not recruiter attestation) | **PENDING** — no candidate flow exists | — |
 
 ---
 
-## Verified live backend state (probed 2026-08-02, read-only)
+## Verified live backend state (after the 2026-08-02 push)
 
-| Live in Supabase now | Not deployed |
+Confirmed by CLI and read-only probes immediately after `supabase db push`:
+
+| Check | Result |
 |---|---|
-| `demo_entitlements` table | `platform_admins` (`…0930`) |
-| `activate_demo_trial`, `provision_demo_workspace`, `demo_workspace_is_writable` | `record_candidate_upload`, `record_evidence_report` (`…0940`) |
-| Edge functions: `ping`, `analyze-resume`, `approve-request`, `invite-user` | `convert_demo_workspace`, `demo_workspace_closures` (`…0950`) |
-| | Edge function `purge-expired-demos` |
-| | Function grant lockdown (`…20900`) |
+| `supabase migration list --linked` | All 11 local migrations recorded remotely — history drift resolved |
+| `platform_admins`, `demo_workspace_closures`, `demo_entitlements` | All present |
+| `record_candidate_upload` 5-arg (old, consent-free) | **Gone** — the stop condition passed |
+| `record_candidate_upload` 6-arg (new, consent) | Present, anon blocked |
+| anon EXECUTE on `provision_demo_workspace`, `activate_demo_trial`, `create_job_with_criteria`, `convert_demo_workspace`, `purge_demo_workspace`, `demo_workspaces_due_for_purge`, `mark_candidate_upload_failed` | **All denied (42501)** — the anon-execute hole is closed |
+| anon EXECUTE on `demo_workspace_is_writable`, `current_company_ids` | Still callable, **as intended** — they run inside RLS policies |
 
-**Apply `202608020900` first.** It is the only migration that fixes something already
-live: `provision_demo_workspace` and `activate_demo_trial` are currently callable by an
-unauthenticated caller holding just the public anon key. See `docs/DECISION_LOG.md`,
-entry 2026-08-02.
+Three checks still require the SQL editor and have not been run: founder-only
+`platform_admins`, private bucket configuration, and the four Storage policies.
 
 ### Every migration, in required execution order
 
@@ -76,14 +78,20 @@ order fails outright.
 | 3 | `202607060001_admin_workspace.sql` | **Already deployed** | Founder company + admin profile |
 | 4 | `202607060002_ensure_admin_role.sql` | **Already deployed** | Ensures the founder profile has the admin role |
 | 5 | `202607310900_live_demo_trials.sql` | **Already deployed** | `demo_entitlements`, `activate_demo_trial`, `provision_demo_workspace`, split read/write RLS |
-| 6 | `202607310930_platform_admin_authority.sql` | **Pending deployment** | `platform_admins`; stops each customer owner being a platform admin |
-| 7 | `202607310940_pilot_candidate_storage.sql` | **Pending deployment** | Private `candidate-documents` bucket, storage policies, upload/report RPCs, quotas |
-| 8 | `202607310950_demo_conversion_and_purge.sql` | **Pending deployment** | Conversion, closures, purge functions |
-| 9 | `202608020900_restrict_security_definer_functions.sql` | **Pending deployment** | Revokes anon EXECUTE on the security-definer functions |
-| 10 | `202608020930_upload_consent_timestamp.sql` | **Pending deployment** | `consent_recorded_at`; refuses uploads without a confirmed attestation |
-| 11 | `202608020940_first_job_onboarding.sql` | **Pending deployment** | `create_job_with_criteria` for first-role onboarding |
+| 6 | `202607310930_platform_admin_authority.sql` | **Deployed 2026-08-02** | `platform_admins`; stops each customer owner being a platform admin |
+| 7 | `202607310940_pilot_candidate_storage.sql` | **Deployed 2026-08-02** | Private `candidate-documents` bucket, storage policies, upload/report RPCs, quotas |
+| 8 | `202607310950_demo_conversion_and_purge.sql` | **Deployed 2026-08-02** | Conversion, closures, purge functions |
+| 9 | `202608020900_restrict_security_definer_functions.sql` | **Deployed 2026-08-02** | Revokes anon EXECUTE on the security-definer functions |
+| 10 | `202608020930_upload_consent_timestamp.sql` | **Deployed 2026-08-02** | `consent_recorded_at`; refuses uploads without a confirmed attestation |
+| 11 | `202608020940_first_job_onboarding.sql` | **Deployed 2026-08-02** | `create_job_with_criteria` for first-role onboarding |
 
-Verified live on 2026-08-02: items 1–5 are present in the database; 6–11 are not.
+**All 11 migrations are deployed as of 2026-08-02**, applied with `supabase db push` after a
+founder-taken Dashboard backup. `supabase migration list --linked` shows local and remote
+matching for every one, so the earlier history drift is resolved.
+
+**Still pending:** redeploy `approve-request`, deploy `purge-expired-demos`, promote Vercel,
+and the three SQL-editor checks in the runbook (founder-only `platform_admins`, private
+bucket config, four Storage policies).
 
 **Edge functions**
 
