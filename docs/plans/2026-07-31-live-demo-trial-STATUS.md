@@ -89,6 +89,11 @@ Verified live on 2026-08-02: items 1–5 are present in the database; 6–11 are
 | `approve-request` | **Deployed, but an older version** — needs redeploy for platform authority |
 | `purge-expired-demos` | **Pending deployment** — leave `PURGE_ENABLED` unset |
 
+> **The full step-by-step version of everything below is
+> `docs/DEPLOYMENT_RUNBOOK.md`** — with verification SQL, success criteria, and stop
+> conditions for each step. Use that when actually deploying; the summary here is for
+> orientation.
+
 ### Safe order before the first company uploads a real CV
 
 1. Apply migrations 6 → 11 above, in that order.

@@ -110,6 +110,9 @@ Read these two before changing anything, and update them before you finish:
 - **`docs/plans/2026-07-31-live-demo-trial-STATUS.md`** — the live task board: what is
   DONE vs PENDING, what is committed vs deployed, and what only the founder can do.
   **Mark a task's status the moment it changes**, not at the end of the session.
+- **`docs/DEPLOYMENT_RUNBOOK.md`** — the founder-executed deployment and rehearsal
+  sequence. Agents do not run it. If you change a migration, an Edge Function, or the
+  upload path, update the runbook in the same commit.
 
 Chat sessions are disposable and the reasoning behind a change lives nowhere else. A
 change landed without a decision-log entry is a change the next person has to reverse-
