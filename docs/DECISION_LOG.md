@@ -15,6 +15,68 @@ say so.
 
 ---
 
+## 2026-08-02 — Audit of the live backend; anon could reach the provisioning function
+
+**Why this session happened:** asked to check what a Codex session had done since
+2026-07-31.
+
+**First finding: no new work exists.** Both branches sit exactly where 2026-07-31 left
+them, `origin` is *behind* local, there are no new worktrees or branches, and the only
+files touched since are the two docs. `/Users/sajeewa/Documents/New project` — the older
+clone named in the plan — is an empty directory. The Supabase CLI link files and the
+Vercel config have not been touched since early July. Whatever was done, it was not done
+in this repository from this machine.
+
+**So the live backend was probed directly**, since work applied through the Supabase web
+SQL editor leaves no local trace. Results — read-only probes with the public anon key:
+
+| Live now | Not live |
+|---|---|
+| `demo_entitlements`, `activate_demo_trial`, `provision_demo_workspace`, `demo_workspace_is_writable` (migration `202607310900`) | `platform_admins` (`202607310930`) |
+| Edge functions `ping`, `analyze-resume`, `approve-request`, `invite-user` | `record_candidate_upload`, `record_evidence_report` (`202607310940`) |
+| | `convert_demo_workspace`, `demo_workspace_closures` (`202607310950`) |
+| | Edge function `purge-expired-demos` |
+
+This **confirms the prior handoff's claim** that the trial backend is deployed, and
+confirms nothing from 2026-07-31 has been.
+
+**A note on method, because it nearly produced a wrong answer:** the first probe posted
+`{}` to each function and read `PGRST202` as "does not exist". PostgREST returns that
+same code when a function exists but no overload matches the arguments given, so every
+function looked missing — including ones that are demonstrably live. Re-probing with
+correct parameter names gave the real answer. **Do not read `PGRST202` as "missing"
+without matching the signature.**
+
+### The finding worth acting on
+
+`provision_demo_workspace` executed for a caller holding **only the anon key with no
+user session**, returning its own business error rather than a permission error. Same
+for `activate_demo_trial`. Postgres grants EXECUTE on new functions to `PUBLIC` by
+default and none of the migrations revoked it.
+
+These are `SECURITY DEFINER` functions — they bypass RLS by design. Reachable by anon,
+`provision_demo_workspace` would let anyone who learned a pending access request's UUID
+approve it themselves: create a company, attach an arbitrary Auth user to it as admin,
+and mark the request approved, never passing through `/admin`.
+
+**What stops it today is that request and company ids are unguessable UUIDs. That is
+obscurity, not authorization**, and it degrades the moment an id leaks through a log,
+screenshot, or support conversation.
+
+**Fix:** `202608020900_restrict_security_definer_functions.sql` — revoke from
+`PUBLIC`/`anon`, grant narrowly (`service_role` for provisioning and purging,
+`authenticated` for the rest).
+
+**Two helpers are deliberately left callable by anon:** `demo_workspace_is_writable` and
+`demo_folder_is_writable`. Both are evaluated *inside* RLS and Storage policies as the
+querying role, so revoking EXECUTE would turn an anonymous query into "permission denied
+for function" instead of an empty result. Both are read-only booleans.
+
+**This migration must be applied to the live project even if nothing else from the
+branch is** — it is the only entry here that fixes something already deployed.
+
+---
+
 ## 2026-07-31 — Real customer workspaces: storage, authority, lifecycle
 
 **Session context:** a previous session (in Codex, because Claude was unavailable) built

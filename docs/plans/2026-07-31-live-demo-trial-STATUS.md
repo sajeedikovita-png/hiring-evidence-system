@@ -35,6 +35,24 @@ proven with a real run.
 | 13 | Promote the Vercel deployment to production | **PENDING** — needs founder | — |
 | 14 | End-to-end live test with a fresh test company | **PENDING** — needs founder | — |
 | 15 | Enable the purge only after a preview run proves it safe | **PENDING** — needs founder | — |
+| 16 | Revoke anon access to the security-definer functions | **DONE** — committed, **NOT backend deployed — apply this one first** | `202608020900_restrict_security_definer_functions.sql` |
+
+---
+
+## Verified live backend state (probed 2026-08-02, read-only)
+
+| Live in Supabase now | Not deployed |
+|---|---|
+| `demo_entitlements` table | `platform_admins` (`…0930`) |
+| `activate_demo_trial`, `provision_demo_workspace`, `demo_workspace_is_writable` | `record_candidate_upload`, `record_evidence_report` (`…0940`) |
+| Edge functions: `ping`, `analyze-resume`, `approve-request`, `invite-user` | `convert_demo_workspace`, `demo_workspace_closures` (`…0950`) |
+| | Edge function `purge-expired-demos` |
+| | Function grant lockdown (`…20900`) |
+
+**Apply `202608020900` first.** It is the only migration that fixes something already
+live: `provision_demo_workspace` and `activate_demo_trial` are currently callable by an
+unauthenticated caller holding just the public anon key. See `docs/DECISION_LOG.md`,
+entry 2026-08-02.
 
 ---
 
