@@ -43,14 +43,44 @@ function toNullable(value: string): string | null {
   return trimmed.length > 0 ? trimmed : null;
 }
 
-export async function saveAccessRequestToBackend(input: AccessRequestInput): Promise<AccessRequestResult> {
-  const config = getPublicBackendConfig();
-  if (!config) {
+/**
+ * What the visitor is told when the request did not reach the backend.
+ *
+ * It must never read as success. A prospect who is told "recorded" when nothing was
+ * saved waits for a reply that will never come, and the founder never learns they
+ * asked — which, with approvals handled one at a time by hand, is the single most
+ * expensive silent failure in the funnel.
+ */
+export function getAccessRequestFailureMessage(message?: string): string {
+  if (message === "backend_not_configured") {
+    return "Requests cannot be submitted right now. Please email us instead and we will set your pilot up.";
+  }
+  if (message?.startsWith("request_failed_4")) {
+    return "That request could not be accepted. Check the details and try again.";
+  }
+
+  return "We could not reach our servers, so nothing was submitted. Your details are still here — please try again.";
+}
+
+/** `deps` exists so tests can prove success is reported only on a confirmed save. */
+export type AccessRequestDeps = {
+  fetchFn?: typeof fetch;
+  config?: PublicBackendConfig;
+};
+
+export async function saveAccessRequestToBackend(
+  input: AccessRequestInput,
+  deps: AccessRequestDeps = {}
+): Promise<AccessRequestResult> {
+  const config = deps.config ?? getPublicBackendConfig();
+  const fetchFn = deps.fetchFn ?? (typeof fetch === "function" ? fetch : undefined);
+
+  if (!config || !fetchFn) {
     return { ok: false, message: "backend_not_configured" };
   }
 
   try {
-    const response = await fetch(`${config.url}/rest/v1/access_requests`, {
+    const response = await fetchFn(`${config.url}/rest/v1/access_requests`, {
       method: "POST",
       headers: {
         apikey: config.anonKey,

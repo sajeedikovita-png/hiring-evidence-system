@@ -104,6 +104,10 @@ export function DashboardPage() {
     );
   }
 
+  // Only a real, signed-in workspace can be empty in a way the customer must fix; the
+  // seeded demo always has roles, and prompting there would be nonsense.
+  const needsFirstRole = repository.source === "supabase" && dashboard.recentJobs.length === 0;
+
   return (
     <RecruiterShell
       active="dashboard"
@@ -118,6 +122,21 @@ export function DashboardPage() {
           <section className="warning-card" aria-live="polite">
             <p className="section-kicker">Live demo access</p>
             <h2>{demoTrialMessage(trialStatus)}</h2>
+          </section>
+        ) : null}
+        {needsFirstRole ? (
+          <section className="workspace-card" aria-live="polite">
+            <p className="section-kicker">Set up your workspace</p>
+            <h2>Create your first role to start reviewing resumes.</h2>
+            <p className="muted">
+              Resumes are reviewed against the criteria you set for a role, so the first step is
+              telling us what you are hiring for.
+            </p>
+            <div className="bulk-upload-actions">
+              <a className="button button-primary" href="/jobs/new">
+                Create your first role
+              </a>
+            </div>
           </section>
         ) : null}
         <section className="dashboard-intro">
