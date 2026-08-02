@@ -52,6 +52,7 @@ const standardFairnessCheck: FairnessCheck = {
 };
 
 export type PilotUploadErrorCode =
+  | "CONSENT_REQUIRED"
   | "UNSUPPORTED_FILE_TYPE"
   | "FILE_TOO_LARGE"
   | "PILOT_EXPIRED"
@@ -98,6 +99,8 @@ type UploadRecord = {
 /** Customer-facing wording for each failure. No blame, always a next step. */
 export function getPilotUploadErrorMessage(code: PilotUploadErrorCode): string {
   switch (code) {
+    case "CONSENT_REQUIRED":
+      return "Confirm your authority to upload this candidate's resume before it can be processed.";
     case "UNSUPPORTED_FILE_TYPE":
       return "Unsupported file type. Upload PDF or DOCX resumes only.";
     case "FILE_TOO_LARGE":
@@ -125,6 +128,7 @@ export function getPilotUploadErrorMessage(code: PilotUploadErrorCode): string {
 /** Postgres raises bare codes; anything unrecognized stays a generic save failure. */
 export function mapPilotUploadError(rawMessage: string, fallback: PilotUploadErrorCode = "SAVE_FAILED"): PilotUploadErrorCode {
   const codes: PilotUploadErrorCode[] = [
+    "CONSENT_REQUIRED",
     "PILOT_EXPIRED",
     "PILOT_CANDIDATE_LIMIT",
     "JOB_NOT_IN_WORKSPACE",
@@ -154,7 +158,21 @@ function toReportStatus(value: unknown): EvidenceReport["status"] {
   return REPORT_STATUSES.find((status) => status === value) ?? "Human review required";
 }
 
-export async function uploadAndAnalyzePilotResume(file: File, jobId: string): Promise<PilotUploadResult> {
+/**
+ * `consentConfirmed` is the recruiter's attestation that they have lawful authority to
+ * upload and process this candidate's resume. It is passed explicitly rather than
+ * inferred, and the database refuses the upload without it — a disabled button in the
+ * UI is a convenience, not a control.
+ */
+export async function uploadAndAnalyzePilotResume(
+  file: File,
+  jobId: string,
+  { consentConfirmed }: { consentConfirmed: boolean }
+): Promise<PilotUploadResult> {
+  if (!consentConfirmed) {
+    return { ok: false, code: "CONSENT_REQUIRED", message: getPilotUploadErrorMessage("CONSENT_REQUIRED") };
+  }
+
   const validation = validateUploadFile({ name: file.name, size: file.size });
   if (!validation.accepted) {
     const code: PilotUploadErrorCode = validation.message === "File too large" ? "FILE_TOO_LARGE" : "UNSUPPORTED_FILE_TYPE";
@@ -173,7 +191,8 @@ export async function uploadAndAnalyzePilotResume(file: File, jobId: string): Pr
     p_candidate_name: candidateName,
     p_file_name: file.name,
     p_file_type: fileType,
-    p_file_size_bytes: file.size
+    p_file_size_bytes: file.size,
+    p_consent_confirmed: consentConfirmed
   });
 
   if (recordError || !recordData) {

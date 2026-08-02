@@ -7,12 +7,14 @@ import {
   getFileExtension,
   getPilotUploadErrorMessage,
   mapPilotUploadError,
+  uploadAndAnalyzePilotResume,
   type PilotUploadErrorCode
 } from "../src/services/pilotUploadService";
 
 // --- Upload failures are reported honestly and in safe product language ---------
 
 const errorCodes: PilotUploadErrorCode[] = [
+  "CONSENT_REQUIRED",
   "UNSUPPORTED_FILE_TYPE",
   "FILE_TOO_LARGE",
   "PILOT_EXPIRED",
@@ -38,6 +40,7 @@ assert.match(getPilotUploadErrorMessage("PILOT_EXPIRED"), /view-only/i);
 assert.equal(mapPilotUploadError('new row violates ... "PILOT_EXPIRED"'), "PILOT_EXPIRED");
 assert.equal(mapPilotUploadError("PILOT_CANDIDATE_LIMIT"), "PILOT_CANDIDATE_LIMIT");
 assert.equal(mapPilotUploadError("JOB_NOT_IN_WORKSPACE"), "JOB_NOT_IN_WORKSPACE");
+assert.equal(mapPilotUploadError("CONSENT_REQUIRED"), "CONSENT_REQUIRED");
 assert.equal(mapPilotUploadError("connection reset by peer"), "SAVE_FAILED");
 assert.equal(mapPilotUploadError("connection reset by peer", "ANALYSIS_FAILED"), "ANALYSIS_FAILED");
 
@@ -86,4 +89,28 @@ const converted = describeDemoWorkspace(workspace({ state: "converted", activate
 assert.match(converted, /not scheduled for deletion/i);
 assert.doesNotMatch(converted, /day/i);
 
-console.log("Pilot workspace tests passed.");
+// --- Consent gate -------------------------------------------------------------
+// Async, and this suite transpiles to CJS, so it cannot use top-level await. A
+// rejection here exits non-zero and the success line below never prints.
+
+async function runConsentChecks() {
+  // Refused before anything is stored: no storage object, no candidate row, no
+  // analysis call — so it never reaches Supabase and is safe to run offline.
+  const refused = await uploadAndAnalyzePilotResume(
+    { name: "someone.pdf", size: 1024 } as unknown as File,
+    "00000000-0000-0000-0000-000000000000",
+    { consentConfirmed: false }
+  );
+
+  assert.equal(refused.ok, false, "an upload without confirmed authority must be refused");
+  assert.equal(refused.ok === false && refused.code, "CONSENT_REQUIRED");
+  assert.equal(
+    refused.ok === false && refused.documentId,
+    undefined,
+    "a refused upload must not have created a document record"
+  );
+}
+
+runConsentChecks().then(() => {
+  console.log("Pilot workspace tests passed.");
+});

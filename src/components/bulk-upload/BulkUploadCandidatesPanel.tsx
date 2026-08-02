@@ -97,7 +97,9 @@ export function BulkUploadCandidatesPanel({ workspace = getBulkUploadWorkspace()
       if (row.status === "Failed") return;
 
       if (pilotMode) {
-        analyzePilotFile(file, row);
+        // Captured at the moment of upload, so it records what was actually confirmed
+        // then rather than whatever the checkbox reads by the time the call resolves.
+        analyzePilotFile(file, row, privacyConfirmed);
         return;
       }
 
@@ -138,8 +140,8 @@ export function BulkUploadCandidatesPanel({ workspace = getBulkUploadWorkspace()
    * Customer workspace upload. A failure here is reported as a failure: the file is
    * kept and marked for manual review, and no scripted preview is substituted.
    */
-  function analyzePilotFile(file: File, row: BulkUploadFile) {
-    uploadAndAnalyzePilotResume(file, workspace.job.id)
+  function analyzePilotFile(file: File, row: BulkUploadFile, consentConfirmed: boolean) {
+    uploadAndAnalyzePilotResume(file, workspace.job.id, { consentConfirmed })
       .then((result) => {
         setLocalFiles((current) =>
           current.map((item) => {
