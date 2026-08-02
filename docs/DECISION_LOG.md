@@ -15,6 +15,60 @@ say so.
 
 ---
 
+## 2026-08-02 (fourth) — Backend deployed; three orphaned Edge Functions found and deleted
+
+**All 11 migrations are now applied to the live project** via `supabase db push`, after
+the founder took a Dashboard backup. `supabase migration list --linked` shows local and
+remote matching for every migration, so the history drift recorded in the earlier entry
+is resolved.
+
+**Why `db push` was safe, having looked rather than assumed:** the migration history
+recorded `202607040001`, `202607051200`, `202607060001` and `202607060002` as applied, so
+`db push` skipped them. That mattered because `202607051200` opens with
+`drop table if exists public.access_requests cascade` — pushing it would have destroyed
+every pilot request received. It did re-run `202607310900`, which had been applied by
+hand and never recorded; that file is idempotent (`create table if not exists`,
+`create or replace function`, `drop policy if exists` + `create policy`), and it
+re-applied cleanly.
+
+**Verified after the push:** the old five-argument, consent-free `record_candidate_upload`
+is **gone** (`PGRST202`), the six-argument consent version exists, and anon now receives
+`42501 permission denied` on every security-definer function it previously reached. The
+two helpers used *inside* RLS policies remain anon-callable, as intended.
+
+### The redeploy alone did not close the authority hole
+
+`approve-request` was redeployed (version 4 → 5) to require `platform_admins`. Listing
+the project's functions to confirm the version bump revealed **three Edge Functions live
+with no source in this repository**, dating from 2026-07-04:
+`request-access`, `approve-access-request`, `reject-access-request`.
+
+`approve-access-request` was downloaded and read. It provisions recruiter profiles and
+approves access requests, authorized by a shared `authorizeAdmin` helper that checks:
+
+```ts
+.from("recruiter_profiles").eq("user_id", user.id).eq("status", "active")
+... if (!isActiveAdminProfile(profile)) throw new Error("Admin permission required");
+```
+
+**That is the old any-company-admin rule.** Since approval provisions every customer
+owner as `role = 'admin'` of their own company, any onboarded customer could have called
+that endpoint directly and approved or rejected other companies' access requests —
+precisely the hole `202607310930` and the redeploy were meant to close. It required a
+login, so it was never open to the public, but it was open to every customer.
+
+**Deleted all three** (founder-authorized) after confirming nothing references them:
+`src/` calls only `approve-request`, and no repo function imports the `_shared` module
+they depend on. Verified afterwards: all three return 404; `approve-request`,
+`analyze-resume`, `invite-user` and `ping` still respond; `access_requests` is intact.
+
+**The lesson worth carrying:** a security fix in the repository proves nothing about the
+live project. The repo had one approval path; the project had three. **Whenever an
+authorization rule changes, list what is actually deployed** — `supabase functions list`,
+and compare it against `supabase/functions/`. Orphans do not appear in any diff.
+
+---
+
 ## 2026-08-02 (third) — First-role onboarding, and the request form stops lying
 
 ### `/jobs/new` — a company can set up its own first role

@@ -97,9 +97,14 @@ bucket config, four Storage policies).
 
 | Function | Status |
 |---|---|
-| `ping`, `analyze-resume`, `invite-user` | **Already deployed** |
-| `approve-request` | **Deployed, but an older version** — needs redeploy for platform authority |
+| `ping`, `analyze-resume`, `invite-user` | Deployed |
+| `approve-request` | **Redeployed 2026-08-02 (v5)** — now requires `platform_admins` |
 | `purge-expired-demos` | **Pending deployment** — leave `PURGE_ENABLED` unset |
+| ~~`request-access`~~, ~~`approve-access-request`~~, ~~`reject-access-request`~~ | **Deleted 2026-08-02** — orphans from 4 Jul with no source in this repo. `approve-access-request` authorized on the old any-company-admin rule, so any onboarded customer could have approved other companies' requests. Verified 404. See `docs/DECISION_LOG.md`. |
+
+**If an authorization rule ever changes again, run `supabase functions list` and compare
+it against `supabase/functions/`.** The repo had one approval path; the project had
+three. Orphaned functions never show up in a diff.
 
 > **The full step-by-step version of everything below is
 > `docs/DEPLOYMENT_RUNBOOK.md`** — with verification SQL, success criteria, and stop
