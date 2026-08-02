@@ -15,6 +15,66 @@ say so.
 
 ---
 
+## 2026-08-02 (later) — Consent timestamps; two security items deferred on purpose
+
+**Scope given:** close the consent-timestamp gap only. Virus scanning and AI usage/cost
+logging were **explicitly deferred by the founder** to a later phase — they are not
+oversights, and they are listed under "Remaining security-readiness items" below and in
+the status board.
+
+### Consent is now timestamped, and refused in the database
+
+`docs/SECURITY_PRIVACY_RULES.md`: *"Consent must be stored with timestamp."* The upload
+path set `consent_status = 'recorded'` with no time attached, so the record could not
+answer "confirmed when?".
+
+**Migration:** `202608020930_upload_consent_timestamp.sql`.
+
+**Why the attestation is passed explicitly rather than inferred from the UI:** the panel
+already disabled the file input until the checkbox was ticked, but that is a
+convenience, not a control — anyone can call the RPC directly. `record_candidate_upload`
+now takes `p_consent_confirmed` and raises `CONSENT_REQUIRED` **before** creating any
+row or storage object, so a refusal leaves nothing behind.
+
+**Why the function was dropped and recreated rather than replaced:** adding a parameter
+changes the signature, and `create or replace` with a different argument list creates an
+*overload* — the old consent-free five-argument function would have remained callable,
+which is exactly the bypass this closes. The new signature also inherits no grants, so
+it repeats the revoke/grant from `202608020900`; without that it would have defaulted
+back to `PUBLIC`.
+
+**The constraint is `NOT VALID` on purpose.** Seeded rows predate the column, so
+validating history would fail the migration. `NOT VALID` still binds every new and
+updated row, which is what matters going forward.
+
+**The timestamp is written twice** — on `candidate_applications.consent_recorded_at` and
+into the audit entry's `metadata`. The evidence of consent should not depend on the
+application row surviving.
+
+**Honest scope limit, do not let this be overstated:** this records the **recruiter's
+attestation** that they have lawful authority to upload the CV. It is **not the
+candidate's own consent**, which would require a candidate-facing application flow that
+does not exist. Product copy must keep that distinction.
+
+**Test note:** this suite transpiles to CJS, so top-level `await` fails to build. The
+async check runs inside a function whose rejection exits non-zero and skips the success
+line. If you add async assertions elsewhere, follow the same shape.
+
+### Remaining security-readiness items (deferred, not forgotten)
+
+| Item | Rule it satisfies | Status |
+|---|---|---|
+| Virus scanning of uploads | `SECURITY_PRIVACY_RULES.md` — "Use virus scanning if available" | **Deferred** by decision, 2026-08-02 |
+| AI usage logging: module, model, tokens, estimated cost, timestamp | `SECURITY_PRIVACY_RULES.md` — "AI Logging" | **Deferred** by decision, 2026-08-02 |
+| Candidate-facing consent capture | "Candidate must consent… stored with timestamp" | Not built; recruiter attestation only |
+| Configurable data retention | "Add configurable data retention later" | Not built (the purge is fixed at 14 + 7 days) |
+
+The AI logging item is worth doing before the public demo is marketed widely: without
+token and cost records there is no way to attribute an OpenRouter bill to a company, a
+demo visitor, or an abuser. The spending cap remains the only brake.
+
+---
+
 ## 2026-08-02 — Audit of the live backend; anon could reach the provisioning function
 
 **Why this session happened:** asked to check what a Codex session had done since

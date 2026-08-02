@@ -36,6 +36,10 @@ proven with a real run.
 | 14 | End-to-end live test with a fresh test company | **PENDING** — needs founder | — |
 | 15 | Enable the purge only after a preview run proves it safe | **PENDING** — needs founder | — |
 | 16 | Revoke anon access to the security-definer functions | **DONE** — committed, **NOT backend deployed — apply this one first** | `202608020900_restrict_security_definer_functions.sql` |
+| 17 | Consent recorded with a timestamp, enforced in Postgres | **DONE** — committed, **NOT backend deployed** | `202608020930_upload_consent_timestamp.sql`, `pilotUploadService.ts` |
+| 18 | Virus scanning of uploads | **DEFERRED** by decision 2026-08-02 — later phase | — |
+| 19 | AI usage/cost logging (module, model, tokens, cost) | **DEFERRED** by decision 2026-08-02 — later phase | — |
+| 20 | Candidate-facing consent capture (not recruiter attestation) | **PENDING** — no candidate flow exists | — |
 
 ---
 
@@ -53,6 +57,31 @@ proven with a real run.
 live: `provision_demo_workspace` and `activate_demo_trial` are currently callable by an
 unauthenticated caller holding just the public anon key. See `docs/DECISION_LOG.md`,
 entry 2026-08-02.
+
+### Safe order before the first company uploads a real CV
+
+Migrations must run in filename order — `…0930` (consent) drops the function that
+`…0940` creates and `…20900` grants on, so running them out of order fails.
+
+1. `202607310930_platform_admin_authority.sql` — otherwise your first customer is a
+   platform admin
+2. `202607310940_pilot_candidate_storage.sql` — bucket, storage policies, quotas
+3. `202607310950_demo_conversion_and_purge.sql` — conversion, closures
+4. `202608020900_restrict_security_definer_functions.sql` — closes the anon-execute hole
+5. `202608020930_upload_consent_timestamp.sql` — consent timestamp
+6. **Verify in Supabase:** bucket `candidate-documents` exists and is **not public**;
+   `platform_admins` contains exactly one row (yours); `select proname, proacl from
+   pg_proc where proname = 'provision_demo_workspace'` shows no `anon` grant
+7. Redeploy `approve-request` (it now requires platform authority)
+8. Promote the Vercel deployment — pushing only creates a preview
+9. Insert the first company's role and criteria (runbook below)
+10. **Rehearse end to end with a company you control**, then check the audit rows:
+    `select action, metadata from public.audit_log_entries order by created_at desc`
+    should show `candidate_upload_recorded` with a `consent_recorded_at` value
+11. Only then invite a real company
+
+Do **not** set `PURGE_ENABLED` during any of this. Leave the purge reporting-only until
+a scheduled dry run has shown it selecting the right rows.
 
 ---
 
