@@ -5,9 +5,13 @@ session (or a new chat) can pick this up without re-reading the whole history.
 
 **Keep this file updated.** Mark each task DONE or PENDING the moment it changes.
 
-**Where the work lives:** git worktree `.worktrees/live-demo-trial`, branch
-`feature/live-demo-trial`, branched from `codex/demo-test-lab` at `18b9496`.
-Commits so far: `dd8e057`, `98448cb`.
+**Where the work lives:** **merged into `codex/demo-test-lab` on 2026-08-02** (merge
+commit `496df35`) and pushed to `origin`. The deploy branch now contains everything —
+`feature/live-demo-trial` and its worktree are no longer the source of truth, and new
+work should start from `codex/demo-test-lab`.
+
+**That push created a Vercel Preview, not a production change.** The public site still
+runs the old build until a deployment is promoted — `docs/DEPLOYMENT_RUNBOOK.md` step 5.
 
 **Status vocabulary** (from the plan — never blur these):
 `local` = in the working tree · `committed` = in git · `backend deployed` = applied to

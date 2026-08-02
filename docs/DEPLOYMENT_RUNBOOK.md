@@ -35,7 +35,16 @@ forward and re-run it.
 
 ---
 
-## Step 0 — Get the code onto the branch Vercel builds
+## Step 0 — Get the code onto the branch Vercel builds ✅ DONE 2026-08-02
+
+**Completed.** `feature/live-demo-trial` was merged into `codex/demo-test-lab` (merge
+commit `496df35`, no conflicts) and pushed to `origin` (`09274c3..496df35`). The full
+gate passed on the merged result: typecheck clean, 7 test suites pass, build succeeds.
+`npm audit --audit-level=high` still exits 1 on the two known `react-router` advisories.
+
+**This created a Vercel Preview only. Production is unchanged** until step 5.
+
+*Original instructions kept below for reference.*
 
 **Where:** your terminal, in `/Users/sajeewa/development/recruiter applications`.
 
