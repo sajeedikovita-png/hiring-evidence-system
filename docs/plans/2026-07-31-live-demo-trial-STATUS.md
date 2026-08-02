@@ -29,8 +29,9 @@ proven with a real run.
 | 7 | Client upload path that persists instead of using browser storage | **DONE** — committed, **NOT production deployed** | `src/services/pilotUploadService.ts`, `BulkUploadCandidatesPanel.tsx` |
 | 8 | Admin conversion path (mark a company as continuing) | **DONE** — committed, **NOT backend deployed** | `202607310950_demo_conversion_and_purge.sql`, `AdminPage.tsx` |
 | 9 | Scheduled purge of expired demo workspaces | **DONE** — committed, ships disabled, **NOT deployed** | `supabase/functions/purge-expired-demos/index.ts` |
-| 10 | Create-a-role onboarding for a brand-new company | **PENDING** — deferred on purpose; approving one company at a time, so the SQL runbook below covers it | not started |
+| 10 | Create-a-role onboarding for a brand-new company | **DONE** — committed, **NOT deployed** | `202608020940_first_job_onboarding.sql`, `src/pages/CreateJobPage.tsx`, `jobSetupService.ts` |
 | 11 | Founder email notification when a request arrives | **PENDING** | not started — founder must watch `/admin` |
+| 21 | Public request form reports success only after a confirmed save | **DONE** — committed, **NOT deployed** | `RequestPilotPage.tsx`, `accessRequestService.ts` |
 | 12 | Apply migrations + deploy functions to live Supabase | **PENDING** — needs founder | — |
 | 13 | Promote the Vercel deployment to production | **PENDING** — needs founder | — |
 | 14 | End-to-end live test with a fresh test company | **PENDING** — needs founder | — |
@@ -58,30 +59,55 @@ live: `provision_demo_workspace` and `activate_demo_trial` are currently callabl
 unauthenticated caller holding just the public anon key. See `docs/DECISION_LOG.md`,
 entry 2026-08-02.
 
+### Every migration, in required execution order
+
+Run in filename order. The order is not cosmetic: `202608020930` **drops** the function
+that `202607310940` creates and that `202608020900` grants on, so running them out of
+order fails outright.
+
+| # | Migration file | Deployment status | What it does |
+|---|---|---|---|
+| 1 | `202607040001_existing_access_requests.sql` | **Already deployed** | Original access-requests table |
+| 2 | `202607051200_access_requests_public_submit.sql` | **Already deployed** | Public submit policy, `is_current_user_admin()` |
+| 3 | `202607060001_admin_workspace.sql` | **Already deployed** | Founder company + admin profile |
+| 4 | `202607060002_ensure_admin_role.sql` | **Already deployed** | Ensures the founder profile has the admin role |
+| 5 | `202607310900_live_demo_trials.sql` | **Already deployed** | `demo_entitlements`, `activate_demo_trial`, `provision_demo_workspace`, split read/write RLS |
+| 6 | `202607310930_platform_admin_authority.sql` | **Pending deployment** | `platform_admins`; stops each customer owner being a platform admin |
+| 7 | `202607310940_pilot_candidate_storage.sql` | **Pending deployment** | Private `candidate-documents` bucket, storage policies, upload/report RPCs, quotas |
+| 8 | `202607310950_demo_conversion_and_purge.sql` | **Pending deployment** | Conversion, closures, purge functions |
+| 9 | `202608020900_restrict_security_definer_functions.sql` | **Pending deployment** | Revokes anon EXECUTE on the security-definer functions |
+| 10 | `202608020930_upload_consent_timestamp.sql` | **Pending deployment** | `consent_recorded_at`; refuses uploads without a confirmed attestation |
+| 11 | `202608020940_first_job_onboarding.sql` | **Pending deployment** | `create_job_with_criteria` for first-role onboarding |
+
+Verified live on 2026-08-02: items 1–5 are present in the database; 6–11 are not.
+
+**Edge functions**
+
+| Function | Status |
+|---|---|
+| `ping`, `analyze-resume`, `invite-user` | **Already deployed** |
+| `approve-request` | **Deployed, but an older version** — needs redeploy for platform authority |
+| `purge-expired-demos` | **Pending deployment** — leave `PURGE_ENABLED` unset |
+
 ### Safe order before the first company uploads a real CV
 
-Migrations must run in filename order — `…0930` (consent) drops the function that
-`…0940` creates and `…20900` grants on, so running them out of order fails.
+1. Apply migrations 6 → 11 above, in that order.
+2. **Verify in Supabase:** bucket `candidate-documents` exists and is **not public**;
+   `platform_admins` has exactly one row (yours); and
+   `select proname, proacl from pg_proc where proname = 'provision_demo_workspace'`
+   shows no `anon` grant.
+3. Redeploy `approve-request`.
+4. Promote the Vercel deployment — pushing only creates a preview.
+5. **Rehearse end to end with a company you control:** request → approve → invite →
+   set password → dashboard → **create the first role at `/jobs/new`** → upload two or
+   three CVs → record a decision.
+6. Check the audit trail:
+   `select action, metadata from public.audit_log_entries order by created_at desc`
+   should show `job_role_created` and `candidate_upload_recorded` carrying a
+   `consent_recorded_at` value.
+7. Only then invite a real company.
 
-1. `202607310930_platform_admin_authority.sql` — otherwise your first customer is a
-   platform admin
-2. `202607310940_pilot_candidate_storage.sql` — bucket, storage policies, quotas
-3. `202607310950_demo_conversion_and_purge.sql` — conversion, closures
-4. `202608020900_restrict_security_definer_functions.sql` — closes the anon-execute hole
-5. `202608020930_upload_consent_timestamp.sql` — consent timestamp
-6. **Verify in Supabase:** bucket `candidate-documents` exists and is **not public**;
-   `platform_admins` contains exactly one row (yours); `select proname, proacl from
-   pg_proc where proname = 'provision_demo_workspace'` shows no `anon` grant
-7. Redeploy `approve-request` (it now requires platform authority)
-8. Promote the Vercel deployment — pushing only creates a preview
-9. Insert the first company's role and criteria (runbook below)
-10. **Rehearse end to end with a company you control**, then check the audit rows:
-    `select action, metadata from public.audit_log_entries order by created_at desc`
-    should show `candidate_upload_recorded` with a `consent_recorded_at` value
-11. Only then invite a real company
-
-Do **not** set `PURGE_ENABLED` during any of this. Leave the purge reporting-only until
-a scheduled dry run has shown it selecting the right rows.
+Do **not** set `PURGE_ENABLED` during any of this.
 
 ---
 
@@ -90,9 +116,9 @@ a scheduled dry run has shown it selecting the right rows.
 What would actually happen if you approved a real request **right now**, before
 deploying anything from this branch:
 
-1. **The request may never arrive.** `RequestPilotPage.tsx:51` awaits
-   `saveAccessRequestToBackend(form)` and ignores the result, then always shows
-   "Pilot request recorded." A rejected insert looks identical to a successful one.
+1. ~~**The request may never arrive.**~~ **Fixed locally 2026-08-02, pending deploy.**
+   The form now reports success only after the backend confirms the save, keeps the
+   visitor's details on failure, and writes the browser copy only afterwards.
 2. **The first real customer becomes a platform admin.** The live `approve-request`
    still authorizes on `recruiter_profiles.role = 'admin'`, and provisioning makes each
    customer owner exactly that. They could list and approve other companies' requests.
@@ -101,19 +127,18 @@ deploying anything from this branch:
    `active_until is null`, and the only thing that sets it is the dashboard activation
    call — which is committed but **not promoted to production**. So an approved
    customer gets a workspace they cannot write to, and the 14 days never start.
-4. **There is nothing to upload against.** A new company has no job and no criteria,
-   and no screen creates one. `BulkUploadCandidatesPage` dead-ends on
-   "Upload workspace cannot load".
+4. ~~**There is nothing to upload against.**~~ **Fixed locally 2026-08-02, pending
+   deploy.** `/jobs/new` lets the customer create their first role and criteria, and the
+   dashboard prompts for it when a real workspace has none. The SQL runbook below is now
+   a fallback, not the only path.
 5. **Uploads would not persist.** The deployed panel still runs the scripted demo
    engine into browser storage, and the private `candidate-documents` bucket does not
    exist until migration `202607310940` is applied.
 
-**After the deploy steps below, 1–3 and 5 clear.** Blocker 4 needs either task 10 or a
-hand-written SQL insert of the customer's first role and criteria.
-
-Order to do it in: apply the three migrations → redeploy `approve-request` → promote
-the Vercel deployment → insert the customer's first role/criteria → run one full
-rehearsal with a company you control before inviting a real one.
+**All five now clear on deployment** — 1 and 4 are fixed in code (2026-08-02) and 2, 3
+and 5 were always deploy-gated. Nothing further needs building before a first pilot;
+what remains is applying migrations 6–11, redeploying `approve-request`, promoting
+Vercel, and rehearsing end to end.
 
 ---
 

@@ -15,6 +15,71 @@ say so.
 
 ---
 
+## 2026-08-02 (third) — First-role onboarding, and the request form stops lying
+
+### `/jobs/new` — a company can set up its own first role
+
+**Migration:** `202608020940_first_job_onboarding.sql`
+**UI:** `src/pages/CreateJobPage.tsx`, `src/services/jobSetupService.ts`
+
+**Why:** a newly provisioned company had no job and no criteria and no screen to make
+one. Uploads have nothing to analyse against without them, so a real customer signed in
+and stopped — and the founder was inserting the first role by hand in SQL. This was the
+last remaining blocker that deploying alone would not have fixed.
+
+**The company is derived from `auth.uid()`, never accepted from the browser.** There is
+no company parameter to tamper with.
+
+**A user in two workspaces is refused, not guessed at.** `create_job_with_criteria`
+raises `AMBIGUOUS_WORKSPACE` when `current_company_ids()` returns more than one row.
+Filing a role under the wrong company silently would be worse than an error.
+
+**Criteria are capped at 12 to match the analyzer's own limit.** Otherwise a customer
+could define 20 criteria and have the evidence analysis quietly truncate them, with no
+sign that most of what they wrote was ignored.
+
+**At least one criterion must be `required`.** A role where everything is "preferred"
+produces an evidence matrix that asks nothing of a candidate.
+
+**Empty description falls back to the label.** `job_requirements.description` is
+`NOT NULL`, and description quality drives analysis quality — but it should not block a
+first role. Blank rows in the starter form are dropped rather than rejected.
+
+**Validation is duplicated on purpose** — in `jobSetupService` for a usable form, and
+again in Postgres because that is the only place a rule is actually enforced.
+
+**Known limitation, not introduced here:** `supabaseHiringRepository.getJobRowForRoute`
+ignores the slug and takes the company's *first* job (`.limit(1)`). With the two-job
+quota and one pilot role this works, but a company with two roles cannot reach the
+second through the UI. Worth fixing before any company runs two roles at once.
+
+### The pilot request form no longer reports success it cannot confirm
+
+**Files:** `src/pages/RequestPilotPage.tsx`, `src/services/accessRequestService.ts`
+
+The page called `saveAccessRequestToBackend(form)`, **ignored the returned result**, and
+always rendered "Pilot request recorded." A request rejected by Supabase looked
+identical to one that succeeded.
+
+**Why this mattered more than it looks:** with approvals handled one at a time by hand,
+`/admin` is the only place demand becomes visible. A silently dropped request means a
+prospect waits for a reply that will never come and the founder never learns they asked.
+
+**The browser copy is now written only after the backend confirms.** It was previously
+written first and described as a "fallback" — which it never was, since nothing ever
+read it back. It is a diagnostic, and it must not accumulate phantom requests that were
+never saved.
+
+**Failures keep everything typed.** Re-entering six fields after a network blip is how
+you lose the prospect a second time.
+
+**`saveAccessRequestToBackend` now takes an injectable `fetchFn` and `config`** purely
+so the tests can prove the rule: success on 201, failure on 401, on 500, on a thrown
+network error, and when no backend is configured. The failure copy is asserted never to
+contain "recorded", "received", or "submitted successfully".
+
+---
+
 ## 2026-08-02 (later) — Consent timestamps; two security items deferred on purpose
 
 **Scope given:** close the consent-timestamp gap only. Virus scanning and AI usage/cost
