@@ -15,6 +15,10 @@ import {
 import { pickActiveReviewerName } from "../src/services/supabaseHiringRepository";
 import { createHiringSupabaseClient } from "../src/services/supabaseClient";
 import { loadSupabaseConfig } from "../src/services/supabaseConfig";
+import {
+  buildPrivateCandidateDocumentPath,
+  validateSecureCandidateUpload
+} from "../src/services/secureUploadService";
 
 assert.throws(
   () => loadSupabaseConfig({}),
@@ -47,6 +51,31 @@ if (originalSupabaseUrl) {
 } else {
   delete process.env.VITE_SUPABASE_URL;
 }
+
+const secureUploadFile = {
+  name: "Amanda Lee resume.PDF",
+  size: 1024 * 1024,
+  type: "application/pdf"
+};
+
+assert.deepEqual(validateSecureCandidateUpload(secureUploadFile), { valid: true });
+assert.equal(
+  validateSecureCandidateUpload({ name: "candidate.png", size: 1024, type: "image/png" }).message,
+  "Unsupported file type"
+);
+assert.equal(
+  validateSecureCandidateUpload({ name: "candidate.docx", size: 11 * 1024 * 1024, type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" }).message,
+  "File too large"
+);
+assert.equal(
+  buildPrivateCandidateDocumentPath({
+    companyId: "company-1",
+    jobId: "job-1",
+    documentId: "document-1",
+    fileName: "Amanda Lee resume.PDF"
+  }),
+  "company-1/job-1/document-1.pdf"
+);
 if (originalSupabaseAnonKey) {
   process.env.VITE_SUPABASE_ANON_KEY = originalSupabaseAnonKey;
 } else {
