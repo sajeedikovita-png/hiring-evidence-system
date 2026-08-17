@@ -3,7 +3,7 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
 import { DevelopmentConnectionStatusPanel } from "../src/components/dev/DevelopmentConnectionStatusPanel";
-import { signInRecruiterWithPassword } from "../src/services/authService";
+import { signInRecruiterWithPassword, updateRecruiterPassword } from "../src/services/authService";
 import { getActiveCompanyContext } from "../src/services/companyContextService";
 import { containsForbiddenHiringLanguage } from "../src/services/compliance";
 import { getAsyncHiringRepository, getHiringRepositoryMode, getReportById } from "../src/services/hiringRepository";
@@ -126,6 +126,39 @@ run().catch((error) => {
 });
 
 async function run() {
+  await assert.rejects(
+    () =>
+      updateRecruiterPassword({
+        client: {
+          auth: {
+            async updateUser() {
+              throw new Error("Should not call Supabase with a short password");
+            }
+          }
+        },
+        password: "short"
+      }),
+    /Password must be at least 12 characters/
+  );
+
+  const passwordUpdateCalls: unknown[] = [];
+  const updatedUser = await updateRecruiterPassword({
+    client: {
+      auth: {
+        async updateUser(attributes: unknown) {
+          passwordUpdateCalls.push(attributes);
+          return {
+            data: { user: { id: "auth-owner-1", email: "sajeedikovita@gmail.com" } },
+            error: null
+          };
+        }
+      }
+    },
+    password: "secure-demo-password"
+  });
+  assert.deepEqual(passwordUpdateCalls, [{ password: "secure-demo-password" }]);
+  assert.equal(updatedUser.id, "auth-owner-1");
+
   await assert.rejects(
     () =>
       signInRecruiterWithPassword({

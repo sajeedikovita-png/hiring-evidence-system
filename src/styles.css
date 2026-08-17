@@ -19,6 +19,86 @@
   --shadow: 0 12px 30px rgba(17, 24, 39, 0.06);
 }
 
+.access-approval-controls {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.access-approval-controls label {
+  display: grid;
+  gap: 0.45rem;
+  color: var(--text);
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
+.access-approval-controls input,
+.access-approval-controls select {
+  min-height: 44px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: white;
+  padding: 0 0.75rem;
+  color: var(--text-strong);
+}
+
+.workspace-status {
+  margin: 0;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: white;
+  padding: 0.9rem 1rem;
+  color: var(--text);
+}
+
+.access-request-grid {
+  display: grid;
+  gap: 1rem;
+}
+
+.access-request-card {
+  display: grid;
+  gap: 1rem;
+}
+
+.access-request-card h3,
+.access-request-card p {
+  margin: 0;
+}
+
+.access-request-card dl {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.8rem;
+  margin: 0;
+}
+
+.access-request-card dl div {
+  border-radius: 10px;
+  background: var(--background-soft);
+  padding: 0.75rem;
+}
+
+.access-request-card dt {
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.access-request-card dd {
+  margin: 0.3rem 0 0;
+  color: var(--text-strong);
+}
+
+@media (max-width: 900px) {
+  .access-approval-controls,
+  .access-request-card dl {
+    grid-template-columns: 1fr;
+  }
+}
+
 * {
   box-sizing: border-box;
 }

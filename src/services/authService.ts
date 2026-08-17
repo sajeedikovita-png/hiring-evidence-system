@@ -17,6 +17,10 @@ type SupabaseAuthClient = {
       data: { user: SupabaseAuthUser | null };
       error: { message?: string } | null;
     }>;
+    updateUser?: (attributes: { password: string }) => Promise<{
+      data: { user: SupabaseAuthUser | null };
+      error: { message?: string } | null;
+    }>;
     signOut?: () => Promise<{ error: { message?: string } | null }>;
   };
 };
@@ -24,6 +28,11 @@ type SupabaseAuthClient = {
 type SignInRecruiterInput = {
   client: SupabaseAuthClient;
   email: string;
+  password: string;
+};
+
+type UpdateRecruiterPasswordInput = {
+  client: SupabaseAuthClient;
   password: string;
 };
 
@@ -60,6 +69,31 @@ export async function signInRecruiterWithPassword({ client, email, password }: S
 
   if (!data.user) {
     throw new Error("Auth user missing");
+  }
+
+  return data.user;
+}
+
+export async function updateRecruiterPassword({
+  client,
+  password
+}: UpdateRecruiterPasswordInput): Promise<SupabaseAuthUser> {
+  if (password.length < 12) {
+    throw new Error("Password must be at least 12 characters");
+  }
+
+  if (!client.auth.updateUser) {
+    throw new Error("Password setup is unavailable");
+  }
+
+  const { data, error } = await client.auth.updateUser({ password });
+
+  if (error) {
+    throw new Error(error.message ?? "Unable to set password");
+  }
+
+  if (!data.user) {
+    throw new Error("Invitation session missing or expired");
   }
 
   return data.user;

@@ -318,7 +318,7 @@ export function createSupabaseHiringRepository(client: SupabaseClient): AsyncHir
       const authUser = requireData(user, "Authenticated user is required");
       const { data, error } = await client
         .from("recruiter_profiles")
-        .select("id, company_id, user_id, display_name, companies(name)")
+        .select("id, company_id, user_id, display_name, role, companies(name)")
         .eq("user_id", authUser.id)
         .eq("status", "active")
         .limit(1)
@@ -332,7 +332,8 @@ export function createSupabaseHiringRepository(client: SupabaseClient): AsyncHir
         companyId: asString(profile.company_id),
         companyName: asString(company?.name, "Company workspace"),
         userId: asString(profile.user_id),
-        userName: asString(profile.display_name, authUser.email ?? "Recruiter")
+        userName: asString(profile.display_name, authUser.email ?? "Recruiter"),
+        role: asString(profile.role, "recruiter") as CompanyContext["role"]
       };
     },
 

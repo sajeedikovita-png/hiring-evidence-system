@@ -10,6 +10,30 @@ Core principle:
 
 AI assists. Human decides. Evidence explains.
 
+## Live Status — 4 July 2026
+
+Verified in `hiring-evidence-system-dev`:
+
+- The existing Northstar Digital company is reused; no duplicate company was created.
+- `sajeedikovita@gmail.com` exists in Supabase Auth with an invitation sent.
+- The matching recruiter profile is active with role `admin` in Northstar Digital.
+- The owner invitation is still awaiting completion. No owner login, dashboard, report, decision, or decision-audit write has been claimed as verified yet.
+- Migration `202607040001_access_requests.sql` is applied.
+- Edge Functions `request-access`, `approve-access-request`, and `reject-access-request` are active.
+- User provisioning exists only in `approve-access-request`; the browser contains no service-role key.
+- A live public request returned HTTP `201` with status `pending`.
+- Anonymous access-request listing returned HTTP `401`.
+- Anonymous approval returned HTTP `403`.
+- `http://localhost:3000/set-password` is an allowed Auth redirect URL.
+
+Still required for the owner-login checkpoint:
+
+1. Open the Supabase invitation email.
+2. Complete the invitation and set a password at `/set-password`.
+3. Sign in and verify the dashboard, candidate list, report, human decision save, and audit write.
+
+The local pgTAP runner could not execute because Docker is not installed. The migration has a repository security test, and live database behavior must remain part of the manual smoke test.
+
 ## Setup Steps
 
 1. Create a Supabase development project.

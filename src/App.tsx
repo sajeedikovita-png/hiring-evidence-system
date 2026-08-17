@@ -1,5 +1,6 @@
 import React from "react";
 import { BrowserRouter, MemoryRouter, Route, Routes } from "react-router-dom";
+import { AdminAccessRequestsPage } from "./pages/AdminAccessRequestsPage";
 import { BulkUploadCandidatesPage } from "./pages/BulkUploadCandidatesPage";
 import { CandidateEvidenceReportPage } from "./pages/CandidateEvidenceReportPage";
 import { DashboardPage } from "./pages/DashboardPage";
@@ -9,6 +10,7 @@ import { JobCandidateListPage } from "./pages/JobCandidateListPage";
 import { LandingPage } from "./pages/LandingPage";
 import { LoginPage } from "./pages/LoginPage";
 import { RequestPilotPage } from "./pages/RequestPilotPage";
+import { SetPasswordPage } from "./pages/SetPasswordPage";
 
 type AppProps = {
   path?: string;
@@ -19,6 +21,8 @@ export function AppRoutes() {
     <Routes>
       <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/set-password" element={<SetPasswordPage />} />
+      <Route path="/admin/access-requests" element={<AdminAccessRequestsPage />} />
       <Route path="/request-pilot" element={<RequestPilotPage />} />
       <Route path="/demo-presentation" element={<DemoPresentationPage />} />
       <Route path="/demo-test-lab" element={<DemoTestLabPage />} />
