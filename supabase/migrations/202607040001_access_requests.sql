@@ -24,14 +24,11 @@ create table public.access_requests (
     or (status in ('approved', 'rejected') and reviewed_at is not null)
   )
 );
-
 create unique index access_requests_one_pending_email
   on public.access_requests (lower(work_email))
   where status = 'pending';
-
 create index idx_access_requests_status_requested_at
   on public.access_requests (status, requested_at desc);
-
 create or replace function public.current_user_is_admin()
 returns boolean
 language sql
@@ -47,19 +44,15 @@ as $$
       and status = 'active'
   )
 $$;
-
 alter table public.access_requests enable row level security;
-
 revoke all on public.access_requests from anon;
 grant select, update on public.access_requests to authenticated;
 grant execute on function public.current_user_is_admin() to authenticated;
-
 create policy access_requests_admin_select
   on public.access_requests
   for select
   to authenticated
   using (public.current_user_is_admin());
-
 create policy access_requests_admin_update
   on public.access_requests
   for update

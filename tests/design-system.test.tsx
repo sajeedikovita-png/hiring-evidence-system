@@ -16,7 +16,6 @@ import { FairnessCheckCard } from "../src/components/report/FairnessCheckCard";
 import { applications, candidateReports, candidates, jobs, users } from "../src/data/mockHiringData";
 import { hiringSchemaTables } from "../src/data/schema";
 import { containsForbiddenHiringLanguage, forbiddenHiringPhrases } from "../src/services/compliance";
-import { getActiveCompanyContext } from "../src/services/companyContextService";
 import { getDemoTestLabViewModel } from "../src/services/demoTestLabService";
 import {
   getApplicationsForJob,
@@ -43,7 +42,7 @@ const shellHtml = renderToStaticMarkup(
     <main>Evidence workspace</main>
   </AppShell>
 );
-const companyContext = getActiveCompanyContext();
+const companyContext = { companyId: "org-northstar" };
 
 assert.match(shellHtml, /Hiring Evidence System/);
 assert.match(shellHtml, /aria-label="Main navigation"/);
@@ -91,22 +90,28 @@ assert.match(componentHtml, /<caption>Evidence matrix<\/caption>/);
 assert.match(componentHtml, /No candidates yet/);
 assert.match(componentHtml, /Human review required/);
 assert.match(componentHtml, /Recruiter notes/);
-assert.match(fairnessWithMissingListHtml, /Protected characteristics not used/);
+assert.match(fairnessWithMissingListHtml, /Not checked/);
 
 const landingHtml = renderToStaticMarkup(<App path="/" />);
 const loginHtml = renderToStaticMarkup(<App path="/login" />);
+const forgotPasswordHtml = renderToStaticMarkup(<App path="/forgot-password" />);
 const setPasswordHtml = renderToStaticMarkup(<App path="/set-password" />);
+const welcomeHtml = renderToStaticMarkup(<App path="/welcome" />);
 const adminAccessHtml = renderToStaticMarkup(<App path="/admin/access-requests" />);
 const requestPilotHtml = renderToStaticMarkup(<App path="/request-pilot" />);
+const privacyHtml = renderToStaticMarkup(<App path="/privacy" />);
+const pilotTermsHtml = renderToStaticMarkup(<App path="/pilot-terms" />);
+const singaporeReadinessHtml = renderToStaticMarkup(<App path="/singapore-readiness" />);
 const demoPresentationHtml = renderToStaticMarkup(<App path="/demo-presentation" />);
 const demoTestLabHtml = renderToStaticMarkup(<App path="/demo-test-lab" />);
 const dashboardHtml = renderToStaticMarkup(<App path="/dashboard" />);
 const reportHtml = renderToStaticMarkup(<App path="/reports/candidate-evidence" />);
-const candidateListHtml = renderToStaticMarkup(<App path="/jobs/frontend-developer/candidates" />);
-const bulkUploadHtml = renderToStaticMarkup(<App path="/jobs/frontend-developer/candidates/upload" />);
+const candidateListHtml = renderToStaticMarkup(<App path="/jobs/job-frontend-developer/candidates" />);
+const bulkUploadHtml = renderToStaticMarkup(<App path="/jobs/job-frontend-developer/candidates/upload" />);
 const combinedAppHtml = [
   landingHtml,
   loginHtml,
+  forgotPasswordHtml,
   setPasswordHtml,
   adminAccessHtml,
   requestPilotHtml,
@@ -115,6 +120,10 @@ const combinedAppHtml = [
   dashboardHtml,
   reportHtml
 ].join("\n");
+assert.match(loginHtml, /Forgot your password/);
+assert.match(forgotPasswordHtml, /Send recovery email/);
+assert.match(forgotPasswordHtml, /Password recovery/);
+assert.match(setPasswordHtml, /invitation or password-recovery email/);
 const allAppHtml = [combinedAppHtml, candidateListHtml, bulkUploadHtml].join("\n");
 const routedDashboardHtml = renderToStaticMarkup(
   <MemoryRouter initialEntries={["/dashboard"]}>
@@ -271,13 +280,21 @@ assert.equal(validatePilotRequest(validPilotRequest).valid, true);
 assert.equal(validatePilotRequest(blankPilotRequest).valid, false);
 assert.equal(validatePilotRequest(blankPilotRequest).errors.workEmail, "Enter a valid work email.");
 
-assert.match(landingHtml, /Hire with evidence, not guesswork\./);
-assert.match(landingHtml, /View sample report/);
+assert.match(landingHtml, /A review record your hiring team can defend\./);
+assert.match(landingHtml, /Read the synthetic report/);
 assert.match(landingHtml, /Request pilot access/);
-assert.match(landingHtml, /Human-led hiring/);
+assert.match(landingHtml, /Operating safeguards/);
 assert.match(landingHtml, /href="\/request-pilot"[^>]*>Request pilot access/);
-assert.match(landingHtml, /href="\/demo-test-lab"[^>]*>Open demo test lab/);
-assert.match(landingHtml, /href="\/demo-presentation"[^>]*>Open demo slideshow/);
+assert.match(landingHtml, /Controlled pilot/);
+assert.match(landingHtml, /S\$500/);
+assert.match(landingHtml, /S\$800/);
+assert.match(landingHtml, /S\$1,400/);
+assert.match(landingHtml, /standard price from term four/i);
+assert.match(landingHtml, /No automatic renewal or charge/);
+assert.match(landingHtml, /does not certify legal compliance or make hiring decisions/);
+assert.match(landingHtml, /Read Singapore readiness/);
+assert.doesNotMatch(landingHtml, />Slideshow</);
+assert.doesNotMatch(landingHtml, />Demo lab</);
 
 assert.match(requestPilotHtml, /Request pilot access/);
 assert.match(requestPilotHtml, /Start a controlled pilot with one role/);
@@ -286,6 +303,30 @@ assert.match(requestPilotHtml, /Work email/);
 assert.match(requestPilotHtml, /First role to review/);
 assert.match(requestPilotHtml, /Human review required/);
 assert.match(requestPilotHtml, /View sample report/);
+assert.match(requestPilotHtml, /S\$500 one-time for 30 days, one role, up to 50 documents, and two users/);
+assert.match(requestPilotHtml, /S\$800 for each of the first three 30-day terms/);
+assert.match(requestPilotHtml, /standard price is S\$1,400 per term/);
+assert.match(requestPilotHtml, /no charge is made in this form/i);
+assert.match(requestPilotHtml, /Access information/);
+assert.match(requestPilotHtml, /One email identifies one person/);
+assert.match(requestPilotHtml, /Repeat requests do not create another workspace/);
+assert.match(requestPilotHtml, /does not start billing or activate a workspace/);
+assert.match(requestPilotHtml, /href="\/privacy"/);
+assert.match(requestPilotHtml, /href="\/pilot-terms"/);
+assert.match(landingHtml, /One active company per user/);
+assert.match(landingHtml, /Controlled exceptions/);
+assert.match(privacyHtml, /Privacy notice/);
+assert.match(privacyHtml, /Do not include candidate information in the public request form/);
+assert.match(pilotTermsHtml, /Pilot and access terms/);
+assert.match(pilotTermsHtml, /There is no automatic conversion, renewal, or charge/);
+assert.match(singaporeReadinessHtml, /Readiness, not a compliance claim/);
+assert.match(singaporeReadinessHtml, /What the product supports today/);
+assert.match(singaporeReadinessHtml, /Customer responsibilities/);
+assert.match(singaporeReadinessHtml, /Upcoming work/);
+assert.match(singaporeReadinessHtml, /mom\.gov\.sg\/employment-practices\/fair-consideration-framework/);
+assert.match(singaporeReadinessHtml, /pdpc\.gov\.sg\/overview-of-pdpa/);
+assert.match(singaporeReadinessHtml, /imda\.gov\.sg\/about-imda\/emerging-technologies-and-research\/artificial-intelligence/);
+assert.doesNotMatch(singaporeReadinessHtml, /government approval|compliance guarantee/i);
 
 assert.match(demoTestLabHtml, /Demo Test Lab/);
 assert.match(demoTestLabHtml, /60 synthetic resumes/);
@@ -307,29 +348,25 @@ assert.match(demoPresentationHtml, /View sample evidence report/);
 assert.match(loginHtml, /Sign in/);
 assert.match(loginHtml, /Access candidate evidence reports/);
 assert.match(setPasswordHtml, /Set your password/);
+assert.match(welcomeHtml, /Set your password/);
 assert.match(setPasswordHtml, /Confirm password/);
-assert.match(adminAccessHtml, /Access requests/);
-assert.match(adminAccessHtml, /Human administrator approval required/);
+assert.match(adminAccessHtml, /Workspace access required/);
+assert.doesNotMatch(adminAccessHtml, /Access requests/);
 
-assert.match(dashboardHtml, /Evidence Ledger/);
-assert.match(routedDashboardHtml, /Evidence Ledger/);
-assert.match(routedFallbackHtml, /Hire with evidence, not guesswork\./);
-assert.match(dashboardHtml, /Active jobs/);
-assert.match(dashboardHtml, /Candidates waiting for review/);
-assert.match(dashboardHtml, /Reports completed/);
-assert.match(dashboardHtml, /Decisions needing sign-off/);
-assert.match(dashboardHtml, /Open report/);
-assert.match(dashboardHtml, /Upload candidates/);
-assert.match(dashboardHtml, /href="\/reports\/HER-2026-0521-AL"[^>]*>Open sample report/);
+assert.match(dashboardHtml, /Workspace access required/);
+assert.match(routedDashboardHtml, /Workspace access required/);
+assert.match(routedFallbackHtml, /A review record your hiring team can defend\./);
+assert.doesNotMatch(dashboardHtml, /Amanda Lee/);
 
 assert.doesNotMatch(reportHtml, /Design system preview/i);
 assert.match(reportHtml, /Candidate Evidence Report/);
+assert.match(reportHtml, /Synthetic sample/);
 assert.match(reportHtml, /Amanda Lee/);
 assert.match(reportHtml, /Frontend Developer/);
 assert.match(reportHtml, /Northstar Digital/);
 assert.match(reportHtml, /Today, 4:15 PM/);
 assert.match(reportHtml, /HER-2026-0521-AL/);
-assert.match(reportHtml, /Evidence report ready/);
+assert.match(reportHtml, /Human review required/);
 assert.match(reportHtml, /Verification needed/);
 assert.match(reportHtml, /Human review required/);
 assert.match(reportHtml, /Good evidence, verification needed/);
@@ -338,22 +375,18 @@ assert.match(reportHtml, /Requirement/);
 assert.match(reportHtml, /Candidate evidence/);
 assert.match(reportHtml, /Missing evidence/);
 assert.match(reportHtml, /Suggested interview questions/);
-assert.match(reportHtml, /View resume/);
-assert.match(reportHtml, /Protected characteristics not used/);
+assert.doesNotMatch(reportHtml, /View resume/);
+assert.match(reportHtml, /Human review required/);
 assert.match(reportHtml, /Shortlist for interview/);
-assert.match(reportHtml, /Export PDF/);
+assert.doesNotMatch(reportHtml, /Export PDF/);
 assert.match(reportHtml, /Final decision must be based on job-related evidence and reviewed by a human/);
-assert.match(reportHtml, /AI-assisted analysis\. Human review is required before making any hiring decision\./);
+assert.match(reportHtml, /Evidence review required before making any hiring decision\./);
 
-assert.match(candidateListHtml, /Company workspace/);
-assert.match(candidateListHtml, /Loading company workspace/);
+assert.match(candidateListHtml, /Workspace access required/);
 assert.doesNotMatch(candidateListHtml, /Amanda Lee/);
-assert.match(candidateListHtml, /Upload candidates/);
 
-assert.match(bulkUploadHtml, /Company workspace/);
-assert.match(bulkUploadHtml, /Loading company workspace/);
+assert.match(bulkUploadHtml, /Workspace access required/);
 assert.doesNotMatch(bulkUploadHtml, /Amanda Lee/);
-assert.match(bulkUploadHtml, /Upload Candidates/);
 assert.doesNotMatch(
   allAppHtml,
   /Consolidated Auditor Suggestion|Verified Match|Best candidate|Perfect match|AI selected|AI rejected|AI recommendation|Accept Path|Auto decision|Auto reject|Culture fit score|Personality score|Bias-free/i

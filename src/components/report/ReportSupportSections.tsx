@@ -1,5 +1,4 @@
 import React from "react";
-import { NoteTextArea } from "../../../components/ui/NoteTextArea";
 import type { AuditLogEntry, UploadedDocument } from "../../types/hiring";
 
 type ReportSupportSectionsProps = {
@@ -8,6 +7,7 @@ type ReportSupportSectionsProps = {
   interviewQuestions: string[];
   recruiterNotes: string[];
   documentSources?: UploadedDocument[];
+  sourceUrl?: string;
   auditTrailPreview?: AuditLogEntry[];
 };
 
@@ -17,6 +17,7 @@ export function ReportSupportSections({
   interviewQuestions,
   recruiterNotes,
   documentSources = [],
+  sourceUrl,
   auditTrailPreview = []
 }: ReportSupportSectionsProps) {
   return (
@@ -53,14 +54,16 @@ export function ReportSupportSections({
             <span key={note}>{note}</span>
           ))}
         </div>
-        <NoteTextArea label="Recruiter notes" placeholder="Add job-related evidence notes, interview questions, or verification reminders." />
       </section>
       <section className="workspace-card">
         <p className="section-kicker">Document sources</p>
         <h2>Uploaded evidence sources</h2>
         <ul className="evidence-list">
-          {documentSources.map((document) => (
-            <li key={document.id}>{document.fileName}</li>
+          {documentSources.map((document, index) => (
+            <li key={document.id}>
+              {document.fileName}
+              {index === 0 && sourceUrl ? <> · <a className="table-link" href={sourceUrl} target="_blank" rel="noreferrer">Open private source</a></> : null}
+            </li>
           ))}
         </ul>
       </section>

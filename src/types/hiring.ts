@@ -155,6 +155,7 @@ export type EvidenceItem = {
   requirement: string;
   evidence: string;
   source: "Resume" | "Questionnaire" | "Recruiter note" | "System";
+  sourceReference?: string;
   confidence: "High" | "Medium" | "Low" | "None";
   verificationNeeded: string;
   status: StatusBadge;
@@ -284,6 +285,8 @@ export type BulkUploadFile = {
 
 export type JobCandidateRow = {
   id: string;
+  documentId?: string;
+  hasReport?: boolean;
   candidateName: string;
   applicationId: string;
   evidenceLevel: EvidenceLevel;

@@ -1,13 +1,6 @@
-import { organizations, users } from "../data/mockHiringData";
-import { getDevAuthContext, requireAuthContext } from "./authService";
+import type { WorkspaceAccess as CompanyContext } from "./workspaceAccessService";
 
-export type CompanyContext = {
-  companyId: string;
-  companyName: string;
-  userId: string;
-  userName: string;
-  role: "admin" | "recruiter" | "hiring_manager";
-};
+export type { CompanyContext };
 
 export function requireCompanyId(companyId: string): string {
   if (!companyId.trim()) {
@@ -15,18 +8,4 @@ export function requireCompanyId(companyId: string): string {
   }
 
   return companyId;
-}
-
-export function getActiveCompanyContext(): CompanyContext {
-  const authContext = requireAuthContext(getDevAuthContext());
-  const company = organizations.find((organization) => organization.id === authContext.companyId);
-  const user = users.find((userRecord) => userRecord.id === authContext.userId);
-
-  return {
-    companyId: requireCompanyId(authContext.companyId),
-    companyName: company?.name ?? "Development company workspace",
-    userId: authContext.userId,
-    userName: user?.name ?? "Development recruiter",
-    role: authContext.role
-  };
 }

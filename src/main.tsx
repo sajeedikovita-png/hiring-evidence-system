@@ -5,6 +5,9 @@ import "./styles.css";
 import "./styles/workspace-shell.css";
 import "./styles/report-workflow.css";
 import "./styles/recruiter-operations.css";
+import "./styles/pilot-lifecycle.css";
+import "./styles/public-marketing.css";
+import "./styles/editorial-system.css";
 
 const root = document.getElementById("root");
 

@@ -32,69 +32,34 @@ export async function uploadPrivateCandidateDocuments(input: {
   client: SupabaseClient;
   jobId: string;
   files: File[];
+  uploaderAttestation: boolean;
 }): Promise<void> {
-  const { data: authData, error: authError } = await input.client.auth.getUser();
-  if (authError || !authData.user) throw new Error("Authenticated company member required");
-
-  const { data: profile, error: profileError } = await input.client
-    .from("recruiter_profiles")
-    .select("id, company_id")
-    .eq("user_id", authData.user.id)
-    .eq("status", "active")
-    .maybeSingle();
-  if (profileError || !profile) throw new Error("Authenticated company member required");
-
-  const { data: job, error: jobError } = await input.client
-    .from("job_roles")
-    .select("id")
-    .eq("id", input.jobId)
-    .eq("company_id", profile.company_id)
-    .maybeSingle();
-  if (jobError || !job) throw new Error("Upload workspace is not available in this company workspace.");
-
   for (const file of input.files) {
     const validation = validateSecureCandidateUpload(file);
     if (!validation.valid) throw new Error(validation.message);
 
-    const documentId = crypto.randomUUID();
-    const storagePath = buildPrivateCandidateDocumentPath({
-      companyId: profile.company_id,
-      jobId: job.id,
-      documentId,
-      fileName: file.name
+    const extension = file.name.split(".").pop()?.toLowerCase();
+    const { data, error } = await input.client.rpc("record_candidate_upload", {
+      p_job_id: input.jobId,
+      p_candidate_name: "",
+      p_file_name: file.name,
+      p_file_type: extension,
+      p_file_size_bytes: file.size,
+      p_consent_confirmed: input.uploaderAttestation
     });
+    if (error || !data || typeof data !== "object") throw new Error("Unable to record candidate upload");
+    const record = data as { document_id?: string; storage_path?: string };
+    if (!record.document_id || !record.storage_path) throw new Error("Upload record was incomplete");
+
     const { error: storageError } = await input.client.storage
       .from(privateCandidateDocumentBucket)
-      .upload(storagePath, file, { contentType: file.type || undefined, upsert: false });
-    if (storageError) throw new Error("Unable to store document securely");
-
-    const { data: candidate, error: candidateError } = await input.client
-      .from("candidates")
-      .insert({ company_id: profile.company_id, name: "Candidate pending review", source: "bulk_upload" })
-      .select("id")
-      .single();
-    if (candidateError || !candidate) throw new Error("Unable to create candidate record");
-
-    const { data: application, error: applicationError } = await input.client
-      .from("candidate_applications")
-      .insert({ company_id: profile.company_id, job_id: job.id, candidate_id: candidate.id, status: "processing", consent_status: "recorded" })
-      .select("id")
-      .single();
-    if (applicationError || !application) throw new Error("Unable to create application record");
-
-    const { error: documentError } = await input.client.from("uploaded_documents").insert({
-      id: documentId,
-      company_id: profile.company_id,
-      application_id: application.id,
-      candidate_id: candidate.id,
-      uploaded_by_profile_id: profile.id,
-      file_name: file.name,
-      storage_path: storagePath,
-      file_type: storagePath.endsWith(".pdf") ? "pdf" : "docx",
-      file_size_bytes: file.size,
-      upload_status: "accepted",
-      parsing_status: "queued"
-    });
-    if (documentError) throw new Error("Unable to record secure document upload");
+      .upload(record.storage_path, file, { contentType: file.type || undefined, upsert: false });
+    if (storageError) {
+      await input.client.rpc("mark_candidate_upload_failed", {
+        p_document_id: record.document_id,
+        p_reason: "Private document storage could not be completed"
+      });
+      throw new Error("Unable to store document securely");
+    }
   }
 }

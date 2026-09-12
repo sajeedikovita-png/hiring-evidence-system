@@ -23,6 +23,7 @@ export function EvidenceMatrix({ rows }: EvidenceMatrixProps) {
           { key: "requirement", header: "Requirement" },
           { key: "evidence", header: "Candidate evidence" },
           { key: "source", header: "Source" },
+          { key: "sourceReference", header: "Source reference" },
           { key: "confidence", header: "Confidence" },
           { key: "verificationNeeded", header: "Verification needed" },
           { key: "status", header: "Status" }

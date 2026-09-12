@@ -1,16 +1,16 @@
 import {
-  buildApprovalResponse,
-  canAdminManageCompany,
-  displayNameFromEmail,
-  parseApprovedRole
+  buildApprovalResponse
 } from "../_shared/access.ts";
+import {
+  findAuthUserByNormalizedEmail,
+  getValidatedInvitationRedirectUrl,
+  normalizeApprovalEmail
+} from "../_shared/approval.ts";
 import { corsHeaders, errorResponse, jsonResponse } from "../_shared/cors.ts";
 import { authorizeAdmin, createAdminClient } from "../_shared/supabase.ts";
 
 type ApprovalBody = {
   requestId?: unknown;
-  companyId?: unknown;
-  role?: unknown;
 };
 
 Deno.serve(async (request: Request) => {
@@ -29,7 +29,7 @@ Deno.serve(async (request: Request) => {
     reviewingAdmin = await authorizeAdmin(request, adminClient);
   } catch (error) {
     return errorResponse(
-      error instanceof Error ? error.message : "Admin permission required",
+      error instanceof Error ? error.message : "Platform administrator permission required",
       403
     );
   }
@@ -42,15 +42,9 @@ Deno.serve(async (request: Request) => {
   }
 
   const requestId = typeof body.requestId === "string" ? body.requestId : "";
-  const companyId = typeof body.companyId === "string" ? body.companyId : "";
-  const approvedRole = parseApprovedRole(body.role);
 
-  if (!requestId || !companyId || !approvedRole) {
-    return errorResponse("Request, company, and approved role are required", 400);
-  }
-
-  if (!canAdminManageCompany(reviewingAdmin.company_id, companyId)) {
-    return errorResponse("Admin permission required for this company", 403);
+  if (!requestId) {
+    return errorResponse("Request is required", 400);
   }
 
   const { data: accessRequest, error: requestError } = await adminClient
@@ -63,51 +57,68 @@ Deno.serve(async (request: Request) => {
     return errorResponse("Access request not found", 404);
   }
 
-  if (accessRequest.status === "approved" && accessRequest.auth_user_id) {
-    return jsonResponse(
-      buildApprovalResponse({
-        requestId: accessRequest.id,
-        authUserId: accessRequest.auth_user_id,
-        status: "approved"
-      })
-    );
+  const normalizedEmail = normalizeApprovalEmail(accessRequest.work_email);
+  if (!normalizedEmail) {
+    return errorResponse("Access request has an invalid work email", 422);
   }
 
-  if (accessRequest.status !== "pending") {
+  if (accessRequest.status !== "pending" && !accessRequest.provisioned_company_id) {
     return errorResponse("Only pending requests can be approved", 409);
   }
 
-  const { data: company, error: companyError } = await adminClient
-    .from("companies")
-    .select("id")
-    .eq("id", companyId)
-    .eq("status", "active")
-    .maybeSingle();
+  if (accessRequest.provisioned_company_id) {
+    const { data: ownerProfile, error: ownerProfileError } = await adminClient
+      .from("recruiter_profiles")
+      .select("user_id")
+      .eq("company_id", accessRequest.provisioned_company_id)
+      .ilike("email", normalizedEmail)
+      .eq("role", "admin")
+      .eq("status", "active")
+      .maybeSingle();
 
-  if (companyError || !company) {
-    return errorResponse("Active company not found", 404);
+    if (ownerProfileError || !ownerProfile?.user_id) {
+      return errorResponse("Pilot workspace owner is unavailable", 500);
+    }
+
+    const { error: finalizeError } = await adminClient.rpc("finalize_access_request_approval", {
+      p_request_id: requestId,
+      p_platform_user_id: reviewingAdmin.user_id,
+      p_auth_user_id: ownerProfile.user_id,
+      p_company_id: accessRequest.provisioned_company_id
+    });
+
+    if (finalizeError) {
+      return errorResponse("Pilot workspace exists but approval records need review", 500);
+    }
+
+    return jsonResponse({
+      ...buildApprovalResponse({
+        requestId: accessRequest.id,
+        authUserId: ownerProfile.user_id,
+        status: "approved"
+      }),
+      companyId: accessRequest.provisioned_company_id
+    });
   }
 
-  const { data: listedUsers, error: listUsersError } =
-    await adminClient.auth.admin.listUsers({ page: 1, perPage: 1000 });
-
-  if (listUsersError) {
+  let authUser;
+  try {
+    authUser = await findAuthUserByNormalizedEmail(
+      normalizedEmail,
+      (pagination) => adminClient.auth.admin.listUsers(pagination)
+    );
+  } catch {
     return errorResponse("Unable to inspect existing users", 500);
   }
 
-  const normalizedEmail = String(accessRequest.work_email).toLowerCase();
-  let authUser = listedUsers.users.find(
-    (candidate) => candidate.email?.toLowerCase() === normalizedEmail
-  );
-
   if (!authUser) {
-    const appUrl = (Deno.env.get("APP_URL") ?? "http://localhost:3000").replace(
-      /\/$/,
-      ""
-    );
+    const redirectTo = getValidatedInvitationRedirectUrl();
+    if (!redirectTo) {
+      return errorResponse("Invitation redirect is not configured", 503);
+    }
     const { data: invited, error: inviteError } =
       await adminClient.auth.admin.inviteUserByEmail(normalizedEmail, {
-        redirectTo: `${appUrl}/set-password`
+        redirectTo
       });
 
     if (inviteError || !invited.user) {
@@ -117,73 +128,65 @@ Deno.serve(async (request: Request) => {
     authUser = invited.user;
   }
 
-  const { error: profileError } = await adminClient
+  const { data: activeMemberships, error: activeMembershipError } = await adminClient
     .from("recruiter_profiles")
-    .upsert(
-      {
-        company_id: companyId,
-        user_id: authUser.id,
-        display_name: displayNameFromEmail(normalizedEmail),
-        email: normalizedEmail,
-        role: approvedRole,
-        status: "active",
-        updated_at: new Date().toISOString()
-      },
-      {
-        onConflict: "company_id,user_id"
-      }
-    );
+    .select("company_id")
+    .eq("user_id", authUser.id)
+    .eq("status", "active")
+    .limit(1);
 
-  if (profileError) {
-    return errorResponse("Unable to provision recruiter profile", 500);
+  if (activeMembershipError) {
+    return errorResponse("Unable to verify existing company access", 500);
+  }
+  if ((activeMemberships ?? []).length > 0) {
+    return errorResponse("This email already has active company access. Use the audited special-access transfer instead.", 409);
   }
 
-  const reviewedAt = new Date().toISOString();
-  const { data: approvedRequest, error: updateError } = await adminClient
-    .from("access_requests")
-    .update({
-      status: "approved",
-      reviewed_at: reviewedAt,
-      reviewed_by_profile_id: reviewingAdmin.id,
-      approved_company_id: companyId,
-      approved_role: approvedRole,
-      auth_user_id: authUser.id,
-      review_note: "Access approved by administrator",
-      updated_at: reviewedAt
-    })
-    .eq("id", requestId)
-    .eq("status", "pending")
-    .select("id, auth_user_id")
+  // This deployed security-definer RPC is the transactional lifecycle boundary:
+  // it creates an isolated company, its entitlement, and the first admin profile.
+  const { data: companyId, error: provisionError } = await adminClient.rpc("provision_demo_workspace", {
+    p_request_id: requestId,
+    p_user_id: authUser.id,
+    p_email: normalizedEmail,
+    p_reviewer_profile_id: null
+  });
+
+  if (provisionError || !companyId) {
+    return errorResponse("Unable to create pilot workspace", 500);
+  }
+
+  const { data: ownerProfile, error: ownerProfileError } = await adminClient
+    .from("recruiter_profiles")
+    .select("user_id")
+    .eq("company_id", companyId)
+    .ilike("email", normalizedEmail)
+    .eq("role", "admin")
+    .eq("status", "active")
     .maybeSingle();
 
-  if (updateError || !approvedRequest) {
-    return errorResponse("Unable to finalize access approval", 500);
+  if (ownerProfileError || !ownerProfile?.user_id) {
+    return errorResponse("Pilot workspace owner is unavailable", 500);
   }
 
-  const { error: auditError } = await adminClient
-    .from("audit_log_entries")
-    .insert({
-      company_id: companyId,
-      actor_profile_id: reviewingAdmin.id,
-      entity_type: "access_request",
-      entity_id: requestId,
-      action: "access_request_approved",
-      metadata: {
-        auth_user_id: authUser.id,
-        approved_role: approvedRole
-      },
-      created_at: reviewedAt
-    });
+  const { error: finalizeError } = await adminClient.rpc("finalize_access_request_approval", {
+    p_request_id: requestId,
+    p_platform_user_id: reviewingAdmin.user_id,
+    p_auth_user_id: ownerProfile.user_id,
+    p_company_id: companyId
+  });
 
-  if (auditError) {
-    return errorResponse("Access approved but audit entry could not be recorded", 500);
+  if (finalizeError) {
+    // Provisioning is idempotent, so a retry will take the already-provisioned
+    // path above and atomically complete the compatibility fields and audit row.
+    return errorResponse("Pilot workspace created but approval finalization needs review", 500);
   }
 
-  return jsonResponse(
-    buildApprovalResponse({
-      requestId: approvedRequest.id,
-      authUserId: approvedRequest.auth_user_id,
+  return jsonResponse({
+    ...buildApprovalResponse({
+      requestId,
+      authUserId: ownerProfile.user_id,
       status: "approved"
-    })
-  );
+    }),
+    companyId
+  });
 });

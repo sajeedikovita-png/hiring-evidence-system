@@ -8,3 +8,21 @@ verify_jwt = true
 
 [functions.reject-access-request]
 verify_jwt = true
+
+[functions.invite-user]
+verify_jwt = true
+
+[functions.special-company-access]
+verify_jwt = true
+
+[functions.support-assistant]
+verify_jwt = true
+
+[functions.support-triage]
+verify_jwt = true
+
+[functions.submit-support-issue]
+verify_jwt = true
+
+[functions.support-agent-queue]
+verify_jwt = false

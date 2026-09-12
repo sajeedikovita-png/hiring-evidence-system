@@ -1,13 +1,14 @@
 import React from "react";
 import { Badge } from "../../../components/ui/Badge";
 import type { FairnessCheck } from "../../types/hiring";
+import { getReviewSafeguardsView } from "../../services/reviewSafeguardsService";
 
 type FairnessCheckCardProps = {
   fairness: FairnessCheck;
 };
 
 export function FairnessCheckCard({ fairness }: FairnessCheckCardProps) {
-  const protectedCharacteristics = Array.isArray(fairness.protectedCharacteristics) ? fairness.protectedCharacteristics : [];
+  const safeguards = getReviewSafeguardsView(fairness);
 
   return (
     <section className="workspace-card fairness-card">
@@ -16,33 +17,35 @@ export function FairnessCheckCard({ fairness }: FairnessCheckCardProps) {
           <p className="section-kicker">Fairness Check</p>
           <h2>Review safeguards</h2>
         </div>
-        <Badge tone="success">{fairness.status}</Badge>
+        <Badge tone={safeguards.badgeTone}>{safeguards.status}</Badge>
       </div>
       <div className="fairness-grid">
         <div className="fairness-status-panel">
           <div className="fairness-status-item">
             <span>Fairness check status</span>
-            <strong>Passed</strong>
+            <strong>{safeguards.checkStatus}</strong>
           </div>
           <div className="fairness-status-item">
-            <span>Protected characteristics not used</span>
-            <strong>Confirmed</strong>
+            <span>Protected-characteristic review</span>
+            <strong>{safeguards.protectedCharacteristicsStatus}</strong>
           </div>
           <div className="fairness-status-item">
             <span>Decision wording warning</span>
-            <strong>{fairness.decisionWordingWarning}</strong>
+            <strong>{safeguards.decisionWordingWarning}</strong>
           </div>
-          <p className="muted">{fairness.reminder}</p>
+          <p className="muted">{safeguards.summary}</p>
+          <p className="muted">{safeguards.reminder}</p>
         </div>
         <div className="protected-list-panel">
-          <h3>Protected characteristics not used</h3>
+          <h3>Recorded safeguard scope</h3>
           <ul className="protected-list">
-            {protectedCharacteristics.length > 0 ? (
-              protectedCharacteristics.map((item) => <li key={item}>{item}</li>)
+            {safeguards.protectedCharacteristics.length > 0 ? (
+              safeguards.protectedCharacteristics.map((item) => <li key={item}>{item}</li>)
             ) : (
-              <li>Protected characteristics not used</li>
+              <li>{safeguards.scopeMessage}</li>
             )}
           </ul>
+          {safeguards.protectedCharacteristics.length > 0 ? <p className="muted">{safeguards.scopeMessage}</p> : null}
         </div>
       </div>
     </section>

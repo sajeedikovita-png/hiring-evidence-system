@@ -21,6 +21,10 @@ type SupabaseAuthClient = {
       data: { user: SupabaseAuthUser | null };
       error: { message?: string } | null;
     }>;
+    resetPasswordForEmail?: (email: string, options: { redirectTo: string }) => Promise<{
+      data: Record<string, unknown> | null;
+      error: { message?: string } | null;
+    }>;
     signOut?: () => Promise<{ error: { message?: string } | null }>;
   };
 };
@@ -97,6 +101,21 @@ export async function updateRecruiterPassword({
   }
 
   return data.user;
+}
+
+export async function requestRecruiterPasswordReset(input: {
+  client: SupabaseAuthClient;
+  email: string;
+  redirectTo: string;
+}): Promise<void> {
+  const email = input.email.trim().toLowerCase();
+  if (!email) throw new Error("Email is required");
+  if (!input.client.auth.resetPasswordForEmail) throw new Error("Password recovery is unavailable");
+
+  const { error } = await input.client.auth.resetPasswordForEmail(email, {
+    redirectTo: input.redirectTo
+  });
+  if (error) throw new Error(error.message ?? "Unable to request password recovery");
 }
 
 export async function signOutRecruiter(client: Pick<SupabaseAuthClient, "auth">): Promise<void> {

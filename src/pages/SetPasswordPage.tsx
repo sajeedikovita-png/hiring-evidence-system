@@ -1,11 +1,12 @@
 import React, { FormEvent, useState } from "react";
 import { updateRecruiterPassword } from "../services/authService";
+import { isCurrentPlatformAdministrator } from "../services/accessApprovalService";
 import { createHiringSupabaseClient } from "../services/supabaseClient";
 
 export function SetPasswordPage() {
   const [password, setPassword] = useState("");
   const [confirmation, setConfirmation] = useState("");
-  const [message, setMessage] = useState("Open this page from your Supabase invitation email.");
+  const [message, setMessage] = useState("Open this page from your invitation or password-recovery email.");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -25,7 +26,13 @@ export function SetPasswordPage() {
         password
       });
       setMessage("Password saved. Opening your workspace.");
-      window.location.assign("/dashboard");
+      let destination = "/dashboard";
+      try {
+        if (await isCurrentPlatformAdministrator()) destination = "/admin/access-requests";
+      } catch {
+        // The protected destination rechecks access. A routing check must not turn a saved password into an error.
+      }
+      window.location.assign(destination);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Unable to set password");
     } finally {
@@ -41,7 +48,7 @@ export function SetPasswordPage() {
           <span>Hiring Evidence System</span>
         </a>
         <div className="login-heading">
-          <p className="section-kicker">Invitation setup</p>
+          <p className="section-kicker">Secure password setup</p>
           <h1>Set your password</h1>
           <p>Create a password for your recruiter workspace.</p>
         </div>

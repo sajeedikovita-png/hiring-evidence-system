@@ -35,47 +35,20 @@ Deno.serve(async (request: Request) => {
   }
 
   const adminClient = createAdminClient();
-  const { data, error } = await adminClient
-    .from("access_requests")
-    .insert({
-      company_name: input.companyName,
-      work_email: input.workEmail,
-      requester_role: input.requesterRole,
-      hiring_volume: input.hiringVolume,
-      first_role_to_review: input.firstRoleToReview,
-      note: input.note,
-      status: "pending"
-    })
-    .select("id, status")
-    .single();
-
-  if (error?.code === "23505") {
-    const { data: existing, error: existingError } = await adminClient
-      .from("access_requests")
-      .select("id, status")
-      .eq("work_email", input.workEmail)
-      .eq("status", "pending")
-      .maybeSingle();
-
-    if (existingError || !existing) {
-      return errorResponse("Unable to record access request", 500);
-    }
-
-    return jsonResponse({
-      requestId: existing.id,
-      status: existing.status
-    });
-  }
+  const { data, error } = await adminClient.rpc("submit_access_request_guarded", {
+    p_company_name: input.companyName,
+    p_work_email: input.workEmail,
+    p_requester_role: input.requesterRole,
+    p_hiring_volume: input.hiringVolume,
+    p_first_role_to_review: input.firstRoleToReview,
+    p_note: input.note
+  });
 
   if (error || !data) {
     return errorResponse("Unable to record access request", 500);
   }
 
-  return jsonResponse(
-    {
-      requestId: data.id,
-      status: data.status
-    },
-    201
-  );
+  // Keep the public response generic so it cannot be used to discover whether
+  // an email already has access. The RPC creates at most one pending request.
+  return jsonResponse({ status: "request_received" }, 202);
 });

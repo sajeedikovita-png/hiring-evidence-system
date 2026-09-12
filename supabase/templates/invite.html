@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+  <body style="margin:0;background:#f3efe5;color:#182421;font-family:Arial,Helvetica,sans-serif;">
+    <div style="display:none;max-height:0;overflow:hidden;opacity:0;">Set up your Hiring Evidence company workspace.</div>
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f3efe5;padding:32px 16px;">
+      <tr>
+        <td align="center">
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:600px;background:#fffdf7;border:1px solid #c9c1b3;">
+            <tr>
+              <td style="padding:24px 32px;border-bottom:2px solid #183c38;">
+                <div style="font-family:Georgia,'Times New Roman',serif;font-size:26px;line-height:1;color:#183c38;">Hiring Evidence</div>
+                <div style="margin-top:8px;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:#756d61;">Evidence-led hiring review</div>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:32px;">
+                <h1 style="margin:0 0 16px;font-family:Georgia,'Times New Roman',serif;font-size:30px;line-height:1.2;font-weight:normal;color:#182421;">Set up your company workspace</h1>
+                <p style="margin:0 0 16px;font-size:16px;line-height:1.6;color:#4d514c;">A platform administrator approved an access request for <strong>{{ .Email }}</strong>.</p>
+                <p style="margin:0 0 24px;font-size:16px;line-height:1.6;color:#4d514c;">Choose a password to activate your account and open the Hiring Evidence workspace.</p>
+                <table role="presentation" cellspacing="0" cellpadding="0">
+                  <tr>
+                    <td style="background:#183c38;">
+                      <a href="{{ .ConfirmationURL }}" style="display:inline-block;padding:14px 22px;color:#ffffff;text-decoration:none;font-size:14px;font-weight:bold;letter-spacing:.5px;">SET UP YOUR ACCOUNT</a>
+                    </td>
+                  </tr>
+                </table>
+                <p style="margin:24px 0 8px;font-size:13px;line-height:1.55;color:#756d61;">This secure invitation is intended for you and should not be forwarded. If you were not expecting it, you can ignore this email.</p>
+                <p style="margin:0;font-size:13px;line-height:1.55;color:#756d61;">If the button does not work, copy this address into your browser:<br><a href="{{ .ConfirmationURL }}" style="color:#183c38;word-break:break-all;">{{ .ConfirmationURL }}</a></p>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:20px 32px;border-top:1px solid #d8d1c5;font-size:12px;line-height:1.5;color:#756d61;">
+                AI assists. Human decides. Evidence explains.<br>
+                <a href="https://hiringevidence.com" style="color:#183c38;">hiringevidence.com</a>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>

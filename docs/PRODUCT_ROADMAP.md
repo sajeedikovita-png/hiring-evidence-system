@@ -87,6 +87,28 @@ Still mock:
 - Add privacy, consent, deletion, and retention controls
 - Add exportable reports only after real data and audit records are reliable
 
+### Phase 8: Market, Trust, and Founder Handoff
+
+- Complete owner acceptance testing before beginning sales outreach
+- Build the Evidence Challenge Plan as the signature problem-solving workflow
+- Validate the Singapore offer, then a Sri Lanka founding-partner offer
+- Prepare privacy, employment, security, support, and contract readiness before entering Australia
+- Record the founder's working sales process and hand it to one controlled partner per active country
+- Prepare for applicable independent assurance, beginning with Cyber Essentials and DPTM readiness
+
+See `FOUNDER_MARKET_TRUST_AND_GROWTH_PLAN.md` for the staged operating, website, pricing, partner, and certification plan.
+
+### Phase 9: AI Support and Controlled Maintenance
+
+- Add friendly, page-aware guidance for authenticated customers
+- Escalate uncertain questions and capture structured problem or feature reports
+- Triage issues into a platform-owner inbox without candidate data or unsafe diagnostics
+- Draft bounded developer recommendations through a separate agent role
+- Require immutable owner approval before opening an implementation task
+- Keep code execution and production deployment outside the customer-facing agent path
+
+See `AI_SUPPORT_AND_MAINTENANCE_PLAN.md` for agent boundaries, security controls, and acceptance tests.
+
 ## Not In Current Scope
 
 - Payments

@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { Link, useParams } from "react-router-dom";
 import { Badge } from "../../components/ui/Badge";
 import { DataTable } from "../../components/ui/DataTable";
 import { DevelopmentConnectionStatusPanel } from "../components/dev/DevelopmentConnectionStatusPanel";
@@ -12,6 +13,7 @@ import { getAsyncHiringRepository } from "../services/hiringRepository";
 import type { JobCandidateListViewModel } from "../types/hiring";
 
 export function JobCandidateListPage() {
+  const { jobId = "" } = useParams();
   const repository = useMemo(() => getAsyncHiringRepository(), []);
   const [candidateList, setCandidateList] = useState<JobCandidateListViewModel | undefined>();
   const [reviewerName, setReviewerName] = useState("Recruiter");
@@ -27,7 +29,7 @@ export function JobCandidateListPage() {
       .getActiveCompanyContext()
       .then((context) => {
         if (isMounted) setReviewerName(context.userName);
-        return repository.getJobCandidateList(context.companyId, "job-frontend-developer");
+        return repository.getJobCandidateList(context.companyId, jobId);
       })
       .then((nextCandidateList) => {
         if (!isMounted) return;
@@ -64,7 +66,7 @@ export function JobCandidateListPage() {
     return () => {
       isMounted = false;
     };
-  }, [repository]);
+  }, [jobId, repository]);
 
   if (!candidateList) {
     return (
@@ -72,7 +74,6 @@ export function JobCandidateListPage() {
         active="candidates"
         title="Candidates"
         subtitle="Track bulk-upload processing, evidence levels, and report readiness for one job."
-        primaryAction="Upload candidates"
         reviewerName={reviewerName}
       >
         <main className="workspace-content">
@@ -93,8 +94,7 @@ export function JobCandidateListPage() {
     <RecruiterShell
       active="candidates"
       title="Candidates"
-      subtitle="Track bulk-upload processing, evidence levels, and report readiness for one job."
-      primaryAction="Upload candidates"
+      subtitle="Track private uploads, manual evidence review, and report readiness for one job."
       reviewerName={reviewerName}
     >
       <main className="workspace-content">
@@ -107,17 +107,9 @@ export function JobCandidateListPage() {
               Candidate records are scoped to this job. Reports are grouped for recruiter review, not ranked.
             </p>
           </div>
-          <a className="button button-primary" href="/jobs/frontend-developer/candidates/upload">
+          <Link className="button button-primary" to={`/jobs/${candidateList.job.id}/candidates/upload`}>
             Upload candidates
-          </a>
-        </section>
-
-        <section className="filter-bar" aria-label="Candidate evidence filters">
-          {candidateList.filters.map((filter) => (
-            <button className="filter-chip" type="button" key={filter}>
-              {filter}
-            </button>
-          ))}
+          </Link>
         </section>
 
         <section className="workspace-card">
@@ -145,7 +137,7 @@ export function JobCandidateListPage() {
               evidenceLevel: <Badge tone={row.reviewStatus.tone}>{row.evidenceLevel}</Badge>,
               reportStatus: <Badge tone={row.reportStatus.tone}>{row.reportStatus.label}</Badge>,
               reviewStatus: <Badge tone={row.reviewStatus.tone}>{row.reviewStatus.label}</Badge>,
-              reportPath: <a className="table-link" href={row.reportPath}>View report</a>
+              reportPath: row.hasReport ? <Link className="table-link" to={row.reportPath}>View report</Link> : row.documentId ? <Link className="table-link" to={`/jobs/${candidateList.job.id}/candidates/${row.documentId}/manual-review`}>Review source</Link> : <span className="muted">No source uploaded</span>
             }))}
           />
         </section>

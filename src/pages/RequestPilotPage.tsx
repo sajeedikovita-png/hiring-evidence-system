@@ -78,11 +78,25 @@ export function RequestPilotPage() {
               Use Hiring Evidence System to review job-related candidate evidence, missing proof, suggested verification
               questions, and human decision notes in one recruiter workflow.
             </p>
+            <p className="pilot-price-disclosure">
+              Pilot: S$500 one-time for 30 days, one role, up to 50 documents, and two users. Founding ongoing access is
+              S$800 for each of the first three 30-day terms, then the standard price is S$1,400 per term. No charge is made in this form.
+            </p>
             <div className="pilot-trust-row" aria-label="Pilot safeguards">
               <span>Human review required</span>
               <span>Evidence found and evidence missing</span>
               <span>Decision reason required</span>
             </div>
+            <aside className="pilot-access-policy" aria-labelledby="pilot-access-information">
+              <p className="section-kicker">Access information</p>
+              <h2 id="pilot-access-information">How company access works</h2>
+              <ul>
+                <li>One email identifies one person and one active company workspace.</li>
+                <li>Additional employees use their own email and join the existing company, subject to the plan’s user limit.</li>
+                <li>Repeat requests do not create another workspace. Existing users should sign in or reset their password.</li>
+                <li>Company transfers and special access require a platform administrator, a written reason, and an audit record.</li>
+              </ul>
+            </aside>
           </div>
 
           <form className="pilot-form" onSubmit={handleSubmit}>
@@ -93,8 +107,16 @@ export function RequestPilotPage() {
 
             {submissionStatus === "pending_contact" ? (
               <div className="pilot-success" role="status">
-                <strong>Access request pending human review.</strong>
-                <span>An administrator must approve access before a login invitation is sent.</span>
+                <strong>Request received.</strong>
+                <span>
+                  One email identifies one person and one active company workspace. Only one pending request is kept for
+                  this email. If access already exists, use the sign-in or password-reset link. Otherwise, an
+                  administrator will review the request before an invitation is sent.
+                </span>
+                <span className="pilot-success-actions">
+                  <a href="/login">Sign in</a>
+                  <a href="/forgot-password">Reset password</a>
+                </span>
               </div>
             ) : null}
             {submissionMessage ? (
@@ -173,6 +195,10 @@ export function RequestPilotPage() {
                 rows={4}
               />
             </label>
+
+            <p className="pilot-submit-disclosure">
+              Submitting this form does not start billing or activate a workspace. A person reviews every request. Read the <a href="/privacy">privacy notice</a> and <a href="/pilot-terms">pilot terms</a>.
+            </p>
 
             <Button type="submit" disabled={isSubmitting}>
               {isSubmitting ? "Submitting request" : "Request pilot access"}

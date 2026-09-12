@@ -16,15 +16,9 @@ export type PilotRequestValidationResult = {
   errors: PilotRequestErrors;
 };
 
-export type PilotRequestRecord = {
-  id: string;
-  status: "pending";
-};
-
 export type PilotRequestSubmissionResult =
   | {
       status: "pending_contact";
-      request: PilotRequestRecord;
     }
   | {
       status: "validation_failed";
@@ -113,15 +107,9 @@ export async function submitPilotRequest(
     };
   }
 
-  if (!response?.requestId || response.status !== "pending") {
+  if (response?.status !== "request_received") {
     throw new Error("Access request was not confirmed by the server");
   }
 
-  return {
-    status: "pending_contact",
-    request: {
-      id: response.requestId,
-      status: "pending"
-    }
-  };
+  return { status: "pending_contact" };
 }

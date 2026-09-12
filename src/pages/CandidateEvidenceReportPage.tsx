@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import { Badge } from "../../components/ui/Badge";
-import { Button } from "../../components/ui/Button";
 import { Card } from "../../components/ui/Card";
 import { WarningCard } from "../../components/ui/WarningCard";
 import { DevelopmentConnectionStatusPanel } from "../components/dev/DevelopmentConnectionStatusPanel";
@@ -12,30 +11,37 @@ import { FairnessCheckCard } from "../components/report/FairnessCheckCard";
 import { HumanDecisionPanel } from "../components/report/HumanDecisionPanel";
 import { ReportSupportSections } from "../components/report/ReportSupportSections";
 import { RecruiterShell } from "../components/layout/RecruiterShell";
-import { getActiveCompanyContext, type CompanyContext } from "../services/companyContextService";
+import type { CompanyContext } from "../services/companyContextService";
 import {
   classifyConnectionIssue,
   getDevelopmentConnectionStatus,
   type DevelopmentConnectionStatus
 } from "../services/connectionStatusService";
-import { getAsyncHiringRepository, getReportById } from "../services/hiringRepository";
+import { getAsyncHiringRepository, getPublicSyntheticSampleReport } from "../services/hiringRepository";
+import { getPrivateDocumentSourceUrl } from "../services/manualEvidenceReviewService";
+import { createHiringSupabaseClient } from "../services/supabaseClient";
 import type { CandidateProfile, EvidenceReport, ReviewDecision } from "../types/hiring";
 
-export function CandidateEvidenceReportPage() {
+type CandidateEvidenceReportPageProps = {
+  syntheticSample?: boolean;
+};
+
+export function CandidateEvidenceReportPage({ syntheticSample = false }: CandidateEvidenceReportPageProps) {
   const { reportId } = useParams();
-  const repository = useMemo(() => getAsyncHiringRepository(), []);
-  const companyContext = getActiveCompanyContext();
-  const [activeContext, setActiveContext] = useState<CompanyContext>(companyContext);
+  const repository = useMemo(() => (syntheticSample ? undefined : getAsyncHiringRepository()), [syntheticSample]);
+  const [activeContext, setActiveContext] = useState<CompanyContext | undefined>();
   const selectedReportId = reportId ?? "report-amanda-lee";
   const [evidenceReport, setEvidenceReport] = useState<EvidenceReport | undefined>(() =>
-    repository.source === "seed" ? getReportById(companyContext.companyId, selectedReportId) : undefined
+    syntheticSample ? getPublicSyntheticSampleReport() : undefined
   );
   const [connectionStatus, setConnectionStatus] = useState<DevelopmentConnectionStatus>(() =>
-    getDevelopmentConnectionStatus({ repositorySource: repository.source })
+    getDevelopmentConnectionStatus({ repositorySource: repository?.source ?? "seed" })
   );
   const [reportLoadMessage, setReportLoadMessage] = useState("Report cannot load");
+  const [sourceUrl, setSourceUrl] = useState<string | undefined>();
 
   useEffect(() => {
+    if (syntheticSample || !repository) return;
     let isMounted = true;
 
     repository
@@ -80,7 +86,20 @@ export function CandidateEvidenceReportPage() {
     return () => {
       isMounted = false;
     };
-  }, [repository, selectedReportId]);
+  }, [repository, selectedReportId, syntheticSample]);
+
+  useEffect(() => {
+    const documentId = syntheticSample ? undefined : evidenceReport?.documentSources[0]?.id;
+    if (!documentId) {
+      setSourceUrl(undefined);
+      return;
+    }
+    let isMounted = true;
+    void getPrivateDocumentSourceUrl(createHiringSupabaseClient(), documentId)
+      .then((url) => { if (isMounted) setSourceUrl(url); })
+      .catch(() => { if (isMounted) setSourceUrl(undefined); });
+    return () => { isMounted = false; };
+  }, [evidenceReport?.documentSources, syntheticSample]);
 
   if (!evidenceReport) {
     return (
@@ -88,12 +107,13 @@ export function CandidateEvidenceReportPage() {
         active="reports"
         title="Candidate Evidence Report"
         subtitle="The requested report is not available in this company workspace."
-        primaryAction="Final decision"
-        secondaryAction="Share report"
-        reviewerName={activeContext.userName}
+        reviewerName={activeContext?.userName ?? (syntheticSample ? "Synthetic sample" : "Recruiter")}
+        showSignOut={!syntheticSample}
+        publicSample={syntheticSample}
       >
         <main className="workspace-content">
-          <DevelopmentConnectionStatusPanel status={connectionStatus} />
+          {syntheticSample ? null : <DevelopmentConnectionStatusPanel status={connectionStatus} />}
+          {syntheticSample ? <WarningCard title="Synthetic sample">This public sample uses generated demonstration data. Decision saving is unavailable.</WarningCard> : null}
           <WarningCard title="Human review required">
             {reportLoadMessage}. Report access is scoped to the active company workspace. Return to the dashboard and open an available
             evidence report.
@@ -113,12 +133,11 @@ export function CandidateEvidenceReportPage() {
     reportGenerated: evidenceReport.generatedAt,
     reportId: evidenceReport.reportId,
     currentStatus: evidenceReport.status,
-    assignedRecruiter: "Sarah Tan",
+    assignedRecruiter: syntheticSample ? "Synthetic sample" : "Not recorded",
     consentStatus: evidenceReport.application.consentId ? "Consent recorded" : "Consent missing",
-    questionnaireStatus: "Completed",
+    questionnaireStatus: syntheticSample ? "Synthetic sample" : "Not recorded",
     resumeLabel: evidenceReport.documentSources[0]?.fileName ?? "Resume not attached",
     statusBadges: [
-      { label: "Evidence report ready", tone: "success" },
       { label: evidenceReport.status, tone: evidenceReport.status === "Evidence report ready" ? "success" : "info" },
       { label: "Decision pending", tone: "warning" }
     ]
@@ -129,17 +148,18 @@ export function CandidateEvidenceReportPage() {
       active="reports"
       title="Candidate Evidence Report"
       subtitle="Review job-related evidence, missing proof, fairness checks, and human decision notes."
-      primaryAction="Final decision"
-      secondaryAction="Share report"
-      reviewerName={activeContext.userName}
+      reviewerName={activeContext?.userName ?? (syntheticSample ? "Synthetic sample" : "Recruiter")}
+      showSignOut={!syntheticSample}
+      publicSample={syntheticSample}
     >
       <main className="workspace-content">
-        <DevelopmentConnectionStatusPanel status={connectionStatus} />
+        {syntheticSample ? null : <DevelopmentConnectionStatusPanel status={connectionStatus} />}
+        {syntheticSample ? <WarningCard title="Synthetic sample">This public sample uses generated demonstration data. Decision saving is unavailable.</WarningCard> : null}
         <CandidateHeader candidate={candidateProfile} />
 
         <section className="dashboard-metrics">
           {evidenceReport.evidenceSummary.map((card) => (
-            <Card key={card.label} title={card.label} meta={card.tone ? undefined : "Report ready"}>
+            <Card key={card.label} title={card.label} meta={card.tone ? undefined : "Not recorded"}>
               <div className="summary-card-heading">
                 <p className="metric">{card.value}</p>
                 {card.tone ? <Badge tone={card.tone}>{card.label}</Badge> : null}
@@ -149,7 +169,7 @@ export function CandidateEvidenceReportPage() {
           ))}
         </section>
 
-        <WarningCard title="AI-assisted analysis. Human review is required before making any hiring decision.">
+        <WarningCard title="Evidence review required before making any hiring decision.">
           Review evidence, verify missing proof, and record a job-related decision reason before changing candidate status.
         </WarningCard>
 
@@ -163,14 +183,20 @@ export function CandidateEvidenceReportPage() {
               interviewQuestions={evidenceReport.suggestedInterviewQuestions}
               recruiterNotes={evidenceReport.recruiterNotes}
               documentSources={evidenceReport.documentSources}
+              sourceUrl={sourceUrl}
               auditTrailPreview={evidenceReport.auditTrailPreview}
             />
             <FairnessCheckCard fairness={evidenceReport.fairnessCheck} />
             <HumanDecisionPanel
               options={evidenceReport.humanDecision.options}
-              onSaveDecision={async (decision: ReviewDecision["decision"], reason: string) => {
+              latestDecision={evidenceReport.humanDecision.draft}
+              readOnly={syntheticSample}
+              readOnlyMessage={syntheticSample ? "This synthetic sample is read-only. Decision saving is unavailable." : undefined}
+              onSaveDecision={syntheticSample ? undefined : async (decision: ReviewDecision["decision"], reason: string) => {
+                const liveRepository = repository;
+                if (!liveRepository || !activeContext) return { valid: false, message: "Decision save failed" };
                 try {
-                  const result = await repository.saveHumanReviewDecision({
+                  const result = await liveRepository.saveHumanReviewDecision({
                     companyId: activeContext.companyId,
                     reportId: evidenceReport.id,
                     applicationId: evidenceReport.application.id,
@@ -180,14 +206,14 @@ export function CandidateEvidenceReportPage() {
                     timestamp: new Date().toISOString()
                   });
 
-                  if (result.valid && repository.source === "supabase") {
-                    setConnectionStatus(getDevelopmentConnectionStatus({ repositorySource: repository.source, issue: "ready" }));
+                  if (result.valid && liveRepository.source === "supabase") {
+                    setConnectionStatus(getDevelopmentConnectionStatus({ repositorySource: liveRepository.source, issue: "ready" }));
                   }
 
                   if (!result.valid) {
                     setConnectionStatus(
                       getDevelopmentConnectionStatus({
-                        repositorySource: repository.source,
+                        repositorySource: liveRepository.source,
                         issue: "decision_save_failed",
                         error: result.message
                       })
@@ -196,15 +222,11 @@ export function CandidateEvidenceReportPage() {
 
                   return result;
                 } catch (error) {
-                  setConnectionStatus(getDevelopmentConnectionStatus({ repositorySource: repository.source, issue: "decision_save_failed", error }));
+                  setConnectionStatus(getDevelopmentConnectionStatus({ repositorySource: liveRepository.source, issue: "decision_save_failed", error }));
                   return { valid: false, message: "Decision save failed" };
                 }
               }}
             />
-            <div className="report-export-row">
-              <p className="muted">PDF export is a front-end placeholder in this MVP phase.</p>
-              <Button variant="secondary">Export PDF</Button>
-            </div>
           </div>
         </div>
       </main>

@@ -1,7 +1,7 @@
 import React from "react";
 import { Badge } from "../../../components/ui/Badge";
-import { Button } from "../../../components/ui/Button";
 import type { CandidateProfile, FairnessCheck } from "../../types/hiring";
+import { getReviewSafeguardsView } from "../../services/reviewSafeguardsService";
 
 type CandidateDetailPanelProps = {
   candidate: CandidateProfile;
@@ -9,6 +9,7 @@ type CandidateDetailPanelProps = {
 };
 
 export function CandidateDetailPanel({ candidate, fairness }: CandidateDetailPanelProps) {
+  const safeguards = getReviewSafeguardsView(fairness);
   const details = [
     ["Candidate", candidate.name],
     ["Role", candidate.role],
@@ -32,21 +33,18 @@ export function CandidateDetailPanel({ candidate, fairness }: CandidateDetailPan
             </div>
           ))}
         </dl>
-        <a className="side-action-link" href="#">
-          View resume
-        </a>
       </section>
       <section>
         <div className="section-heading-row">
           <p className="section-kicker">Fairness summary</p>
-          <Badge tone="success">Passed</Badge>
+          <Badge tone={safeguards.badgeTone}>{safeguards.status}</Badge>
         </div>
-        <p className="muted">{fairness.protectedCharacteristicsStatus}. Decision wording warning: none.</p>
+        <p className="muted">{safeguards.summary}</p>
+        <p className="muted">Decision wording warning: {safeguards.decisionWordingWarning}.</p>
       </section>
       <section>
         <p className="section-kicker">Recruiter note</p>
         <p className="muted">Evidence is organized for human review. No acceptance or rejection is automated.</p>
-        <Button variant="secondary">Add to recruiter notes</Button>
       </section>
     </aside>
   );

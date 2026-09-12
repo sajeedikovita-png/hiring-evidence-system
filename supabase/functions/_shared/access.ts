@@ -66,20 +66,6 @@ export function parseApprovedRole(value: unknown): ApprovedRole | undefined {
     : undefined;
 }
 
-export function isActiveAdminProfile(profile: {
-  role?: unknown;
-  status?: unknown;
-}): boolean {
-  return profile.role === "admin" && profile.status === "active";
-}
-
-export function canAdminManageCompany(
-  adminCompanyId: string,
-  targetCompanyId: string
-): boolean {
-  return Boolean(adminCompanyId) && adminCompanyId === targetCompanyId;
-}
-
 export function buildApprovalResponse(input: ApprovalResponseInput) {
   return {
     requestId: input.requestId,

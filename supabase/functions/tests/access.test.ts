@@ -1,7 +1,5 @@
 import {
   buildApprovalResponse,
-  canAdminManageCompany,
-  isActiveAdminProfile,
   normalizeAccessRequestInput,
   parseApprovedRole,
   validateAccessRequestInput
@@ -47,32 +45,6 @@ Deno.test("allows only supported recruiter roles", () => {
   assert(parseApprovedRole("hiring_manager") === "hiring_manager", "hiring manager should be allowed");
   assert(parseApprovedRole("admin") === "admin", "admin should be allowed");
   assert(parseApprovedRole("owner") === undefined, "unknown roles should be rejected");
-});
-
-Deno.test("authorizes only an active admin profile", () => {
-  assert(
-    isActiveAdminProfile({ role: "admin", status: "active" }),
-    "active admins should be authorized"
-  );
-  assert(
-    !isActiveAdminProfile({ role: "recruiter", status: "active" }),
-    "recruiters should not be authorized"
-  );
-  assert(
-    !isActiveAdminProfile({ role: "admin", status: "disabled" }),
-    "disabled admins should not be authorized"
-  );
-});
-
-Deno.test("allows an admin to provision only their own company", () => {
-  assert(
-    canAdminManageCompany("company-northstar", "company-northstar"),
-    "matching company membership should be allowed"
-  );
-  assert(
-    !canAdminManageCompany("company-northstar", "company-rival"),
-    "cross-company provisioning should be rejected"
-  );
 });
 
 Deno.test("approval response contains no privileged credentials", () => {

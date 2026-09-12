@@ -1,0 +1,220 @@
+:root {
+  --background: #f2efe7;
+  --background-soft: #f8f5ee;
+  --surface: #fffdf7;
+  --surface-muted: #eeece4;
+  --text: #36403e;
+  --text-strong: #17201f;
+  --muted: #66706d;
+  --primary: #183c38;
+  --primary-hover: #102d2a;
+  --secondary: #596966;
+  --success: #356a4d;
+  --warning: #9b5d1d;
+  --danger: #a83f35;
+  --border: #c9c5ba;
+  --ice: #f8f5ee;
+  --ice-strong: #ebe8df;
+  --teal-soft: #dce8e2;
+  --shadow: none;
+}
+
+body { background: var(--background); }
+
+.recruiter-shell { background: var(--background); grid-template-columns: 250px minmax(0, 1fr); }
+.recruiter-sidebar {
+  background: #1b302e;
+  border-right: 1px solid #102321;
+  box-shadow: none;
+  color: #f4f0e6;
+  gap: 20px;
+  padding: 20px 13px;
+}
+.workspace-brand { border-bottom: 3px double rgba(255,255,255,.42); color: #fffdf7; margin: 0 5px; padding: 0 3px 17px; }
+.workspace-brand .brand-mark { background: transparent; border: 1px solid rgba(255,255,255,.72); border-radius: 50%; color: #fffdf7; font-family: Georgia, "Times New Roman", serif; font-size: 12px; height: 36px; width: 36px; }
+.workspace-brand strong { color: #fffdf7; font-family: Georgia, "Times New Roman", serif; font-size: 17px; font-weight: 400; letter-spacing: -.025em; }
+.workspace-brand small { color: #bfcac6; font-size: 9px; letter-spacing: .07em; text-transform: uppercase; }
+.workspace-nav { gap: 0; }
+.workspace-link { border: 0; border-bottom: 1px solid rgba(255,255,255,.13); border-radius: 0; color: #cdd5d1; font-size: 12px; min-height: 43px; padding: 11px 9px; }
+.workspace-link:hover,
+.workspace-link.active { background: transparent; border-color: rgba(255,255,255,.4); color: #fffdf7; }
+.workspace-link.active { box-shadow: inset 3px 0 0 #d6aa62; }
+.workspace-link svg { color: #9eb2ac; }
+.reviewer-card { background: transparent; border: 1px solid rgba(255,255,255,.22); border-radius: 0; color: #cdd5d1; padding: 13px; }
+.reviewer-card strong { color: #fffdf7; font-family: Georgia, "Times New Roman", serif; font-size: 15px; font-weight: 400; }
+.reviewer-card span { color: #d6aa62; font-size: 8px; letter-spacing: .1em; }
+.reviewer-card small { color: #bfcac6; font-size: 10px; }
+
+.workspace-header {
+  background: rgba(242,239,231,.96);
+  border-bottom: 3px double var(--text-strong);
+  box-shadow: none;
+  min-height: 82px;
+  padding: 13px 28px;
+  backdrop-filter: blur(10px);
+}
+.workspace-header h1 { color: var(--text-strong); font-family: Georgia, "Times New Roman", serif; font-size: 27px; font-weight: 400; letter-spacing: -.025em; }
+.workspace-header p { color: var(--muted); font-size: 11px; }
+.workspace-header .section-kicker { color: var(--danger); font-size: 8px; letter-spacing: .12em; }
+.workspace-content { gap: 16px; padding: 24px 28px 38px; }
+
+.button { border-radius: 2px; box-shadow: none; font-size: 11px; letter-spacing: .035em; text-transform: uppercase; }
+.button-primary { background: var(--primary); border-color: var(--primary); }
+.button-primary:hover { background: var(--primary-hover); border-color: var(--primary-hover); box-shadow: none; transform: none; }
+.button-secondary { background: transparent; border-color: var(--text-strong); color: var(--text-strong); }
+.button-secondary:hover { background: var(--text-strong); color: #fffdf7; }
+
+.workspace-card,
+.bulk-upload-panel,
+.dashboard-intro,
+.metric-card,
+.queue-item,
+.candidate-detail-panel,
+.report-hero,
+.fairness-status-panel,
+.protected-list-panel,
+.processing-progress div,
+.filter-bar,
+.table-wrap,
+.criterion-card,
+.existing-job-row,
+.empty-jobs-state,
+.pilot-summary-card,
+.ongoing-access-card {
+  background: var(--surface);
+  border-color: var(--border);
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.workspace-card { border-top: 2px solid var(--text-strong); }
+.section-heading-row { border-bottom-color: var(--border); }
+.section-heading-row h2,
+.workspace-card h2,
+.dashboard-intro h2,
+.report-hero-main h2,
+.candidate-detail-panel h2 { color: var(--text-strong); font-family: Georgia, "Times New Roman", serif; font-weight: 400; letter-spacing: -.02em; }
+.section-kicker { color: var(--danger); font-size: 9px; letter-spacing: .11em; }
+
+.dashboard-intro { border-left: 1px solid var(--border); border-top: 3px double var(--text-strong); }
+.metric-card { border-top: 2px solid var(--text-strong); min-height: 118px; }
+.metric-card p { color: var(--muted); font-size: 9px; letter-spacing: .08em; }
+.metric-card strong { color: var(--primary); font-family: Georgia, "Times New Roman", serif; font-size: 36px; font-weight: 400; }
+.queue-item { border-left: 0; border-right: 0; }
+.queue-item:hover { background: #f8f5ee; border-color: var(--text-strong); }
+
+.filter-bar { border-left: 0; border-right: 0; padding: 8px 0; }
+.filter-chip { background: transparent; border-color: var(--border); border-radius: 0; color: var(--text); }
+.filter-chip:hover,
+.filter-chip:focus-visible { background: var(--surface-muted); border-color: var(--text-strong); color: var(--text-strong); }
+.table-wrap { border-color: var(--text-strong); }
+.data-table { background: var(--surface); border-collapse: collapse; }
+.data-table caption { background: var(--background-soft); border-bottom-color: var(--text-strong); color: var(--text-strong); }
+.data-table th { background: var(--surface-muted); color: var(--muted); font-size: 9px; letter-spacing: .08em; }
+.data-table th,
+.data-table td { border-bottom-color: var(--border); }
+.data-table tbody tr:hover { background: #f8f5ee; }
+.data-table td:first-child { color: var(--text-strong); font-family: Georgia, "Times New Roman", serif; }
+.table-link { background: transparent; border: 0; border-bottom: 1px solid currentColor; border-radius: 0; color: var(--primary); padding: 3px 0; }
+.table-link:hover,
+.table-link:focus-visible { background: transparent; border-color: var(--danger); color: var(--danger); }
+
+.badge { border-radius: 2px; font-size: 9px; letter-spacing: .04em; text-transform: uppercase; }
+.badge-info { background: #e6ece8; border-color: #b8c9c2; color: #234f48; }
+.badge-neutral { background: #efede6; border-color: #d4d0c5; color: #4f5855; }
+.badge-warning { background: #f6eddc; border-color: #d9bc87; color: #80501c; }
+.badge-success { background: #e5efe7; border-color: #afceb7; color: #285d3e; }
+.badge-danger { background: #f7e8e5; border-color: #dfb3ac; color: #94382f; }
+
+.report-hero { border-left: 1px solid var(--border); border-top: 3px double var(--text-strong); }
+.report-meta-grid div,
+.candidate-detail-panel dl div,
+.evidence-list li,
+.fairness-status-panel,
+.protected-list-panel { background: transparent; border-color: var(--border); border-radius: 0; }
+.report-meta-grid dt { color: var(--muted); font-size: 9px; letter-spacing: .08em; }
+.report-meta-grid dd { color: var(--text-strong); font-family: Georgia, "Times New Roman", serif; font-weight: 400; }
+.evidence-matrix-card { border-color: var(--text-strong); }
+.evidence-matrix-card caption { background: var(--background-soft); }
+.evidence-matrix-card th { background: var(--surface-muted); color: var(--muted); }
+.evidence-matrix-card tr:hover td { background: #faf7f0; }
+.note-chip-row span { background: transparent; border-color: var(--border); border-radius: 0; color: var(--primary); }
+.decision-signoff-card.workspace-card { background: var(--primary); border-color: var(--primary); }
+
+.access-approval-controls input,
+.access-approval-controls select,
+.special-access-form input,
+.special-access-form select,
+.special-access-form textarea,
+.job-create-form input,
+.job-create-form select,
+.criterion-card input,
+.criterion-card select {
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  border-radius: 0;
+}
+.access-approval-controls input:focus,
+.access-approval-controls select:focus,
+.special-access-form input:focus,
+.special-access-form select:focus,
+.special-access-form textarea:focus,
+.job-create-form input:focus,
+.job-create-form select:focus,
+.criterion-card input:focus,
+.criterion-card select:focus { border-color: var(--primary); box-shadow: 0 2px 0 var(--primary); outline: 0; }
+.workspace-status { background: var(--surface); border-color: var(--border); border-radius: 0; border-left: 3px solid var(--primary); }
+.access-request-card dl div,
+.privacy-confirmation,
+.bulk-upload-actions,
+.upload-state-strip,
+.dropzone { background: var(--background-soft); border-radius: 0; }
+.dropzone { border-color: var(--border); }
+.dropzone:hover,
+.dropzone:focus-within { background: var(--surface-muted); border-color: var(--primary); }
+.dropzone svg,
+.dropzone strong,
+.existing-job-actions a { color: var(--primary); }
+.job-card-icon { background: transparent; border: 1px solid var(--border); border-radius: 50%; color: var(--primary); }
+.criteria-builder-heading > span,
+.record-count { background: transparent; border: 1px solid var(--border); border-radius: 0; color: var(--primary); }
+.criterion-number { background: transparent; border-right: 1px solid var(--border); border-radius: 0; color: var(--danger); }
+
+@media (max-width: 820px) {
+  .recruiter-sidebar { border-bottom: 3px double rgba(255,255,255,.4); }
+  .workspace-nav { border-top: 1px solid rgba(255,255,255,.16); }
+  .workspace-header { border-bottom: 3px double var(--text-strong); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .recruiter-shell * { scroll-behavior: auto !important; transition: none !important; }
+}
+
+/* Keep operational detail comfortably readable during long review sessions. */
+.workspace-brand small,
+.reviewer-card span,
+.workspace-header .section-kicker,
+.section-kicker,
+.metric-card p,
+.data-table th,
+.badge,
+.report-meta-grid dt { font-size: 11px; }
+
+.workspace-link,
+.reviewer-card small,
+.workspace-header p,
+.button { font-size: 13px; }
+
+.workspace-brand strong { font-size: 19px; }
+.reviewer-card strong { font-size: 16px; }
+.workspace-header h1 { font-size: 30px; }
+
+.workspace-content p,
+.workspace-content li,
+.workspace-content label,
+.workspace-content input,
+.workspace-content select,
+.workspace-content textarea,
+.workspace-content td,
+.workspace-content dd { font-size: 14px; line-height: 1.55; }

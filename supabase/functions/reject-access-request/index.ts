@@ -22,7 +22,7 @@ Deno.serve(async (request: Request) => {
     reviewingAdmin = await authorizeAdmin(request, adminClient);
   } catch (error) {
     return errorResponse(
-      error instanceof Error ? error.message : "Admin permission required",
+      error instanceof Error ? error.message : "Platform administrator permission required",
       403
     );
   }
@@ -48,7 +48,8 @@ Deno.serve(async (request: Request) => {
     .update({
       status: "rejected",
       reviewed_at: reviewedAt,
-      reviewed_by_profile_id: reviewingAdmin.id,
+      reviewed_by_profile_id: null,
+      reviewed_by_platform_user_id: reviewingAdmin.user_id,
       review_note: reviewNote,
       updated_at: reviewedAt
     })
@@ -59,22 +60,6 @@ Deno.serve(async (request: Request) => {
 
   if (updateError || !rejectedRequest) {
     return errorResponse("Pending access request not found", 404);
-  }
-
-  const { error: auditError } = await adminClient
-    .from("audit_log_entries")
-    .insert({
-      company_id: reviewingAdmin.company_id,
-      actor_profile_id: reviewingAdmin.id,
-      entity_type: "access_request",
-      entity_id: requestId,
-      action: "access_request_rejected",
-      metadata: { review_note: reviewNote },
-      created_at: reviewedAt
-    });
-
-  if (auditError) {
-    return errorResponse("Request rejected but audit entry could not be recorded", 500);
   }
 
   return jsonResponse({

@@ -92,6 +92,39 @@
   color: var(--text-strong);
 }
 
+.special-access-panel {
+  display: grid;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+.special-access-form {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.special-access-form label {
+  color: var(--muted);
+  display: grid;
+  font-size: 12px;
+  font-weight: 800;
+  gap: 8px;
+  text-transform: uppercase;
+}
+
+.special-access-form input,
+.special-access-form select,
+.special-access-form textarea {
+  width: 100%;
+}
+
+.special-access-form label:nth-of-type(4),
+.special-access-form .privacy-confirmation,
+.special-access-form .button {
+  grid-column: 1 / -1;
+}
+
 @media (max-width: 900px) {
   .access-approval-controls,
   .access-request-card dl {
@@ -1321,6 +1354,31 @@ h1 {
   padding: 9px 12px;
 }
 
+.pilot-access-policy {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  padding: 20px;
+}
+
+.pilot-access-policy h2 {
+  font-size: 22px;
+  margin: 6px 0 12px;
+}
+
+.pilot-access-policy ul {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding-left: 20px;
+}
+
+.pilot-access-policy li {
+  color: var(--muted);
+  line-height: 1.5;
+}
+
 .pilot-form {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -1382,6 +1440,17 @@ h1 {
 
 .pilot-success strong {
   color: var(--text-strong);
+}
+
+.pilot-success-actions {
+  display: flex;
+  gap: 16px;
+  margin-top: 6px;
+}
+
+.pilot-success-actions a {
+  color: var(--primary);
+  font-weight: 800;
 }
 
 .form-error {
@@ -1771,6 +1840,36 @@ h1 {
   color: var(--muted);
   line-height: 1.6;
   margin: 0;
+}
+
+.recovery-notice {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: grid;
+  gap: 6px;
+  line-height: 1.5;
+  padding: 14px 16px;
+}
+
+.recovery-notice strong {
+  color: var(--text-strong);
+}
+
+.recovery-notice-idle {
+  background: var(--surface-muted);
+  color: var(--muted);
+}
+
+.recovery-notice-success {
+  background: #eff7f1;
+  border-color: #b7d8c1;
+  color: var(--success);
+}
+
+.recovery-notice-error {
+  background: #fff2f0;
+  border-color: #e8b6af;
+  color: var(--danger);
 }
 
 .login-form {

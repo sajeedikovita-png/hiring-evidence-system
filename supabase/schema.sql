@@ -213,8 +213,11 @@ set search_path = public
 as $$
   select recruiter_profiles.company_id
   from public.recruiter_profiles
+  join public.companies on companies.id = recruiter_profiles.company_id
   where recruiter_profiles.user_id = auth.uid()
     and recruiter_profiles.status = 'active'
+    and recruiter_profiles.role in ('admin', 'recruiter', 'hiring_manager')
+    and companies.status = 'active'
 $$;
 
 alter table public.companies enable row level security;
@@ -238,10 +241,11 @@ create policy recruiter_profiles_company_access
   on public.recruiter_profiles for select
   using (company_id in (select public.current_company_ids()));
 
-create policy recruiter_profiles_company_update
-  on public.recruiter_profiles for update
-  using (company_id in (select public.current_company_ids()))
-  with check (company_id in (select public.current_company_ids()));
+-- Recruiter membership is managed only by protected server-side provisioning.
+-- In particular, an authenticated member must not be able to promote a profile,
+-- reassign its user identity, or move it to another company through the browser.
+revoke insert, update, delete on public.recruiter_profiles from public;
+revoke insert, update, delete on public.recruiter_profiles from authenticated;
 
 create policy job_roles_company_access
   on public.job_roles for all

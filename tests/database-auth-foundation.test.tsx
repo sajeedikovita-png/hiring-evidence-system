@@ -4,21 +4,12 @@ import { renderToStaticMarkup } from "react-dom/server";
 
 import { App } from "../src/App";
 import { createAuditLogEntry, isSafeAuditAction } from "../src/services/auditLogService";
-import { getDevAuthContext } from "../src/services/authService";
-import { getActiveCompanyContext } from "../src/services/companyContextService";
 import { containsForbiddenHiringLanguage } from "../src/services/compliance";
 import { getDashboardData, getJobById, getReportById } from "../src/services/hiringRepository";
 import { saveHumanReviewDecision } from "../src/services/reportService";
 import { validateUploadFile } from "../src/services/uploadService";
 
-const devAuth = getDevAuthContext();
-const companyContext = getActiveCompanyContext();
-
-assert.equal(devAuth.companyId, "org-northstar");
-assert.equal(devAuth.userId, "user-sarah-tan");
-assert.equal(devAuth.source, "dev-seed");
-assert.equal(companyContext.companyId, devAuth.companyId);
-assert.equal(companyContext.userId, devAuth.userId);
+const companyContext = { companyId: "org-northstar", userId: "user-sarah-tan" };
 
 assert.throws(() => getDashboardData(""), /companyId is required/);
 assert.throws(() => getJobById("", "job-frontend-developer"), /companyId is required/);
@@ -31,8 +22,8 @@ assert.equal(getReportById(companyContext.companyId, "report-amanda-lee")?.id, "
 assert.equal(getReportById("org-other-company", "report-amanda-lee"), undefined);
 
 const routeReportHtml = renderToStaticMarkup(<App path="/reports/report-amanda-lee" />);
-assert.match(routeReportHtml, /Amanda Lee/);
-assert.match(routeReportHtml, /HER-2026-0521-AL/);
+assert.match(routeReportHtml, /Workspace access required/);
+assert.doesNotMatch(routeReportHtml, /Amanda Lee/);
 
 const rejectedDecision = saveHumanReviewDecision({
   companyId: companyContext.companyId,

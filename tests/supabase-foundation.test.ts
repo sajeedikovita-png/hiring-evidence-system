@@ -4,7 +4,6 @@ import { renderToStaticMarkup } from "react-dom/server";
 
 import { DevelopmentConnectionStatusPanel } from "../src/components/dev/DevelopmentConnectionStatusPanel";
 import { signInRecruiterWithPassword, updateRecruiterPassword } from "../src/services/authService";
-import { getActiveCompanyContext } from "../src/services/companyContextService";
 import { containsForbiddenHiringLanguage } from "../src/services/compliance";
 import { getAsyncHiringRepository, getHiringRepositoryMode, getReportById } from "../src/services/hiringRepository";
 import { saveHumanReviewDecision } from "../src/services/reportService";
@@ -194,33 +193,14 @@ async function run() {
   assert.deepEqual(signInCalls, [{ email: "sarah@northstar.example", password: "dev-password" }]);
   assert.equal(signedInUser.id, "auth-user-1");
 
-  const seedRepository = getAsyncHiringRepository({});
-  assert.equal(seedRepository.source, "seed");
-
-  const companyContext = getActiveCompanyContext();
-  const seedCandidateList = await seedRepository.getJobCandidateList(companyContext.companyId, "job-frontend-developer");
-  assert.equal(seedCandidateList.job.title, "Frontend Developer");
-  assert.equal(seedCandidateList.rows.some((row) => row.reportPath === "/reports/HER-2026-0521-AL"), true);
-
-  const seedBulkUploadWorkspace = await seedRepository.getBulkUploadWorkspace(companyContext.companyId, "job-frontend-developer");
-  assert.equal(seedBulkUploadWorkspace.job.title, "Frontend Developer");
-  assert.equal(seedBulkUploadWorkspace.files.some((file) => file.fileName === "Amanda Lee resume.pdf"), true);
-
-  const fallbackReport = await seedRepository.getReportById(companyContext.companyId, "report-amanda-lee");
-  assert.equal(fallbackReport?.candidate.name, "Amanda Lee");
-  assert.equal(getReportById(companyContext.companyId, "report-amanda-lee")?.candidate.name, "Amanda Lee");
-
-  const rejectedDecision = await seedRepository.saveHumanReviewDecision({
-    companyId: companyContext.companyId,
-    reportId: "report-amanda-lee",
-    applicationId: "application-amanda-frontend",
-    userId: companyContext.userId,
-    decision: "Shortlist for interview",
-    reason: "",
-    timestamp: "2026-05-24T09:00:00.000Z"
-  });
-  assert.equal(rejectedDecision.valid, false);
-  assert.equal(rejectedDecision.message, "Decision reason required");
+  const unavailableRepository = getAsyncHiringRepository({});
+  assert.equal(unavailableRepository.source, "seed");
+  await assert.rejects(() => unavailableRepository.getActiveCompanyContext(), /Workspace access is unavailable/);
+  await assert.rejects(
+    () => unavailableRepository.getReportById("org-northstar", "report-amanda-lee"),
+    /Workspace access is unavailable/
+  );
+  assert.equal(getReportById("org-northstar", "report-amanda-lee")?.candidate.name, "Amanda Lee");
 
   assert.equal(containsForbiddenHiringLanguage("Evidence report ready. Human review required."), false);
   assert.equal(containsForbiddenHiringLanguage("best candidate"), true);

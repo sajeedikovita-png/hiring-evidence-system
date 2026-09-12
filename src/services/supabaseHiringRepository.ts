@@ -1,6 +1,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { CompanyContext } from "./companyContextService";
 import type { AsyncHiringRepository } from "./hiringRepository";
+import { requireWorkspaceAccess, resolveWorkspaceAccess } from "./workspaceAccessService";
+import type { SupabaseRuntimeEnv } from "./supabaseConfig";
 import { validateHumanReviewDecision, type SaveHumanReviewDecisionInput, type SaveHumanReviewDecisionResult } from "./reportService";
 import type {
   Application,
@@ -66,10 +68,11 @@ function mapJobRole(row: DbRecord): JobRole {
 }
 
 function mapCandidate(row: DbRecord): Candidate {
+  const candidateName = asString(row.name).trim();
   return {
     id: asString(row.id),
     organizationId: asString(row.company_id),
-    name: asString(row.name),
+    name: candidateName === "Candidate pending name detection" || !candidateName ? "Name not recorded" : candidateName,
     email: typeof row.email === "string" ? row.email : undefined,
     source: asString(row.source, "manual") as Candidate["source"],
     createdAt: asString(row.created_at)
@@ -123,6 +126,7 @@ function mapEvidenceItem(row: DbRecord): EvidenceItem {
     requirement: asString(row.requirement),
     evidence: asString(row.candidate_evidence),
     source: asString(row.source, "System") as EvidenceItem["source"],
+    sourceReference: asString(row.source_reference) || undefined,
     confidence: asString(row.confidence, "None") as EvidenceItem["confidence"],
     verificationNeeded: asString(row.verification_needed),
     status: {
@@ -170,12 +174,12 @@ function mapRouteJobTitle(jobId: string) {
   return jobId === "job-frontend-developer" ? "Frontend Developer" : jobId;
 }
 
-function getCandidateListRoutePath() {
-  return "/jobs/frontend-developer/candidates";
+function getCandidateListRoutePath(jobId = "") {
+  return jobId ? `/jobs/${jobId}/candidates` : "/jobs";
 }
 
-function getCandidateUploadRoutePath() {
-  return "/jobs/frontend-developer/candidates/upload";
+function getCandidateUploadRoutePath(jobId = "") {
+  return jobId ? `/jobs/${jobId}/candidates/upload` : "/jobs";
 }
 
 function mapUploadStatus(status: string): BulkUploadFile["status"] {
@@ -198,7 +202,7 @@ function getEvidenceReportStatus(application: DbRecord | undefined, document: Db
     return "Needs manual review";
   }
   if (report) return "Report ready";
-  return "Report generating";
+  return "Needs manual review";
 }
 
 function getEvidenceLevel(application: DbRecord, document: DbRecord | undefined, report: DbRecord | undefined): EvidenceLevel {
@@ -244,7 +248,6 @@ function deriveBatchStatus(files: BulkUploadFile[]): BulkUploadBatch["status"] {
   if (files.some((file) => file.status === "Needs manual review" || file.evidenceReportStatus === "Needs manual review")) {
     return "Needs manual review";
   }
-  if (files.some((file) => file.evidenceReportStatus === "Report generating")) return "Report generating";
   if (files.every((file) => file.evidenceReportStatus === "Report ready")) return "Report ready";
   return "Uploaded";
 }
@@ -258,7 +261,11 @@ export function pickActiveReviewerName(profileRows: DbRecord[], activeUserId: st
   return asString(activeProfile?.display_name, asString(profileRows[0]?.display_name, fallback));
 }
 
-export function createSupabaseHiringRepository(client: SupabaseClient): AsyncHiringRepository {
+export function createSupabaseHiringRepository(client: SupabaseClient, env?: SupabaseRuntimeEnv): AsyncHiringRepository {
+  async function requireCompanyWorkspace(companyId: string): Promise<CompanyContext> {
+    return requireWorkspaceAccess(client, companyId, env);
+  }
+
   async function getJobRowForRoute(companyId: string, jobId: string): Promise<DbRecord | undefined> {
     const query = client.from("job_roles").select("*").eq("company_id", companyId).limit(1);
     const { data, error } = await (isUuid(jobId) ? query.eq("id", jobId) : query.eq("title", mapRouteJobTitle(jobId))).maybeSingle();
@@ -309,35 +316,12 @@ export function createSupabaseHiringRepository(client: SupabaseClient): AsyncHir
     source: "supabase",
 
     async getActiveCompanyContext(): Promise<CompanyContext> {
-      const {
-        data: { user },
-        error: userError
-      } = await client.auth.getUser();
-      assertNoSupabaseError(userError, "Unable to read authenticated user");
-
-      const authUser = requireData(user, "Authenticated user is required");
-      const { data, error } = await client
-        .from("recruiter_profiles")
-        .select("id, company_id, user_id, display_name, role, companies(name)")
-        .eq("user_id", authUser.id)
-        .eq("status", "active")
-        .limit(1)
-        .maybeSingle();
-      assertNoSupabaseError(error, "Unable to read company context");
-
-      const profile = requireData(data as DbRecord | null, "Active company context not found");
-      const company = profile.companies as DbRecord | null | undefined;
-
-      return {
-        companyId: asString(profile.company_id),
-        companyName: asString(company?.name, "Company workspace"),
-        userId: asString(profile.user_id),
-        userName: asString(profile.display_name, authUser.email ?? "Recruiter"),
-        role: asString(profile.role, "recruiter") as CompanyContext["role"]
-      };
+      return resolveWorkspaceAccess(client, env);
     },
 
     async getDashboardData(companyId: string, activeUserId?: string): Promise<DashboardViewModel> {
+      const access = await requireCompanyWorkspace(companyId);
+      if (activeUserId && access.userId !== activeUserId) throw new Error("Workspace access is unavailable.");
       const [jobsResult, applicationsResult, reportsResult, decisionsResult, candidatesResult, profilesResult] = await Promise.all([
         client.from("job_roles").select("*").eq("company_id", companyId),
         client.from("candidate_applications").select("*").eq("company_id", companyId),
@@ -417,26 +401,29 @@ export function createSupabaseHiringRepository(client: SupabaseClient): AsyncHir
                 ? { label: `${jobReports.length} reports ready`, tone: "success" }
                 : { label: "Needs verification", tone: "warning" },
             lastUpdated: formatDateLabel(mappedJob.updatedAt),
-            candidateListPath: getCandidateListRoutePath(),
-            uploadPath: getCandidateUploadRoutePath()
+            candidateListPath: getCandidateListRoutePath(mappedJob.id),
+            uploadPath: getCandidateUploadRoutePath(mappedJob.id)
           };
         })
       };
     },
 
     async getJobById(companyId: string, jobId: string): Promise<JobRole | undefined> {
+      await requireCompanyWorkspace(companyId);
       const { data, error } = await client.from("job_roles").select("*").eq("company_id", companyId).eq("id", jobId).maybeSingle();
       assertNoSupabaseError(error, "Unable to read job role");
       return data ? mapJobRole(data as DbRecord) : undefined;
     },
 
     async getCandidateById(companyId: string, candidateId: string): Promise<Candidate | undefined> {
+      await requireCompanyWorkspace(companyId);
       const { data, error } = await client.from("candidates").select("*").eq("company_id", companyId).eq("id", candidateId).maybeSingle();
       assertNoSupabaseError(error, "Unable to read candidate");
       return data ? mapCandidate(data as DbRecord) : undefined;
     },
 
     async getApplicationsForCandidate(companyId: string, candidateId: string): Promise<Application[]> {
+      await requireCompanyWorkspace(companyId);
       const { data, error } = await client
         .from("candidate_applications")
         .select("*")
@@ -447,6 +434,7 @@ export function createSupabaseHiringRepository(client: SupabaseClient): AsyncHir
     },
 
     async getJobCandidateList(companyId: string, jobId: string): Promise<JobCandidateListViewModel | undefined> {
+      await requireCompanyWorkspace(companyId);
       const workspace = await readJobWorkspaceRows(companyId, jobId);
       if (!workspace) return undefined;
 
@@ -469,7 +457,9 @@ export function createSupabaseHiringRepository(client: SupabaseClient): AsyncHir
 
         return {
           id: mappedApplication.id,
-          candidateName: candidate?.name ?? "Candidate name not detected",
+          documentId: document ? asString(document.id) : undefined,
+          hasReport: Boolean(report),
+          candidateName: candidate?.name || "Name not recorded",
           applicationId: mappedApplication.id,
           evidenceLevel,
           reportStatus: {
@@ -479,7 +469,7 @@ export function createSupabaseHiringRepository(client: SupabaseClient): AsyncHir
           reviewStatus: getReviewStatus(evidenceLevel),
           uploadedFile: document ? asString(document.file_name, "Uploaded file") : "No document attached",
           updatedAt: formatDateLabel(asString(application.updated_at, mappedApplication.appliedAt)),
-          reportPath: report ? `/reports/${asString(report.public_report_code, asString(report.id))}` : getCandidateListRoutePath()
+          reportPath: report ? `/reports/${asString(report.public_report_code, asString(report.id))}` : getCandidateListRoutePath(workspace.job.id)
         };
       });
 
@@ -510,6 +500,7 @@ export function createSupabaseHiringRepository(client: SupabaseClient): AsyncHir
     },
 
     async getBulkUploadWorkspace(companyId: string, jobId: string): Promise<BulkUploadWorkspaceViewModel | undefined> {
+      await requireCompanyWorkspace(companyId);
       const workspace = await readJobWorkspaceRows(companyId, jobId);
       if (!workspace) return undefined;
 
@@ -527,7 +518,7 @@ export function createSupabaseHiringRepository(client: SupabaseClient): AsyncHir
         const candidate = candidateById.get(asString(document.candidate_id));
         return {
           ...file,
-          candidateName: candidate?.name
+          candidateName: candidate?.name || "Name not recorded"
         };
       });
 
@@ -555,6 +546,7 @@ export function createSupabaseHiringRepository(client: SupabaseClient): AsyncHir
     },
 
     async getReportById(companyId: string, reportId: string): Promise<EvidenceReport | undefined> {
+      await requireCompanyWorkspace(companyId);
       const lookupColumn = reportLookupColumn(reportId);
       const { data: reportData, error: reportError } = await client
         .from("evidence_reports")
@@ -662,6 +654,8 @@ export function createSupabaseHiringRepository(client: SupabaseClient): AsyncHir
     },
 
     async saveHumanReviewDecision(input: SaveHumanReviewDecisionInput): Promise<SaveHumanReviewDecisionResult> {
+      const access = await requireCompanyWorkspace(input.companyId);
+      if (access.userId !== input.userId) throw new Error("Workspace access is unavailable.");
       const validation = validateHumanReviewDecision(input.decision, input.reason);
       if (!validation.valid || !input.decision) {
         return validation;
@@ -689,52 +683,11 @@ export function createSupabaseHiringRepository(client: SupabaseClient): AsyncHir
       assertNoSupabaseError(profileError, "Unable to read recruiter profile");
       const profile = requireData(profileData as DbRecord | null, "Recruiter profile not found for this company workspace");
 
-      const { data: decisionData, error: decisionError } = await client
-        .from("human_review_decisions")
-        .insert({
-          company_id: input.companyId,
-          report_id: asString(report.id),
-          application_id: input.applicationId,
-          recruiter_profile_id: asString(profile.id),
-          decision: input.decision,
-          reason: input.reason.trim(),
-          status: "saved",
-          created_at: input.timestamp
-        })
-        .select("*")
-        .single();
+      const { error: decisionError } = await client.rpc("save_manual_review_decision", {
+        p_report_id: asString(report.id), p_decision: input.decision, p_reason: input.reason.trim()
+      });
       assertNoSupabaseError(decisionError, "Unable to save human review decision");
-      const decision = requireData(decisionData as DbRecord | null, "Saved decision not returned");
-
-      const { data: auditData, error: auditError } = await client
-        .from("audit_log_entries")
-        .insert({
-          company_id: input.companyId,
-          actor_profile_id: asString(profile.id),
-          entity_type: "human_review_decision",
-          entity_id: asString(decision.id),
-          action: "human_review_decision_saved",
-          metadata: { report_id: asString(report.id), application_id: input.applicationId },
-          created_at: input.timestamp
-        })
-        .select("*")
-        .single();
-      assertNoSupabaseError(auditError, "Unable to write audit log entry");
-
-      return {
-        valid: true,
-        decision: {
-          id: asString(decision.id),
-          reportId: asString(decision.report_id),
-          applicationId: asString(decision.application_id),
-          recruiterId: asString(decision.recruiter_profile_id),
-          decision: asString(decision.decision) as ReviewDecision["decision"],
-          reason: asString(decision.reason),
-          status: asString(decision.status, "saved") as ReviewDecision["status"],
-          createdAt: asString(decision.created_at)
-        },
-        auditLogEntry: auditData ? mapAuditLog(auditData as DbRecord) : undefined
-      };
+      return { valid: true };
     }
   };
 }

@@ -1,26 +1,30 @@
 import React, { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { RecruiterShell } from "../components/layout/RecruiterShell";
 import {
   approveAccessRequest,
+  grantSpecialCompanyAccess,
   loadAdminAccessWorkspace,
   rejectAccessRequest,
-  type AdminAccessWorkspace,
-  type ApprovedRecruiterRole
+  type AdminAccessWorkspace
 } from "../services/accessApprovalService";
 
 export function AdminAccessRequestsPage() {
   const [workspace, setWorkspace] = useState<AdminAccessWorkspace>();
   const [message, setMessage] = useState("Loading access requests.");
-  const [companyId, setCompanyId] = useState("");
-  const [role, setRole] = useState<ApprovedRecruiterRole>("recruiter");
   const [reviewNote, setReviewNote] = useState("");
   const [activeRequestId, setActiveRequestId] = useState("");
+  const [specialEmail, setSpecialEmail] = useState("");
+  const [specialCompanyId, setSpecialCompanyId] = useState("");
+  const [specialRole, setSpecialRole] = useState<"admin" | "recruiter" | "hiring_manager">("recruiter");
+  const [specialReason, setSpecialReason] = useState("");
+  const [transferExisting, setTransferExisting] = useState(false);
+  const [isGrantingSpecialAccess, setIsGrantingSpecialAccess] = useState(false);
 
   async function refreshWorkspace() {
     try {
       const nextWorkspace = await loadAdminAccessWorkspace();
       setWorkspace(nextWorkspace);
-      setCompanyId((current) => current || nextWorkspace.companies[0]?.id || "");
       setMessage(
         nextWorkspace.requests.length
           ? ""
@@ -40,12 +44,11 @@ export function AdminAccessRequestsPage() {
 
   async function approve(requestId: string) {
     setActiveRequestId(requestId);
-    setMessage("Approving access and preparing the invitation.");
+    setMessage("Creating a separate pilot workspace and preparing the invitation.");
 
     try {
-      if (!companyId) throw new Error("Choose an existing company.");
-      await approveAccessRequest({ requestId, companyId, role });
-      setMessage("Access approved. The invitation is ready or has been sent.");
+      await approveAccessRequest({ requestId });
+      setMessage("Pilot workspace created. The invitation is ready or has been sent.");
       await refreshWorkspace();
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Unable to approve access.");
@@ -71,6 +74,35 @@ export function AdminAccessRequestsPage() {
     }
   }
 
+  async function grantSpecialAccess(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (isGrantingSpecialAccess) return;
+    setIsGrantingSpecialAccess(true);
+    setMessage("Checking the user, company limit, and access history.");
+    try {
+      const result = await grantSpecialCompanyAccess({
+        email: specialEmail,
+        companyId: specialCompanyId,
+        role: specialRole,
+        reason: specialReason,
+        transferExisting
+      });
+      setMessage(result.transferred
+        ? "Special access transferred and recorded in the audit trail."
+        : result.invitationPrepared
+          ? "Special access recorded and an invitation was prepared for the new user."
+          : "Special access recorded in the audit trail.");
+      setSpecialEmail("");
+      setSpecialReason("");
+      setTransferExisting(false);
+      await refreshWorkspace();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Unable to record special access.");
+    } finally {
+      setIsGrantingSpecialAccess(false);
+    }
+  }
+
   const pendingRequests = workspace?.requests.filter((request) => request.status === "pending") ?? [];
 
   return (
@@ -78,7 +110,7 @@ export function AdminAccessRequestsPage() {
       active="access"
       title="Access requests"
       subtitle="A human administrator reviews every request before a login invitation is sent."
-      reviewerName={workspace?.reviewerName ?? "Administrator"}
+      reviewerName={workspace?.reviewerName ?? "Platform administrator"}
       showAccessRequests
     >
       <main className="workspace-content">
@@ -86,33 +118,12 @@ export function AdminAccessRequestsPage() {
           <div>
             <p className="section-kicker">Permission control</p>
             <h2>Human administrator approval required</h2>
-            <p>The browser never creates Auth users. Approval calls a server-side Supabase Edge Function.</p>
+            <p>Approval creates a separate pilot workspace. The requester becomes its initial administrator.</p>
+            <Link className="button button-secondary" to="/admin/paid-access-requests">Review ongoing access requests</Link>
           </div>
         </section>
 
         <section className="workspace-card access-approval-controls">
-          <label>
-            Existing company
-            <select value={companyId} onChange={(event) => setCompanyId(event.currentTarget.value)}>
-              <option value="">Choose company</option>
-              {(workspace?.companies ?? []).map((company) => (
-                <option key={company.id} value={company.id}>
-                  {company.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            Approved role
-            <select
-              value={role}
-              onChange={(event) => setRole(event.currentTarget.value as ApprovedRecruiterRole)}
-            >
-              <option value="recruiter">Recruiter</option>
-              <option value="hiring_manager">Hiring manager</option>
-              <option value="admin">Administrator</option>
-            </select>
-          </label>
           <label>
             Rejection note
             <input
@@ -121,6 +132,50 @@ export function AdminAccessRequestsPage() {
               placeholder="Explain why access is not being granted."
             />
           </label>
+        </section>
+
+        <section className="workspace-card special-access-panel">
+          <div>
+            <p className="section-kicker">Controlled exception</p>
+            <h2>Special company access</h2>
+            <p>Use this only to add an individual to an existing company or transfer their single active membership. Every change requires a reason and creates an audit record.</p>
+          </div>
+          <form className="special-access-form" onSubmit={grantSpecialAccess}>
+            <label>
+              User email
+              <input type="email" value={specialEmail} onChange={(event) => setSpecialEmail(event.currentTarget.value)} required />
+            </label>
+            <label>
+              Target company
+              <select value={specialCompanyId} onChange={(event) => setSpecialCompanyId(event.currentTarget.value)} required>
+                <option value="">Select active company</option>
+                {workspace?.companies.map((company) => (
+                  <option key={company.id} value={company.id}>
+                    {company.name} · {company.activeMembers}/{company.userLimit ?? "Not set"} users
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Company role
+              <select value={specialRole} onChange={(event) => setSpecialRole(event.currentTarget.value as typeof specialRole)}>
+                <option value="recruiter">Recruiter</option>
+                <option value="hiring_manager">Hiring manager</option>
+                <option value="admin">Company administrator</option>
+              </select>
+            </label>
+            <label>
+              Required reason
+              <textarea value={specialReason} onChange={(event) => setSpecialReason(event.currentTarget.value)} minLength={12} maxLength={1000} rows={3} required />
+            </label>
+            <label className="privacy-confirmation">
+              <input type="checkbox" checked={transferExisting} onChange={(event) => setTransferExisting(event.currentTarget.checked)} />
+              <span>Transfer this user if they currently belong to another company. Their previous company access will be disabled.</span>
+            </label>
+            <button className="button button-primary" type="submit" disabled={isGrantingSpecialAccess}>
+              {isGrantingSpecialAccess ? "Recording special access" : "Grant special access"}
+            </button>
+          </form>
         </section>
 
         {message ? (
@@ -159,7 +214,7 @@ export function AdminAccessRequestsPage() {
                   disabled={activeRequestId === request.id}
                   onClick={() => void approve(request.id)}
                 >
-                  Approve and invite
+                  Create pilot workspace
                 </button>
                 <button
                   className="button button-secondary"

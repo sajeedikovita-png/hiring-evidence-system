@@ -1,12 +1,6 @@
 import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@2.106.1";
-import { isActiveAdminProfile } from "./access.ts";
-
-export type AuthorizedAdmin = {
-  id: string;
-  company_id: string;
+export type AuthorizedPlatformAdministrator = {
   user_id: string;
-  role: "admin";
-  status: "active";
 };
 
 function requiredEnvironmentValue(name: string): string {
@@ -31,7 +25,7 @@ export function createAdminClient(): SupabaseClient {
 export async function authorizeAdmin(
   request: Request,
   adminClient: SupabaseClient
-): Promise<AuthorizedAdmin> {
+): Promise<AuthorizedPlatformAdministrator> {
   const authorization = request.headers.get("Authorization") ?? "";
   const token = authorization.startsWith("Bearer ")
     ? authorization.slice("Bearer ".length).trim()
@@ -46,16 +40,21 @@ export async function authorizeAdmin(
 
   if (userError || !user) throw new Error("Authentication required");
 
-  const { data: profile, error: profileError } = await adminClient
-    .from("recruiter_profiles")
-    .select("id, company_id, user_id, role, status")
+  const { data: platformAdministrator, error: platformAdministratorError } = await adminClient
+    .from("platform_admins")
+    .select("user_id, status")
     .eq("user_id", user.id)
     .eq("status", "active")
     .maybeSingle();
 
-  if (profileError || !profile || !isActiveAdminProfile(profile)) {
-    throw new Error("Admin permission required");
+  if (
+    platformAdministratorError ||
+    !platformAdministrator ||
+    platformAdministrator.user_id !== user.id ||
+    platformAdministrator.status !== "active"
+  ) {
+    throw new Error("Platform administrator permission required");
   }
 
-  return profile as AuthorizedAdmin;
+  return platformAdministrator as AuthorizedPlatformAdministrator;
 }

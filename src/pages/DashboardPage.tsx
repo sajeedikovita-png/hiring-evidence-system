@@ -1,26 +1,25 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { Badge } from "../../components/ui/Badge";
 import { Button } from "../../components/ui/Button";
 import { DataTable } from "../../components/ui/DataTable";
 import { DevelopmentConnectionStatusPanel } from "../components/dev/DevelopmentConnectionStatusPanel";
 import { RecruiterShell } from "../components/layout/RecruiterShell";
-import { getActiveCompanyContext } from "../services/companyContextService";
 import {
   classifyConnectionIssue,
   getDevelopmentConnectionStatus,
   type DevelopmentConnectionStatus
 } from "../services/connectionStatusService";
-import { getAsyncHiringRepository, getDashboardData } from "../services/hiringRepository";
+import { getAsyncHiringRepository } from "../services/hiringRepository";
+import { isCurrentPlatformAdministrator } from "../services/accessApprovalService";
 import type { DashboardViewModel } from "../types/hiring";
 
 export function DashboardPage() {
   const repository = useMemo(() => getAsyncHiringRepository(), []);
-  const companyContext = getActiveCompanyContext();
-  const [dashboard, setDashboard] = useState<DashboardViewModel | undefined>(() =>
-    repository.source === "seed" ? getDashboardData(companyContext.companyId) : undefined
-  );
+  const [dashboard, setDashboard] = useState<DashboardViewModel | undefined>();
   const [loadMessage, setLoadMessage] = useState("Loading company workspace.");
-  const [isAdmin, setIsAdmin] = useState(companyContext.role === "admin");
+  const [reviewerName, setReviewerName] = useState("Recruiter");
+  const [isAdmin, setIsAdmin] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<DevelopmentConnectionStatus>(() =>
     getDevelopmentConnectionStatus({ repositorySource: repository.source })
   );
@@ -31,12 +30,18 @@ export function DashboardPage() {
     repository
       .getActiveCompanyContext()
       .then((context) => {
-        setIsAdmin(context.role === "admin");
-        return repository.getDashboardData(context.companyId, context.userId);
+        if (isMounted) {
+          setReviewerName(context.userName);
+        }
+        return Promise.all([
+          repository.getDashboardData(context.companyId, context.userId),
+          isCurrentPlatformAdministrator()
+        ]);
       })
-      .then((nextDashboard) => {
+      .then(([nextDashboard, isPlatformAdministrator]) => {
         if (isMounted) {
           setDashboard(nextDashboard);
+          setIsAdmin(isPlatformAdministrator);
           if (repository.source === "supabase") {
             setConnectionStatus(getDevelopmentConnectionStatus({ repositorySource: repository.source, issue: "ready" }));
           }
@@ -65,10 +70,10 @@ export function DashboardPage() {
     return (
       <RecruiterShell
         active="dashboard"
-        title="Evidence Ledger"
+        title="Dashboard"
         subtitle="Review queue, evidence status, and decision sign-off work for hiring teams."
         primaryAction="New report"
-        reviewerName={companyContext.userName}
+        reviewerName={reviewerName}
         showAccessRequests={isAdmin}
       >
         <main className="workspace-content">
@@ -88,7 +93,7 @@ export function DashboardPage() {
   return (
     <RecruiterShell
       active="dashboard"
-      title="Evidence Ledger"
+      title="Dashboard"
       subtitle="Review queue, evidence status, and decision sign-off work for hiring teams."
       primaryAction="New report"
       reviewerName={dashboard.activeReviewerName}
@@ -100,14 +105,12 @@ export function DashboardPage() {
           <div>
             <p className="section-kicker">Welcome back, {dashboard.activeReviewerName}</p>
             <h2>{dashboard.introCount} candidate reports need recruiter review today.</h2>
-            <p>Fairness checks are complete for current reports with no decision wording warnings.</p>
+            <p>Review the job-related evidence and verify any missing information before recording a decision.</p>
           </div>
-          <a className="button button-secondary" href={dashboard.reviewQueue[0]?.reportPath ?? "/dashboard"}>
+          <Link className="button button-secondary" to={dashboard.reviewQueue[0]?.reportPath ?? "/dashboard"}>
             Open sample report
-          </a>
-          <a className="button button-primary" href="/jobs/frontend-developer/candidates/upload">
-            Upload candidates
-          </a>
+          </Link>
+          <Link className="button button-primary" to="/pilot-access">Pilot access</Link>
         </section>
 
         <section className="dashboard-metrics">
@@ -138,7 +141,7 @@ export function DashboardPage() {
                   </div>
                   <Badge tone={item.status.tone}>{item.status.label}</Badge>
                   <span>{item.due}</span>
-                  <a href={item.reportPath}>Open report</a>
+                  <Link to={item.reportPath}>Open report</Link>
                 </article>
               ))}
             </div>
@@ -171,13 +174,13 @@ export function DashboardPage() {
             ]}
             rows={dashboard.recentJobs.map((job) => ({
               ...job,
-              title: <a className="table-link" href={job.candidateListPath}>{job.title}</a>,
+              title: <Link className="table-link" to={job.candidateListPath}>{job.title}</Link>,
               evidenceStatus: <Badge tone={job.evidenceStatus.tone}>{job.evidenceStatus.label}</Badge>,
-              candidates: <a className="table-link" href={job.candidateListPath}>{job.candidates}</a>,
+              candidates: <Link className="table-link" to={job.candidateListPath}>{job.candidates}</Link>,
               lastUpdated: (
                 <span className="table-action-group">
                   <span>{job.lastUpdated}</span>
-                  <a className="table-link" href={job.uploadPath}>Upload candidates</a>
+                  <Link className="table-link" to={job.uploadPath}>Upload candidates</Link>
                 </span>
               )
             }))}

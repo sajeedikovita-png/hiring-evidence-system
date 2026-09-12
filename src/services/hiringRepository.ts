@@ -3,22 +3,20 @@ import type {
   BulkUploadWorkspaceViewModel,
   Candidate,
   CandidateApplication,
+  CandidateReportViewModel,
   DashboardViewModel,
   EvidenceReport,
   JobCandidateListViewModel,
   JobRole
 } from "../types/hiring";
 import { requireCompanyId } from "./companyContextService";
-import { getActiveCompanyContext, type CompanyContext } from "./companyContextService";
-import {
-  getBulkUploadWorkspace as getSeedBulkUploadWorkspace,
-  getDashboardViewModel,
-  getJobCandidateList as getSeedJobCandidateList
-} from "./mockSelectors";
-import { getCandidateEvidenceReport, saveHumanReviewDecision, type SaveHumanReviewDecisionInput, type SaveHumanReviewDecisionResult } from "./reportService";
+import type { CompanyContext } from "./companyContextService";
+import { getCandidateReport, getDashboardViewModel } from "./mockSelectors";
+import { getCandidateEvidenceReport, type SaveHumanReviewDecisionInput, type SaveHumanReviewDecisionResult } from "./reportService";
 import { createHiringSupabaseClient } from "./supabaseClient";
 import { createSupabaseHiringRepository } from "./supabaseHiringRepository";
 import { hasSupabaseConfig, type SupabaseRuntimeEnv } from "./supabaseConfig";
+import { WorkspaceAccessError } from "./workspaceAccessService";
 
 export * from "./mockSelectors";
 
@@ -73,6 +71,16 @@ export function getReportById(companyId: string, reportId: string): EvidenceRepo
   }
 }
 
+/** The only report intentionally available without a customer workspace. */
+export function getPublicSyntheticSampleReport(): EvidenceReport | undefined {
+  return getReportById("org-northstar", "report-amanda-lee");
+}
+
+/** Public, synthetic marketing sample kept behind the product service boundary. */
+export function getPublicSyntheticSampleViewModel(): CandidateReportViewModel {
+  return getCandidateReport("report-amanda-lee");
+}
+
 export const hiringRepository: HiringRepository = {
   getDashboardData,
   getJobById,
@@ -81,36 +89,34 @@ export const hiringRepository: HiringRepository = {
   getReportById
 };
 
-const seedAsyncHiringRepository: AsyncHiringRepository = {
+const unavailableAsyncHiringRepository: AsyncHiringRepository = {
   source: "seed",
   async getActiveCompanyContext() {
-    return getActiveCompanyContext();
+    throw new WorkspaceAccessError("configuration_missing");
   },
-  async getDashboardData(companyId: string) {
-    return getDashboardData(companyId);
+  async getDashboardData() {
+    throw new WorkspaceAccessError("configuration_missing");
   },
-  async getJobById(companyId: string, jobId: string) {
-    return getJobById(companyId, jobId);
+  async getJobById() {
+    throw new WorkspaceAccessError("configuration_missing");
   },
-  async getCandidateById(companyId: string, candidateId: string) {
-    return getCandidateById(companyId, candidateId);
+  async getCandidateById() {
+    throw new WorkspaceAccessError("configuration_missing");
   },
-  async getApplicationsForCandidate(companyId: string, candidateId: string) {
-    return getApplicationsForCandidate(companyId, candidateId);
+  async getApplicationsForCandidate() {
+    throw new WorkspaceAccessError("configuration_missing");
   },
-  async getReportById(companyId: string, reportId: string) {
-    return getReportById(companyId, reportId);
+  async getReportById() {
+    throw new WorkspaceAccessError("configuration_missing");
   },
-  async getJobCandidateList(companyId: string, jobId: string) {
-    requireCompanyId(companyId);
-    return getSeedJobCandidateList(jobId);
+  async getJobCandidateList() {
+    throw new WorkspaceAccessError("configuration_missing");
   },
-  async getBulkUploadWorkspace(companyId: string, jobId: string) {
-    requireCompanyId(companyId);
-    return getSeedBulkUploadWorkspace(jobId);
+  async getBulkUploadWorkspace() {
+    throw new WorkspaceAccessError("configuration_missing");
   },
-  async saveHumanReviewDecision(input: SaveHumanReviewDecisionInput) {
-    return saveHumanReviewDecision(input);
+  async saveHumanReviewDecision() {
+    throw new WorkspaceAccessError("configuration_missing");
   }
 };
 
@@ -120,8 +126,8 @@ export function getHiringRepositoryMode(env?: SupabaseRuntimeEnv): RepositorySou
 
 export function getAsyncHiringRepository(env?: SupabaseRuntimeEnv): AsyncHiringRepository {
   if (getHiringRepositoryMode(env) === "supabase") {
-    return createSupabaseHiringRepository(createHiringSupabaseClient(env));
+    return createSupabaseHiringRepository(createHiringSupabaseClient(env), env);
   }
 
-  return seedAsyncHiringRepository;
+  return unavailableAsyncHiringRepository;
 }

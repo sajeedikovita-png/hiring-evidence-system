@@ -1,23 +1,30 @@
 import React from "react";
+import { Link } from "react-router-dom";
 
 export function PublicHeader() {
   return (
     <header className="public-header">
-      <a className="public-brand" href="/">
-        <span className="brand-mark">HE</span>
-        <span>Hiring Evidence System</span>
-      </a>
-      <nav className="public-nav" aria-label="Public navigation">
-        <a href="/#problem">Problem</a>
-        <a href="/#how-it-works">How it works</a>
-        <a href="/#sample-report">Sample report</a>
-        <a href="/demo-presentation">Slideshow</a>
-        <a href="/demo-test-lab">Demo lab</a>
-        <a href="/login">Login</a>
-      </nav>
-      <a className="button button-primary" href="/request-pilot">
-        Request pilot access
-      </a>
+      <div className="public-edition-line">
+        <span>Singapore · Evidence-led hiring review</span>
+        <span>AI assists · Human decides</span>
+      </div>
+      <div className="public-header-inner">
+        <Link className="public-brand" to="/" aria-label="Hiring Evidence System home">
+          <strong>Hiring Evidence</strong>
+          <small>Recruiter review system</small>
+        </Link>
+        <nav className="public-nav" aria-label="Public navigation">
+          <a href="/#product">Product</a>
+          <a href="/#how-it-works">How review works</a>
+          <Link to="/reports/candidate-evidence">Sample report</Link>
+          <Link to="/singapore-readiness">Singapore readiness</Link>
+          <Link to="/pilot-terms">Pilot terms</Link>
+        </nav>
+        <div className="public-header-actions">
+          <Link className="public-login-link" to="/login">Company sign in</Link>
+          <Link className="button button-primary" to="/request-pilot">Request pilot</Link>
+        </div>
+      </div>
     </header>
   );
 }

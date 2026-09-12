@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { Link, useParams } from "react-router-dom";
 import { BulkUploadCandidatesPanel } from "../components/bulk-upload/BulkUploadCandidatesPanel";
 import { DevelopmentConnectionStatusPanel } from "../components/dev/DevelopmentConnectionStatusPanel";
 import { RecruiterShell } from "../components/layout/RecruiterShell";
@@ -8,9 +9,12 @@ import {
   type DevelopmentConnectionStatus
 } from "../services/connectionStatusService";
 import { getAsyncHiringRepository } from "../services/hiringRepository";
+import { createHiringSupabaseClient } from "../services/supabaseClient";
+import { uploadPrivateCandidateDocuments } from "../services/secureUploadService";
 import type { BulkUploadWorkspaceViewModel } from "../types/hiring";
 
 export function BulkUploadCandidatesPage() {
+  const { jobId = "" } = useParams();
   const repository = useMemo(() => getAsyncHiringRepository(), []);
   const [workspace, setWorkspace] = useState<BulkUploadWorkspaceViewModel | undefined>();
   const [reviewerName, setReviewerName] = useState("Recruiter");
@@ -18,6 +22,19 @@ export function BulkUploadCandidatesPage() {
   const [connectionStatus, setConnectionStatus] = useState<DevelopmentConnectionStatus>(() =>
     getDevelopmentConnectionStatus({ repositorySource: repository.source })
   );
+  const candidateListPath = jobId ? `/jobs/${jobId}/candidates` : "/jobs";
+
+  async function refreshWorkspace() {
+    const context = await repository.getActiveCompanyContext();
+    setReviewerName(context.userName);
+    const nextWorkspace = await repository.getBulkUploadWorkspace(context.companyId, jobId);
+    if (!nextWorkspace) throw new Error("The upload workspace could not refresh.");
+    setWorkspace(nextWorkspace);
+    setLoadMessage("");
+    if (repository.source === "supabase") {
+      setConnectionStatus(getDevelopmentConnectionStatus({ repositorySource: repository.source, issue: "ready" }));
+    }
+  }
 
   useEffect(() => {
     let isMounted = true;
@@ -26,7 +43,7 @@ export function BulkUploadCandidatesPage() {
       .getActiveCompanyContext()
       .then((context) => {
         if (isMounted) setReviewerName(context.userName);
-        return repository.getBulkUploadWorkspace(context.companyId, "job-frontend-developer");
+        return repository.getBulkUploadWorkspace(context.companyId, jobId);
       })
       .then((nextWorkspace) => {
         if (!isMounted) return;
@@ -63,7 +80,7 @@ export function BulkUploadCandidatesPage() {
     return () => {
       isMounted = false;
     };
-  }, [repository]);
+  }, [jobId, repository]);
 
   if (!workspace) {
     return (
@@ -71,8 +88,6 @@ export function BulkUploadCandidatesPage() {
         active="candidates"
         title="Upload Candidates"
         subtitle="Add multiple resumes to one job-based hiring review."
-        secondaryAction="Back to candidates"
-        primaryAction="Upload candidates"
         reviewerName={reviewerName}
       >
         <main className="workspace-content">
@@ -83,6 +98,7 @@ export function BulkUploadCandidatesPage() {
               <h2>{loadMessage}</h2>
               <p>AI assists. Human decides. Evidence explains.</p>
             </div>
+            <Link className="button button-secondary" to={candidateListPath}>Back to candidates</Link>
           </section>
         </main>
       </RecruiterShell>
@@ -94,13 +110,18 @@ export function BulkUploadCandidatesPage() {
       active="candidates"
       title="Upload Candidates"
       subtitle="Add multiple resumes to one job-based hiring review."
-      secondaryAction="Back to candidates"
-      primaryAction="Upload candidates"
       reviewerName={reviewerName}
     >
       <main className="workspace-content">
         <DevelopmentConnectionStatusPanel status={connectionStatus} />
-        <BulkUploadCandidatesPanel workspace={workspace} />
+        <p><Link className="button button-secondary" to={candidateListPath}>Back to candidates</Link></p>
+        <BulkUploadCandidatesPanel
+          workspace={workspace}
+          onUploadFiles={async (files) => {
+            await uploadPrivateCandidateDocuments({ client: createHiringSupabaseClient(), jobId, files, uploaderAttestation: true });
+            await refreshWorkspace();
+          }}
+        />
       </main>
     </RecruiterShell>
   );

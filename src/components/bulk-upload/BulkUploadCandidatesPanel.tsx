@@ -1,14 +1,15 @@
 import React, { useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import UploadCloud from "lucide-react/dist/esm/icons/upload-cloud.js";
 import { Badge } from "../../../components/ui/Badge";
 import { Button } from "../../../components/ui/Button";
 import { DataTable } from "../../../components/ui/DataTable";
-import { createMockBulkUploadFile, getBulkUploadWorkspace } from "../../services/mockSelectors";
-import { getSafeUploadErrorMessage, getUploadFlowStateForFile, getUploadStateLabels } from "../../services/uploadService";
+import { getSafeUploadErrorMessage } from "../../services/uploadService";
 import type { BulkUploadFile, BulkUploadWorkspaceViewModel } from "../../types/hiring";
 
 type BulkUploadCandidatesPanelProps = {
-  workspace?: BulkUploadWorkspaceViewModel;
+  workspace: BulkUploadWorkspaceViewModel;
+  onUploadFiles: (files: File[]) => Promise<void>;
 };
 
 function getStatusTone(status: string) {
@@ -18,27 +19,40 @@ function getStatusTone(status: string) {
   return "info";
 }
 
-function formatUploadState(state: string) {
-  return state.replace(/_/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
-}
-
-export function BulkUploadCandidatesPanel({ workspace = getBulkUploadWorkspace() }: BulkUploadCandidatesPanelProps) {
+export function BulkUploadCandidatesPanel({ workspace, onUploadFiles }: BulkUploadCandidatesPanelProps) {
   const [privacyConfirmed, setPrivacyConfirmed] = useState(false);
-  const [localFiles, setLocalFiles] = useState<BulkUploadFile[]>([]);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [uploadMessage, setUploadMessage] = useState("");
+  const [isUploading, setIsUploading] = useState(false);
 
-  const files = useMemo(() => [...localFiles, ...workspace.files], [localFiles, workspace.files]);
-  const processedFiles = files.filter((file) => file.parsingStatus === "Parsed" || file.evidenceReportStatus === "Report ready").length;
+  const files = useMemo(() => workspace.files, [workspace.files]);
+  const readyForManualReview = files.filter((file) => file.status !== "Failed").length;
   const failedFiles = files.filter((file) => file.status === "Failed" || file.evidenceReportStatus === "Failed").length;
 
   function addFiles(fileList: FileList | null) {
     if (!fileList) return;
-    const incomingFiles = Array.from(fileList).map((file, index) => createMockBulkUploadFile(file.name, index));
-    setLocalFiles((currentFiles) => [...incomingFiles, ...currentFiles]);
+    setSelectedFiles(Array.from(fileList));
+    setUploadMessage("");
   }
 
   function handleDrop(event: React.DragEvent<HTMLLabelElement>) {
     event.preventDefault();
     addFiles(event.dataTransfer.files);
+  }
+
+  async function uploadSelectedFiles() {
+    if (!privacyConfirmed || selectedFiles.length === 0) return;
+    setIsUploading(true);
+    setUploadMessage("Recording uploads. Analysis remains pending until a reviewer adds source-grounded evidence.");
+    try {
+      await onUploadFiles(selectedFiles);
+      setSelectedFiles([]);
+      setUploadMessage("Upload recorded. Ready for human review.");
+    } catch (error) {
+      setUploadMessage(error instanceof Error ? error.message : "Unable to record uploads.");
+    } finally {
+      setIsUploading(false);
+    }
   }
 
   return (
@@ -76,12 +90,14 @@ export function BulkUploadCandidatesPanel({ workspace = getBulkUploadWorkspace()
           checked={privacyConfirmed}
           onChange={(event) => setPrivacyConfirmed(event.currentTarget.checked)}
         />
-        <span>{workspace.privacyConfirmationText}</span>
+        <span>I attest that this organisation has a lawful basis to upload these documents. This does not represent candidate consent.</span>
       </label>
 
       <div className="bulk-upload-actions">
-        <Button disabled={!privacyConfirmed}>Upload candidates</Button>
-        <p className="muted">Upload records move through validation, parsing, report generation, and manual review states.</p>
+        <Button disabled={!privacyConfirmed || selectedFiles.length === 0 || isUploading} onClick={() => void uploadSelectedFiles()}>
+          {isUploading ? "Recording uploads" : "Upload candidates"}
+        </Button>
+        <p className="muted">{uploadMessage || "Files are stored privately. A reviewer can use manual evidence review or explicitly prepare extracted text for an AI-assisted evidence report."}</p>
       </div>
 
       <div className="processing-progress">
@@ -90,8 +106,8 @@ export function BulkUploadCandidatesPanel({ workspace = getBulkUploadWorkspace()
           <strong>{files.length}</strong>
         </div>
         <div>
-          <span>Processed files</span>
-          <strong>{processedFiles}</strong>
+          <span>Ready for manual review</span>
+          <strong>{readyForManualReview}</strong>
         </div>
         <div>
           <span>Failed files</span>
@@ -99,16 +115,10 @@ export function BulkUploadCandidatesPanel({ workspace = getBulkUploadWorkspace()
         </div>
       </div>
 
-      <section className="upload-state-strip" aria-label="Upload processing states">
-        {getUploadStateLabels().map((state) => (
-          <span key={state}>{state}</span>
-        ))}
-      </section>
-
       <section className="uploaded-files-section">
         <div className="section-heading-row">
           <div>
-            <p className="section-kicker">Processing progress</p>
+            <p className="section-kicker">Manual review queue</p>
             <h2>Uploaded files</h2>
           </div>
           <Badge tone="warning">Human review required</Badge>
@@ -117,27 +127,25 @@ export function BulkUploadCandidatesPanel({ workspace = getBulkUploadWorkspace()
           caption="Uploaded files"
           columns={[
             { key: "fileName", header: "File name" },
-            { key: "candidateName", header: "Candidate name if detected" },
+            { key: "candidateName", header: "Candidate name" },
             { key: "status", header: "Upload status" },
-            { key: "parsingStatus", header: "Parsing status" },
             { key: "evidenceReportStatus", header: "Evidence report status" },
-            { key: "flowState", header: "Current state" },
             { key: "errorMessage", header: "Error message if failed" },
             { key: "action", header: "View report action" }
           ]}
           rows={files.map((file) => ({
             fileName: <strong>{file.fileName}</strong>,
-            candidateName: file.candidateName ?? "Not detected yet",
+            candidateName: file.candidateName || "Name not recorded",
             status: <Badge tone={getStatusTone(file.status)}>{file.status}</Badge>,
-            parsingStatus: <Badge tone={getStatusTone(file.parsingStatus)}>{file.parsingStatus}</Badge>,
             evidenceReportStatus: <Badge tone={getStatusTone(file.evidenceReportStatus)}>{file.evidenceReportStatus}</Badge>,
-            flowState: <Badge tone={getStatusTone(formatUploadState(getUploadFlowStateForFile(file)))}>{formatUploadState(getUploadFlowStateForFile(file))}</Badge>,
             errorMessage: file.errorMessage ? getSafeUploadErrorMessage(file) : "None",
             action:
-              file.evidenceReportStatus === "Report ready" ? (
-                <a className="table-link" href={file.reportPath ?? "/reports/HER-2026-0521-AL"}>View report</a>
+              file.evidenceReportStatus === "Report ready" && file.reportPath ? (
+                <Link className="table-link" to={file.reportPath}>View report</Link>
+              ) : file.status !== "Failed" ? (
+                <Link className="table-link" to={`/jobs/${workspace.job.id}/candidates/${file.id}/manual-review`}>Review source</Link>
               ) : (
-                <span className="muted">Not ready</span>
+                <span className="muted">Upload failed</span>
               )
           }))}
         />
