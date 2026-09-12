@@ -26,3 +26,6 @@ verify_jwt = true
 
 [functions.support-agent-queue]
 verify_jwt = false
+
+[functions.analyze-public-evidence]
+verify_jwt = true

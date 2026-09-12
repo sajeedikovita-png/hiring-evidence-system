@@ -92,6 +92,20 @@ export function LandingPage() {
           <a className="editorial-link evidence-report-link" href="/reports/candidate-evidence">Open the complete synthetic report <ArrowRight size={16} aria-hidden="true" /></a>
         </section>
 
+        <section className="editorial-section public-source-feature" aria-labelledby="public-source-title">
+          <div className="public-source-intro">
+            <p className="section-kicker">Candidate-confirmed public evidence</p>
+            <h2 id="public-source-title">See the work behind a professional claim.</h2>
+            <p>Bring a candidate-confirmed LinkedIn profile, GitHub page, portfolio, app listing, or publication into the same evidence record as the resume.</p>
+          </div>
+          <div className="public-source-ledger">
+            <article><span>01</span><h3>Connect</h3><p>Add the public link and only the job-related text the recruiter can inspect.</p></article>
+            <article><span>02</span><h3>Compare</h3><p>See supporting evidence, different information, and useful facts beside the role criteria.</p></article>
+            <article><span>03</span><h3>Verify</h3><p>Open the original source, confirm the details with the candidate, and record the human judgment.</p></article>
+          </div>
+          <p className="public-source-boundary"><strong>Designed for responsible review:</strong> no name search, automated profile scraping, candidate ranking, or automated hiring decision.</p>
+        </section>
+
         <section className="editorial-section safeguards-section" id="safeguards">
           <header className="editorial-section-heading compact-heading">
             <p className="section-kicker">Operating safeguards</p>

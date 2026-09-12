@@ -1,0 +1,12 @@
+import assert from "node:assert/strict";
+import fs from "node:fs";
+const sql = fs.readFileSync("supabase/migrations/202609120009_public_professional_evidence.sql", "utf8");
+assert.match(sql, /candidate_confirmed boolean not null check\(candidate_confirmed\)/);
+assert.match(sql, /enable row level security/);
+assert.match(sql, /revoke all on public\.candidate_public_evidence from public,anon,authenticated/);
+assert.match(sql, /auth\.role\(\)<>'service_role'/);
+assert.match(sql, /EXACTLY_ONE_ACTIVE_WORKSPACE_REQUIRED/);
+assert.match(sql, /LINKEDIN_PROFILE_URL_REQUIRED/);
+assert.match(sql, /source_excerpt='Public excerpt removed after analysis\.'/);
+assert.match(sql, /public_evidence_analyzed/);
+console.log("public-evidence-schema tests passed");

@@ -10,6 +10,7 @@ import { EvidenceMatrix } from "../components/report/EvidenceMatrix";
 import { FairnessCheckCard } from "../components/report/FairnessCheckCard";
 import { HumanDecisionPanel } from "../components/report/HumanDecisionPanel";
 import { ReportSupportSections } from "../components/report/ReportSupportSections";
+import { PublicProfessionalEvidenceSection } from "../components/report/PublicProfessionalEvidenceSection";
 import { RecruiterShell } from "../components/layout/RecruiterShell";
 import type { CompanyContext } from "../services/companyContextService";
 import {
@@ -177,6 +178,7 @@ export function CandidateEvidenceReportPage({ syntheticSample = false }: Candida
           <CandidateDetailPanel candidate={candidateProfile} fairness={evidenceReport.fairnessCheck} />
           <div className="report-main-column">
             <EvidenceMatrix rows={evidenceReport.requirementEvidence} />
+            <PublicProfessionalEvidenceSection reportId={evidenceReport.id} readOnly={syntheticSample} />
             <ReportSupportSections
               missingEvidence={evidenceReport.missingEvidence}
               verificationNeeded={evidenceReport.verificationNeeded}
