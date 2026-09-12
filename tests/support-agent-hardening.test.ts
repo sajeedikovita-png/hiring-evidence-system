@@ -5,6 +5,7 @@ import { readFileSync } from "node:fs";
 const migration=readFileSync(new URL("../supabase/migrations/202609120005_harden_support_agent.sql",import.meta.url),"utf8");
 const inputHardening=readFileSync(new URL("../supabase/migrations/202609120006_support_agent_input_hardening.sql",import.meta.url),"utf8");
 const behaviorVerification=readFileSync(new URL("../supabase/migrations/202609120007_verify_support_agent_behavior.sql",import.meta.url),"utf8");
+const credentialRedaction=readFileSync(new URL("../supabase/migrations/202609120008_support_agent_credential_redaction.sql",import.meta.url),"utf8");
 
 test("worker claims use expiring tokens and bounded recovery",()=>{
   assert.match(migration,/claim_token uuid/);
@@ -19,6 +20,13 @@ test("maintenance payload redacts common credentials and links",()=>{
   assert.match(inputHardening,/\[token removed\]/);
   assert.match(inputHardening,/\[link removed\]/);
   assert.match(inputHardening,/If candidate or confidential material remains, stop/);
+});
+
+test("authorization headers and provider keys are redacted and asserted",()=>{
+  assert.match(credentialRedaction,/authorization\[\[:space:\]\]\*:\[\[:space:\]\]\*bearer/);
+  assert.match(credentialRedaction,/sk-\[A-Za-z0-9_-\]/);
+  assert.match(credentialRedaction,/re_\[A-Za-z0-9_-\]/);
+  assert.match(credentialRedaction,/SUPPORT_AGENT_CREDENTIAL_REDACTION_FAILED/);
 });
 
 test("preview file evidence rejects null and traversal entries",()=>{
