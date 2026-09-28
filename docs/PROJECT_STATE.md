@@ -1,5 +1,7 @@
 # Project State
 
+> Historical foundation snapshot. Current release evidence is in [September 19 release checkpoint](release-checkpoint-2026-09-19.md). Current development follows the [expansion plan](product-expansion-plan-2026-09-19.md) and [expansion progress](expansion-progress-2026-09-19.md). Do not use the old blockers or “Not Built Yet” list below as current facts.
+
 ## Product Name
 
 Hiring Evidence System

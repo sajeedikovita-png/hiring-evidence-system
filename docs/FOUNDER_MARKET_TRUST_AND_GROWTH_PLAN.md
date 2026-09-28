@@ -63,7 +63,7 @@ These prices are hypotheses to test. They are not evidence of established willin
 
 | Market | Initial purpose | Proposed paid pilot | Proposed early ongoing offer |
 | --- | --- | --- | --- |
-| Singapore | Primary reference market and product-positioning base | S$500 for 30 days | S$800 for each of the first three ongoing terms, then the disclosed S$1,400 standard price |
+| Singapore | Primary reference market and product-positioning base | S$350 founding feedback pilot for the first three agencies; later standard pilot S$500 | S$350 credited toward the first S$800 term; S$800 for each of the first three ongoing terms in total, then the disclosed S$1,400 standard price |
 | Sri Lanka | Warm-network entry, learning, and early references with IT, BPO, KPO, staffing, and overseas-service firms | US$150-250 or invoiced LKR equivalent | US$250-400 per 30-day term under a time-limited Founding Sri Lanka Partner offer |
 | Australia | Later higher-value expansion after stronger assurance and customer proof | A$500-750 for 30 days | A$900-1,200 for early customers, with a higher standard tier validated through interviews |
 

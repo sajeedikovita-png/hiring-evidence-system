@@ -1,6 +1,16 @@
 # AI support and maintenance plan
 
-Status date: 11 September 2026
+Status date: 22 September 2026
+
+## Current operating mode: review issues on demand
+
+The hourly `Hiring Evidence support maintainer` Codex automation is paused. It was a standalone scheduled task and created a new Codex task at every run. Do not reactivate it for routine support review. A recorded customer issue remains in the admin operations register, with its owner-notification status visible there; an issue arriving does not itself authorise code changes or start a coding task.
+
+When an issue needs investigation, the owner opens the admin operations report, checks the support reference and notification status, and asks for that **specific reference** to be reviewed in the existing Hiring Evidence project task. The reviewer reads the redacted report, reproduces the problem, records what is verified and what is uncertain, and proposes a bounded next action. Routine questions can be answered and closed through the support workflow. A code fix proceeds only through the owner-review and preview boundaries below. Report the support reference, outcome, test results, and preview or release state in the operations record when applicable.
+
+The current `support-agent-queue` command claims the oldest queued job; it cannot select a support reference. Do not run `claim` merely because a reference was supplied: first establish that the next claim is the intended issue, or use the admin report and normal reviewed development workflow without claiming a job. Do not mark an unrelated issue as being investigated. A reference-targeted claim would be a separate implementation and test task.
+
+This mode is **owner-triggered**, not an unattended issue watcher. The existing support submission and notification code must still be verified in the live customer journey; a successful code test alone does not prove that the owner received an email.
 
 ## Purpose
 

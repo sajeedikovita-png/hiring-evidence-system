@@ -1,5 +1,7 @@
 # Product Roadmap
 
+> Historical foundation roadmap. For current execution use [September 19 expansion plan](product-expansion-plan-2026-09-19.md), [detailed backlog](build-backlog-2026-09-19.md), and [expansion progress](expansion-progress-2026-09-19.md). The mock-only baseline and scope statements below describe an earlier phase; they are not the current release status.
+
 ## Product Goal
 
 Hiring Evidence System is a real B2B recruiter/company web app. It is not a demo and it is separate from the ReResume applicant-side ATS checker.

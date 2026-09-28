@@ -69,13 +69,13 @@ Show only this sequence:
 
    > The company keeps a clearer record of what was reviewed, what required verification and who recorded the decision.
 
-## 6. Pilot offer — about two minutes
+## 6. Access offer — about two minutes
 
-> We offer a controlled 30-day pilot for one role, up to 50 candidate documents and two company users. The pilot costs S$500 and does not renew automatically.
+> Access is S$149 per 30-day term, including the first paid term. It includes two active roles, up to 50 new candidate documents per term, two named users, one initial 30-minute setup session and email support. There is no compulsory setup fee or annual contract. Each renewal is agreed manually; there is no automatic charge.
 >
-> If the company chooses to continue, the first three 30-day founding terms are S$800 each. The standard price is S$1,400 from the fourth term. Every term requires a separate agreement; there is no automatic charge.
+> The first five paying companies can receive this price for 12 months within the stated scope. We confirm eligibility and the protection end date in writing. Company-specific development requires a separate quote.
 >
-> During the pilot, I will help your team set up the first role and understand the workflow.
+> Keep your existing recruiting software. We can first demonstrate one role with three fictional or appropriately authorized CVs so you can judge whether the evidence review helps your client conversation. This is a guided evaluation, not an automated trial or an existing ATS integration.
 
 ## 7. Closing question
 
@@ -113,15 +113,15 @@ If they are not ready:
 
 ### Why is the pilot paid?
 
-> The pilot includes a controlled workspace, setup support and a real one-role evaluation. The fee helps both sides treat it as a serious operational test.
+> The pilot includes a controlled workspace, setup support and a structured evidence review. The fee helps both sides treat it as a serious operational test.
 
-### Why does the price later become S$1,400?
+### Will the price rise automatically?
 
-> The founding price supports the first three ongoing terms while we validate the workflow with early customers. The standard price and schedule are disclosed before the pilot so the company can decide with full information.
+> There is no automatic renewal or charge. Eligible founding companies have a written 12-month price protection period. Later pricing and any additional scope must be agreed before renewal.
 
 ### Can we have a free trial?
 
-> We use a paid controlled pilot because candidate information and hiring workflows require proper setup and support. I can provide a short demonstration before you decide.
+> The first 15-minute role conversation and synthetic walkthrough are free. The paid pilot begins only after the company understands the workflow and agrees the scope.
 
 ## After the call
 
