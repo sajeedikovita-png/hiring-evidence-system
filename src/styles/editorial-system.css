@@ -140,6 +140,25 @@ body { background: var(--background); }
 .evidence-matrix-card tr:hover td { background: #faf7f0; }
 .note-chip-row span { background: transparent; border-color: var(--border); border-radius: 0; color: var(--primary); }
 .decision-signoff-card.workspace-card { background: var(--primary); border-color: var(--primary); }
+.decision-signoff-card.workspace-card h2,
+.decision-signoff-card.workspace-card .section-kicker { color: #fffdf7; }
+.decision-signoff-card.workspace-card p,
+.decision-signoff-card.workspace-card .muted { color: #dce8e2; }
+.decision-signoff-card.workspace-card .button-secondary {
+  background: #fffdf7;
+  border-color: #fffdf7;
+  color: var(--primary);
+}
+.decision-signoff-card.workspace-card .button-secondary:hover,
+.decision-signoff-card.workspace-card .button-secondary:focus-visible {
+  background: #ffffff;
+  border-color: #ffffff;
+  color: var(--primary-hover);
+}
+.decision-signoff-card.workspace-card .button-secondary:focus-visible {
+  outline: 3px solid #d6aa62;
+  outline-offset: 2px;
+}
 
 .access-approval-controls input,
 .access-approval-controls select,

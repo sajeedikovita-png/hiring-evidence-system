@@ -1,0 +1,33 @@
+import assert from "node:assert/strict";
+import {listAgencyClients, createAgencyClient, updateAgencyClient, archiveAgencyClient, getJobClientContext, updateJobClientContext, listAgencyClientEvents, listJobClientContextEvents, type AgencyClientRpcClient} from "../src/services/agencyClientService";
+async function main() {
+ const clientId="10000000-0000-0000-0000-000000000001",jobId="20000000-0000-0000-0000-000000000001",profileId="30000000-0000-0000-0000-000000000001",requestId="40000000-0000-0000-0000-000000000001";
+ const row={id:clientId,name:"Example Client",status:"active",contact_name:"R. Example",contact_email:"reviewer@example.invalid",contact_phone:"+65 0000 0000",notes:"Discuss project criteria.",version:1,created_by_profile_id:profileId,created_by_name:"Original reviewer",updated_by_profile_id:profileId,updated_by_name:"Latest reviewer",created_at:"2026-09-19T10:00:00Z",updated_at:"2026-09-19T10:00:00Z"};
+ const context={job_id:jobId,client_id:clientId,version:1,client:{id:clientId,name:row.name,status:"active"},can_manage:true};
+ const event={id:requestId,client_id:clientId,actor_profile_id:null,actor_name:"Former reviewer",previous_state:null,state:row,created_at:row.created_at};
+ const calls:Array<{name:string;args?:Record<string,unknown>}>=[];
+ const client:AgencyClientRpcClient={rpc:async(name,args)=>{calls.push({name,args});return{error:null,data:name==="list_agency_clients"?{clients:[row],can_manage:true,current_profile_id:profileId}:name.includes("job_client_context_events")?[{...event,job_id:jobId,state:context}]:name.includes("job_client_context")?context:name==="list_agency_client_events"?[event]:{...row,status:args?.p_status??"active"}};}};
+ assert.equal((await listAgencyClients(client)).clients[0].canViewContacts,true);
+ const input={name:row.name,contactName:row.contact_name,contactEmail:row.contact_email,contactPhone:row.contact_phone,notes:row.notes,requestId};
+ await createAgencyClient(input,client); await createAgencyClient(input,client); assert.deepEqual(calls[1].args,calls[2].args);
+ assert.equal((await archiveAgencyClient({...input,clientId,expectedVersion:1},client)).status,"archived");
+ assert.equal(calls[3].args?.p_expected_version,1);
+ assert.equal((await getJobClientContext(jobId,client)).clientId,clientId);
+ await updateJobClientContext({jobId,clientId,expectedVersion:0},client); assert.equal(calls[5].args?.p_expected_version,0);
+ assert.equal((await listAgencyClientEvents(clientId,client))[0].actorName,"Former reviewer");
+ assert.equal((await listJobClientContextEvents(jobId,client))[0].state.client?.name,row.name);
+ const count=calls.length;
+ for(const patch of [{name:" "},{contactEmail:"bad email"},{notes:"x".repeat(2001)},{contactPhone:"x".repeat(81)}])await assert.rejects(()=>createAgencyClient({...input,...patch},client));
+ await assert.rejects(()=>updateAgencyClient({...input,clientId,status:"active",expectedVersion:0},client),/Reload/);
+ assert.equal(calls.length,count);
+ const response=(data:unknown):AgencyClientRpcClient=>({rpc:async()=>({data,error:null})});
+ const restricted=await listAgencyClients(response({clients:[{id:clientId,name:row.name,status:"active",version:1}],can_manage:false,current_profile_id:profileId}));
+ assert.equal(restricted.clients[0].contactEmail,null);assert.equal(restricted.clients[0].canViewContacts,false);
+ const expired=await listAgencyClients(response({clients:[row],can_manage:false,current_profile_id:profileId}));assert.equal(expired.clients[0].canViewContacts,true);assert.equal(expired.canManage,false);
+ for(const patch of [{updated_at:"2026-02-30T10:00:00Z"},{version:0},{status:"unknown"},{contact_email:undefined},{notes:"x".repeat(2001)}])await assert.rejects(()=>listAgencyClients(response({clients:[{...row,...patch}],can_manage:true,current_profile_id:profileId})),/invalid/);
+ await assert.rejects(()=>getJobClientContext(jobId,response({...context,client_id:profileId})),/invalid/);
+ const unset=await getJobClientContext(jobId,response({...context,client_id:null,client:null,version:0}));assert.equal(unset.client,null);
+ for(const [code,pattern] of [["CLIENT_VERSION_CONFLICT",/Another reviewer/],["CLIENT_MANAGEMENT_REQUIRED",/authorised/],["CLIENT_WRITE_ACCESS_REQUIRED",/does not currently allow/]] as const)await assert.rejects(()=>createAgencyClient(input,{rpc:async()=>({data:null,error:{message:code}})}),pattern);
+ console.log("Agency client service tests passed.");
+}
+void main();

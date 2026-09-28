@@ -4,7 +4,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 
 import { App } from "../src/App";
 import { getPublicSyntheticSampleReport } from "../src/services/hiringRepository";
-import { createWorkspaceAccessGeneration, requireWorkspaceAccess, resolveWorkspaceAccess } from "../src/services/workspaceAccessService";
+import { createWorkspaceAccessGeneration, handleWorkspaceAuthEvent, requireWorkspaceAccess, resolveWorkspaceAccess } from "../src/services/workspaceAccessService";
 
 const configuredEnv = {
   VITE_SUPABASE_URL: "https://example.supabase.co",
@@ -49,6 +49,32 @@ const validProfile = {
 };
 
 async function run() {
+// A TOKEN_REFRESHED event can arrive while getUser/profile loading is pending.
+// Neither the late result nor the fallback timeout may be invalidated by it.
+const refreshing = createWorkspaceAccessGeneration();
+const pendingGeneration = refreshing.start();
+assert.equal(handleWorkspaceAuthEvent("INITIAL_SESSION", refreshing), "ignore");
+assert.equal(handleWorkspaceAuthEvent("TOKEN_REFRESHED", refreshing), "ignore");
+assert.equal(refreshing.isCurrent(pendingGeneration), true);
+let refreshState = "loading";
+await Promise.resolve().then(() => {
+  if (refreshing.isCurrent(pendingGeneration)) refreshState = "ready";
+});
+assert.equal(refreshState, "ready", "same-user token refresh must allow pending access to settle");
+const timeoutGeneration = refreshing.start();
+handleWorkspaceAuthEvent("TOKEN_REFRESHED", refreshing);
+refreshState = "loading";
+await new Promise<void>((resolve) => setTimeout(() => {
+  if (refreshing.isCurrent(timeoutGeneration)) refreshState = "denied";
+  resolve();
+}, 0));
+assert.equal(refreshState, "denied", "token refresh must not disable a pending access timeout");
+assert.equal(handleWorkspaceAuthEvent("SIGNED_OUT", refreshing), "deny");
+assert.equal(refreshing.isCurrent(timeoutGeneration), false);
+const priorUserGeneration = refreshing.start();
+assert.equal(handleWorkspaceAuthEvent("SIGNED_IN", refreshing), "refresh");
+assert.equal(refreshing.isCurrent(priorUserGeneration), false, "a user change must still reject stale access");
+
 const generations = createWorkspaceAccessGeneration();
 const userAGeneration = generations.start();
 let restoredUser = "";

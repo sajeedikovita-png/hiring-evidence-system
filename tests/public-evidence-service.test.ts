@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { analyzePublicEvidence, listPublicEvidence } from "../src/services/publicEvidenceService";
+import { analyzePublicEvidence, listPublicEvidence, loadPublicEvidence, mapPublicEvidence } from "../src/services/publicEvidenceService";
 
 const calls: Array<{ name: string; args: unknown }> = [];
 const client = {
@@ -14,6 +14,15 @@ async function run() {
   await analyzePublicEvidence(client, { reportId: "report-1", sourceType: "github", sourceUrl: "https://github.com/example", sourceTitle: "Project", sourceExcerpt: "A public project with delivery details.", candidateConfirmed: true });
   assert.equal(calls[1]?.name, "analyze-public-evidence");
   assert.equal((calls[1]?.args as Record<string, unknown>).candidateConfirmed, true);
+  const failed = mapPublicEvidence({status: "failed", analysis: {}});
+  assert.match(failed.summary, /Comparison failed/);
+  assert.doesNotMatch(failed.summary, /being prepared/);
+  const unavailable = await loadPublicEvidence({ ...client, rpc: async () => ({data: null, error: {message: "offline"}}) }, "report-1");
+  assert.equal(unavailable.sources, null);
+  assert.match(unavailable.error, /do not need to compare again/);
+  const recovered = await loadPublicEvidence(client, "report-1");
+  assert.equal(recovered.error, "");
+  assert.equal(recovered.sources?.length, 1);
   console.log("public-evidence-service tests passed");
 }
 run().catch((error) => { console.error(error); process.exit(1); });

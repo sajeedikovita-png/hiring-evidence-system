@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import ExternalLink from "lucide-react/dist/esm/icons/external-link.js";
 import SearchCheck from "lucide-react/dist/esm/icons/search-check.js";
-import { analyzePublicEvidence, listPublicEvidence, type PublicEvidenceSource } from "../../services/publicEvidenceService";
+import { analyzePublicEvidence, loadPublicEvidence, type PublicEvidenceSource } from "../../services/publicEvidenceService";
 import { createHiringSupabaseClient } from "../../services/supabaseClient";
 
 const sourceLabels: Record<string, string> = {
@@ -14,9 +14,10 @@ const sourceLabels: Record<string, string> = {
   other: "Other public source"
 };
 
-type Props = { reportId: string; readOnly?: boolean };
+type Criterion = { criteriaId: string; requirement: string };
+type Props = { reportId: string; readOnly?: boolean; criteria: Criterion[] };
 
-export function PublicProfessionalEvidenceSection({ reportId, readOnly = false }: Props) {
+export function PublicProfessionalEvidenceSection({ reportId, readOnly = false, criteria }: Props) {
   const [sources, setSources] = useState<PublicEvidenceSource[]>([]);
   const [sourceType, setSourceType] = useState("linkedin");
   const [sourceUrl, setSourceUrl] = useState("");
@@ -26,10 +27,12 @@ export function PublicProfessionalEvidenceSection({ reportId, readOnly = false }
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
 
+  const [loadError, setLoadError] = useState("");
   async function refresh() {
     if (readOnly) return;
-    try { setSources(await listPublicEvidence(createHiringSupabaseClient(), reportId)); }
-    catch { setMessage("Public evidence is unavailable at the moment."); }
+    const result = await loadPublicEvidence(createHiringSupabaseClient(), reportId);
+    if (result.sources) setSources(result.sources);
+    setLoadError(result.error);
   }
 
   useEffect(() => { void refresh(); }, [reportId, readOnly]);
@@ -42,9 +45,10 @@ export function PublicProfessionalEvidenceSection({ reportId, readOnly = false }
       await analyzePublicEvidence(createHiringSupabaseClient(), { reportId, sourceType, sourceUrl, sourceTitle, sourceExcerpt, candidateConfirmed });
       setSourceUrl(""); setSourceTitle(""); setSourceExcerpt(""); setCandidateConfirmed(false);
       await refresh();
-      setMessage("Public evidence compared. Verify every finding before using it in a decision.");
+      setMessage("Public evidence comparison saved. Verify every finding before using it in a decision.");
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Public evidence analysis failed.");
+      await refresh();
     } finally { setBusy(false); }
   }
 
@@ -83,19 +87,28 @@ export function PublicProfessionalEvidenceSection({ reportId, readOnly = false }
         </form>
       )}
 
-      {sources.map((source) => (
-        <article className="public-evidence-result" key={source.id}>
+      {!readOnly ? <div>
+        {loadError ? <p role="alert">{loadError}</p> : null}
+        <button type="button" className="button button-secondary" disabled={busy} onClick={() => void refresh()}>Reload results</button>
+      </div> : null}
+      {sources.map((source) => <PublicEvidenceResult key={source.id} source={source} criteria={criteria} />)}
+    </section>
+  );
+}
+
+export function PublicEvidenceResult({ source, criteria }: { source: PublicEvidenceSource; criteria: Criterion[] }) {
+  return (
+        <article className="public-evidence-result" >
           <div className="public-evidence-result-title">
             <div><span>{sourceLabels[source.sourceType] ?? "Public source"}</span><h3>{source.sourceTitle}</h3></div>
             <a className="table-link" href={source.sourceUrl} target="_blank" rel="noreferrer">Open source <ExternalLink size={14} aria-hidden="true" /></a>
           </div>
+          <p role="status">{source.status === "failed" ? "Comparison failed" : source.status === "ready" ? "Evidence report ready" : "Comparison pending"}</p>
           <p>{source.summary}</p>
-          {source.requirementLinks.length ? <div className="public-evidence-findings"><h4>Links to role criteria</h4>{source.requirementLinks.map((item) => <div key={item.criteriaId}><strong>{item.status}</strong><p>{item.finding}</p><small>Verify: {item.verificationNeeded}</small></div>)}</div> : null}
+          {source.requirementLinks.length ? <div className="public-evidence-findings"><h4>Links to role criteria</h4>{source.requirementLinks.map((item) => <div key={item.criteriaId}><h5>{criteria.find((criterion) => criterion.criteriaId === item.criteriaId)?.requirement ?? `Role criterion unavailable (${item.criteriaId})`}</h5><strong>{item.status}</strong><p>{item.finding}</p><small>Verify: {item.verificationNeeded}</small></div>)}</div> : null}
           {source.additionalFacts.length ? <div><h4>Additional job-related facts</h4><ul className="evidence-list">{source.additionalFacts.map((fact) => <li key={fact}>{fact}</li>)}</ul></div> : null}
           {source.verificationQuestions.length ? <div><h4>Questions to ask</h4><ol className="evidence-list numbered">{source.verificationQuestions.map((question) => <li key={question}>{question}</li>)}</ol></div> : null}
           <p className="public-evidence-disclosure">AI-organised public evidence. Human verification and decision required.</p>
         </article>
-      ))}
-    </section>
   );
 }

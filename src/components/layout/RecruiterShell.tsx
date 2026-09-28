@@ -8,6 +8,10 @@ import UsersRound from "lucide-react/dist/esm/icons/users-round.js";
 import ShieldCheck from "lucide-react/dist/esm/icons/shield-check.js";
 import LifeBuoy from "lucide-react/dist/esm/icons/life-buoy.js";
 import Activity from "lucide-react/dist/esm/icons/activity.js";
+import Workflow from "lucide-react/dist/esm/icons/workflow.js";
+import Building2 from "lucide-react/dist/esm/icons/building-2.js";
+import SlidersHorizontal from "lucide-react/dist/esm/icons/sliders-horizontal.js";
+import FlaskConical from "lucide-react/dist/esm/icons/flask-conical.js";
 import { Button } from "../../../components/ui/Button";
 import { signOutRecruiter } from "../../services/authService";
 import { createHiringSupabaseClient } from "../../services/supabaseClient";
@@ -16,7 +20,7 @@ import { SupportPanel } from "../support/SupportPanel";
 import { buildSafeDiagnosticsPreview } from "../../services/supportService";
 
 type RecruiterShellProps = {
-  active: "dashboard" | "pilot" | "candidates" | "reports" | "privacy" | "support" | "access" | "paid-access" | "operations";
+  active: "dashboard" | "pilot" | "testing" | "candidates" | "workflow" | "company" | "clients" | "reports" | "privacy" | "support" | "access" | "paid-access" | "operations" | "company-controls";
   title: string;
   subtitle: string;
   children: ReactNode;
@@ -32,7 +36,11 @@ type RecruiterShellProps = {
 const navItems = [
   { id: "dashboard", label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { id: "pilot", label: "Pilot access", href: "/pilot-access", icon: ClipboardCheck },
+  { id: "testing", label: "Pilot testing", href: "/pilot-testing", icon: FlaskConical },
   { id: "candidates", label: "Jobs", href: "/jobs", icon: BriefcaseBusiness },
+  { id: "workflow", label: "Workflow", href: "/workflow", icon: Workflow },
+  { id: "clients", label: "Clients", href: "/workspace/clients", icon: UsersRound },
+  { id: "company", label: "Company", href: "/workspace/company", icon: Building2 },
   { id: "privacy", label: "Privacy and data", href: "/workspace/privacy", icon: ShieldCheck },
   { id: "support", label: "Support", href: "/workspace/support", icon: LifeBuoy }
 ];
@@ -41,7 +49,8 @@ const platformNavItems = [
   { id: "access", label: "Access requests", href: "/admin/access-requests", icon: UsersRound },
   { id: "paid-access", label: "Ongoing access", href: "/admin/paid-access-requests", icon: ClipboardCheck },
   { id: "support", label: "Support inbox", href: "/admin/support", icon: LifeBuoy },
-  { id: "operations", label: "Site operations", href: "/admin/operations", icon: Activity }
+  { id: "operations", label: "Site operations", href: "/admin/operations", icon: Activity },
+  { id: "company-controls", label: "Company controls", href: "/admin/company-controls", icon: SlidersHorizontal }
 ];
 
 export function RecruiterShell({

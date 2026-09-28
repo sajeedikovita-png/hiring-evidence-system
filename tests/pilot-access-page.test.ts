@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { canRequestOngoingAccess } from "../src/pages/PilotAccessPage";
+import { canRequestOngoingAccess, ongoingOfferDescription } from "../src/pages/PilotAccessPage";
 import type { PilotLifecycle } from "../src/services/pilotLifecycleService";
 
 const base: PilotLifecycle = {
@@ -45,3 +45,9 @@ assert.equal(canRequestOngoingAccess({ ...base, state: "expired", paidRequest: p
 assert.equal(canRequestOngoingAccess({ ...base, paidRequest: pricedRequest("active-term", "active") }), false);
 
 console.log("Pilot access page tests passed.");
+
+const launchPlan: PilotLifecycle = { ...base, pricing: { ...base.pricing, initialPilotSgd: 149, ongoingMonthlySgd: 149, ongoingPricingVersion: "ongoing-access-2026-09-19-launch-149-v1", foundingMonthlySgd: 149, foundingTerms: 0, standardMonthlySgd: 149 }, limits: { roles: 2, candidateDocuments: 50, users: 2 } };
+assert.match(ongoingOfferDescription(launchPlan), /Two active roles, 50 new candidate documents/);
+assert.doesNotMatch(ongoingOfferDescription(launchPlan), /800|1,400|500 new/);
+assert.match(ongoingOfferDescription(base), /existing agreement is preserved/);
+assert.match(ongoingOfferDescription(base), /S\$800/);

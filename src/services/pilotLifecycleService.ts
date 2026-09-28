@@ -11,18 +11,20 @@ export type PilotLifecycleState =
   | "converted";
 export type OngoingAccessRequestStatus = "pending" | "approved_pending_start" | "active" | "expired" | "rejected";
 export type OngoingPricingVersion =
+  | "ongoing-access-2026-09-19-launch-149-v1"
   | "ongoing-access-2026-09-09"
   | "ongoing-access-2026-09-10-founding-800-v1"
   | "ongoing-access-2026-09-10-standard-1400-v1";
 
 export type OngoingPricing = {
-  initialPilotSgd: 500;
-  ongoingMonthlySgd: 800 | 1400;
+  initialPilotSgd: 149 | 500;
+  ongoingMonthlySgd: 149 | 800 | 1400;
   ongoingPricingVersion: OngoingPricingVersion;
   ongoingPricingTermNumber: number | null;
-  foundingMonthlySgd: 800;
-  foundingTerms: 3;
-  standardMonthlySgd: 1400;
+  foundingMonthlySgd: 149 | 800;
+  foundingTerms: 0 | 3;
+  standardMonthlySgd: 149 | 1400;
+  priceLockEndsAt?: string | null;
 };
 
 export type PilotLifecycle = {
@@ -43,7 +45,7 @@ export type PilotLifecycle = {
     requestedAt: string;
     termsAcceptedAt: string;
     reviewNote?: string;
-    ongoingMonthlySgd: 800 | 1400;
+    ongoingMonthlySgd: 149 | 800 | 1400;
     ongoingPricingVersion: OngoingPricingVersion;
     ongoingPricingTermNumber: number | null;
   } | null;
@@ -61,7 +63,7 @@ export type PlatformOngoingAccessRequest = {
   reviewNote?: string;
   reviewedAt?: string;
   reviewedByPlatformUserId?: string;
-  ongoingMonthlySgd: 800 | 1400;
+  ongoingMonthlySgd: 149 | 800 | 1400;
   ongoingPricingVersion: OngoingPricingVersion;
   ongoingPricingTermNumber: number | null;
 };
@@ -96,15 +98,16 @@ function nullablePositiveInteger(value: unknown): number | null {
   return typeof value === "number" && Number.isInteger(value) && value > 0 ? value : null;
 }
 
-function asMonthlyPrice(value: unknown): 800 | 1400 {
-  if (value === 800 || value === 1400) return value;
+function asMonthlyPrice(value: unknown): 149 | 800 | 1400 {
+  if (value === 149 || value === 800 || value === 1400) return value;
   throw new Error("Pilot pricing was invalid.");
 }
 
 function asPricingVersion(value: unknown): OngoingPricingVersion {
   const version = string(value);
   if (
-    version === "ongoing-access-2026-09-09"
+    version === "ongoing-access-2026-09-19-launch-149-v1"
+    || version === "ongoing-access-2026-09-09"
     || version === "ongoing-access-2026-09-10-founding-800-v1"
     || version === "ongoing-access-2026-09-10-standard-1400-v1"
   ) return version;
@@ -130,10 +133,10 @@ function asLifecycle(value: unknown): PilotLifecycle {
   const ongoingPricingVersion = asPricingVersion(pricing.ongoingPricingVersion);
   const ongoingPricingTermNumber = nullablePositiveInteger(pricing.ongoingPricingTermNumber);
   if (
-    pricing.initialPilotSgd !== 500
-    || pricing.foundingMonthlySgd !== 800
-    || pricing.foundingTerms !== 3
-    || pricing.standardMonthlySgd !== 1400
+    (pricing.initialPilotSgd !== 149 && pricing.initialPilotSgd !== 500)
+    || (pricing.foundingMonthlySgd !== 149 && pricing.foundingMonthlySgd !== 800)
+    || (pricing.foundingTerms !== 0 && pricing.foundingTerms !== 3)
+    || (pricing.standardMonthlySgd !== 149 && pricing.standardMonthlySgd !== 1400)
   ) {
     throw new Error("Pilot pricing was invalid.");
   }
@@ -147,13 +150,14 @@ function asLifecycle(value: unknown): PilotLifecycle {
     canStart: source.canStart === true,
     isWritable: source.isWritable === true,
     pricing: {
-      initialPilotSgd: 500,
+      initialPilotSgd: pricing.initialPilotSgd as 149 | 500,
       ongoingMonthlySgd,
       ongoingPricingVersion,
       ongoingPricingTermNumber,
-      foundingMonthlySgd: 800,
-      foundingTerms: 3,
-      standardMonthlySgd: 1400
+      foundingMonthlySgd: pricing.foundingMonthlySgd as 149 | 800,
+      foundingTerms: pricing.foundingTerms as 0 | 3,
+      standardMonthlySgd: pricing.standardMonthlySgd as 149 | 1400,
+      ...(pricing.priceLockEndsAt !== undefined ? { priceLockEndsAt: nullableString(pricing.priceLockEndsAt) } : {})
     },
     limits: {
       roles: nonNegativeInteger(limits.roles),
@@ -211,7 +215,7 @@ export async function createOngoingAccessRequest(
   id: string;
   status: "pending";
   termsAcceptedAt: string;
-  ongoingMonthlySgd: 800 | 1400;
+  ongoingMonthlySgd: 149 | 800 | 1400;
   ongoingPricingVersion: OngoingPricingVersion;
   ongoingPricingTermNumber: number | null;
 }> {

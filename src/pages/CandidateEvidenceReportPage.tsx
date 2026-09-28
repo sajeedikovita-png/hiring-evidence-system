@@ -5,13 +5,18 @@ import { Card } from "../../components/ui/Card";
 import { WarningCard } from "../../components/ui/WarningCard";
 import { DevelopmentConnectionStatusPanel } from "../components/dev/DevelopmentConnectionStatusPanel";
 import { CandidateDetailPanel } from "../components/report/CandidateDetailPanel";
+import { ReviewProgress } from "../components/report/ReviewProgress";
+import { ClientHandoffPreview } from "../components/report/ClientHandoffPreview";
 import { CandidateHeader } from "../components/report/CandidateHeader";
+import { CandidateIdentityPanel } from "../components/report/CandidateIdentityPanel";
 import { EvidenceMatrix } from "../components/report/EvidenceMatrix";
 import { FairnessCheckCard } from "../components/report/FairnessCheckCard";
 import { HumanDecisionPanel } from "../components/report/HumanDecisionPanel";
 import { ReportSupportSections } from "../components/report/ReportSupportSections";
 import { PublicProfessionalEvidenceSection } from "../components/report/PublicProfessionalEvidenceSection";
 import { RecruiterShell } from "../components/layout/RecruiterShell";
+import { CandidateInternalNotesPanel } from "../components/workflow/CandidateInternalNotesPanel";
+import { CandidateWorkflowPanel } from "../components/workflow/CandidateWorkflowPanel";
 import type { CompanyContext } from "../services/companyContextService";
 import {
   classifyConnectionIssue,
@@ -39,11 +44,14 @@ export function CandidateEvidenceReportPage({ syntheticSample = false }: Candida
     getDevelopmentConnectionStatus({ repositorySource: repository?.source ?? "seed" })
   );
   const [reportLoadMessage, setReportLoadMessage] = useState("Report cannot load");
+  const [reportLoading, setReportLoading] = useState(!syntheticSample);
   const [sourceUrl, setSourceUrl] = useState<string | undefined>();
 
   useEffect(() => {
     if (syntheticSample || !repository) return;
     let isMounted = true;
+    setReportLoading(true);
+    setEvidenceReport(undefined);
 
     repository
       .getActiveCompanyContext()
@@ -82,6 +90,9 @@ export function CandidateEvidenceReportPage({ syntheticSample = false }: Candida
                 : "Report cannot load"
           );
         }
+      })
+      .then(() => {
+        if (isMounted) setReportLoading(false);
       });
 
     return () => {
@@ -101,6 +112,20 @@ export function CandidateEvidenceReportPage({ syntheticSample = false }: Candida
       .catch(() => { if (isMounted) setSourceUrl(undefined); });
     return () => { isMounted = false; };
   }, [evidenceReport?.documentSources, syntheticSample]);
+
+  if (reportLoading && !syntheticSample) {
+    return (
+      <RecruiterShell active="reports" title="Candidate Evidence Report" subtitle="Loading your evidence report."
+        reviewerName={activeContext?.userName ?? "Recruiter"} showSignOut>
+        <main className="workspace-content" aria-busy="true">
+          <div className="workspace-card" role="status">
+            <h2>Loading evidence report</h2>
+            <p>Please wait while we load the report for your company workspace.</p>
+          </div>
+        </main>
+      </RecruiterShell>
+    );
+  }
 
   if (!evidenceReport) {
     return (
@@ -140,7 +165,7 @@ export function CandidateEvidenceReportPage({ syntheticSample = false }: Candida
     resumeLabel: evidenceReport.documentSources[0]?.fileName ?? "Resume not attached",
     statusBadges: [
       { label: evidenceReport.status, tone: evidenceReport.status === "Evidence report ready" ? "success" : "info" },
-      { label: "Decision pending", tone: "warning" }
+      { label: evidenceReport.humanDecision.draft?.status === "saved" ? "Recruiter decision recorded" : "Decision pending", tone: evidenceReport.humanDecision.draft?.status === "saved" ? "success" : "warning" }
     ]
   };
 
@@ -156,7 +181,11 @@ export function CandidateEvidenceReportPage({ syntheticSample = false }: Candida
       <main className="workspace-content">
         {syntheticSample ? null : <DevelopmentConnectionStatusPanel status={connectionStatus} />}
         {syntheticSample ? <WarningCard title="Synthetic sample">This public sample uses generated demonstration data. Decision saving is unavailable.</WarningCard> : null}
+        {!syntheticSample ? <><ReviewProgress step={4} /><section className="next-task"><p className="section-kicker">Your next step</p><h2>Review the evidence before recording a decision</h2><p>Read each role requirement and its source evidence below. Verify missing or uncertain claims with the candidate. You can optionally add candidate-confirmed public professional evidence. When ready, enter your own decision and job-related reason in the decision panel.</p><a className="button button-primary" href="#report-evidence">Review role evidence</a> <a className="button button-secondary" href="#candidate-identity">Confirm candidate name</a> <a className="button button-secondary" href="#candidate-workflow">Manage stage and next action</a> <a className="button button-secondary" href="#candidate-internal-notes">Internal notes</a></section></> : null}
         <CandidateHeader candidate={candidateProfile} />
+        {!syntheticSample && <CandidateIdentityPanel applicationId={evidenceReport.application.id} onSaved={async () => { if (!repository || !activeContext) return; const refreshed = await repository.getReportById(activeContext.companyId, selectedReportId); if (refreshed) setEvidenceReport(refreshed); }} />}
+        {!syntheticSample && <div id="candidate-internal-notes"><CandidateInternalNotesPanel key={evidenceReport.application.id} applicationId={evidenceReport.application.id} candidateName={evidenceReport.candidate.name} /></div>}
+        <ClientHandoffPreview key={evidenceReport.id} report={evidenceReport} syntheticSample={syntheticSample} />
 
         <section className="dashboard-metrics">
           {evidenceReport.evidenceSummary.map((card) => (
@@ -177,8 +206,8 @@ export function CandidateEvidenceReportPage({ syntheticSample = false }: Candida
         <div className="report-layout">
           <CandidateDetailPanel candidate={candidateProfile} fairness={evidenceReport.fairnessCheck} />
           <div className="report-main-column">
-            <EvidenceMatrix rows={evidenceReport.requirementEvidence} />
-            <PublicProfessionalEvidenceSection reportId={evidenceReport.id} readOnly={syntheticSample} />
+            <div id="report-evidence"><EvidenceMatrix rows={evidenceReport.requirementEvidence} /></div>
+            <PublicProfessionalEvidenceSection reportId={evidenceReport.id} readOnly={syntheticSample} criteria={evidenceReport.requirementEvidence} />
             <ReportSupportSections
               missingEvidence={evidenceReport.missingEvidence}
               verificationNeeded={evidenceReport.verificationNeeded}
@@ -209,6 +238,9 @@ export function CandidateEvidenceReportPage({ syntheticSample = false }: Candida
                   });
 
                   if (result.valid && liveRepository.source === "supabase") {
+                    // Refresh the persisted decision before a client summary can include it.
+                    const refreshedReport = await liveRepository.getReportById(activeContext.companyId, selectedReportId);
+                    if (refreshedReport) setEvidenceReport(refreshedReport);
                     setConnectionStatus(getDevelopmentConnectionStatus({ repositorySource: liveRepository.source, issue: "ready" }));
                   }
 
@@ -231,6 +263,7 @@ export function CandidateEvidenceReportPage({ syntheticSample = false }: Candida
             />
           </div>
         </div>
+        {!syntheticSample && <CandidateWorkflowPanel key={evidenceReport.application.id} jobId={evidenceReport.jobRole.id} candidates={[{ applicationId: evidenceReport.application.id, candidateName: evidenceReport.candidate.name }]} />}
       </main>
     </RecruiterShell>
   );

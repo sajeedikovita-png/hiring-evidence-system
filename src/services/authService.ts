@@ -25,6 +25,10 @@ type SupabaseAuthClient = {
       data: Record<string, unknown> | null;
       error: { message?: string } | null;
     }>;
+    verifyOtp?: (params: { token_hash: string; type: "invite" | "recovery" }) => Promise<{
+      data: { user: SupabaseAuthUser | null };
+      error: { message?: string } | null;
+    }>;
     signOut?: () => Promise<{ error: { message?: string } | null }>;
   };
 };
@@ -101,6 +105,22 @@ export async function updateRecruiterPassword({
   }
 
   return data.user;
+}
+
+export type PasswordSetupLink = { tokenHash: string; type: "invite" | "recovery" };
+
+export function readPasswordSetupLink(url: string): PasswordSetupLink | null {
+  const parsed = new URL(url);
+  const tokenHash = parsed.searchParams.get("token_hash");
+  const type = parsed.searchParams.get("type");
+  if (!tokenHash || (type !== "invite" && type !== "recovery")) return null;
+  return { tokenHash, type };
+}
+
+export async function verifyPasswordSetupLink(client: SupabaseAuthClient, link: PasswordSetupLink): Promise<void> {
+  if (!client.auth.verifyOtp) throw new Error("Secure link verification is unavailable");
+  const { data, error } = await client.auth.verifyOtp({ token_hash: link.tokenHash, type: link.type });
+  if (error || !data.user) throw new Error(error?.message ?? "This link has expired or has already been used. Request a new email.");
 }
 
 export async function requestRecruiterPasswordReset(input: {

@@ -1,13 +1,30 @@
 import React, { FormEvent, useState } from "react";
-import { updateRecruiterPassword } from "../services/authService";
+import { readPasswordSetupLink, updateRecruiterPassword, verifyPasswordSetupLink } from "../services/authService";
 import { isCurrentPlatformAdministrator } from "../services/accessApprovalService";
 import { createHiringSupabaseClient } from "../services/supabaseClient";
 
 export function SetPasswordPage() {
   const [password, setPassword] = useState("");
   const [confirmation, setConfirmation] = useState("");
-  const [message, setMessage] = useState("Open this page from your invitation or password-recovery email.");
+  const [secureLink] = useState(() => typeof window === "undefined" ? null : readPasswordSetupLink(window.location.href));
+  const [message, setMessage] = useState(secureLink ? "Confirm the secure link to continue." : "Open this page from your invitation or password-recovery email.");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [linkStatus, setLinkStatus] = useState<"ready" | "verifying" | "verified" | "error">(secureLink ? "ready" : "verified");
+
+  async function handleVerifyLink() {
+    if (!secureLink || linkStatus !== "ready") return;
+    setLinkStatus("verifying");
+    setMessage("Checking your secure link.");
+    window.history.replaceState(window.history.state, "", window.location.pathname);
+    try {
+      await verifyPasswordSetupLink(createHiringSupabaseClient(), secureLink);
+      setLinkStatus("verified");
+      setMessage("Link confirmed. Choose your new password.");
+    } catch (error) {
+      setLinkStatus("error");
+      setMessage(error instanceof Error ? error.message : "Unable to confirm this link. Request a new email.");
+    }
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -52,7 +69,9 @@ export function SetPasswordPage() {
           <h1>Set your password</h1>
           <p>Create a password for your recruiter workspace.</p>
         </div>
-        <form className="login-form" onSubmit={handleSubmit}>
+        {linkStatus === "ready" && <button className="button button-primary" type="button" onClick={handleVerifyLink}>Confirm secure link</button>}
+        {linkStatus === "verifying" && <p>Checking secure link…</p>}
+        {linkStatus === "verified" && <form className="login-form" onSubmit={handleSubmit}>
           <label>
             Password
             <input
@@ -78,7 +97,7 @@ export function SetPasswordPage() {
           <button className="button button-primary" type="submit" disabled={isSubmitting}>
             {isSubmitting ? "Saving password" : "Save password"}
           </button>
-        </form>
+        </form>}
         <p className="login-footnote" role="status">
           {message}
         </p>

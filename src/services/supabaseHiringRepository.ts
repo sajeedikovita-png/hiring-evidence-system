@@ -27,6 +27,7 @@ import type {
   SummaryMetric,
   UploadedDocument
 } from "../types/hiring";
+import { summarizeEvidence } from "./evidenceSummaryService";
 
 type DbRecord = Record<string, unknown>;
 
@@ -67,12 +68,15 @@ function mapJobRole(row: DbRecord): JobRole {
   };
 }
 
-function mapCandidate(row: DbRecord): Candidate {
+function mapCandidate(row: DbRecord, parsedName?: string): Candidate {
   const candidateName = asString(row.name).trim();
+  const extractedName = parsedName?.trim();
+  const hasRecordedName = Boolean(candidateName && candidateName !== "Candidate pending name detection");
   return {
     id: asString(row.id),
     organizationId: asString(row.company_id),
-    name: candidateName === "Candidate pending name detection" || !candidateName ? "Name not recorded" : candidateName,
+    name: hasRecordedName ? candidateName : extractedName || "Name not recorded",
+    nameSource: hasRecordedName ? "recorded" : extractedName ? "parsed_cv" : "unavailable",
     email: typeof row.email === "string" ? row.email : undefined,
     source: asString(row.source, "manual") as Candidate["source"],
     createdAt: asString(row.created_at)
@@ -132,7 +136,8 @@ function mapEvidenceItem(row: DbRecord): EvidenceItem {
     status: {
       label: asString(row.status_label, "Needs verification"),
       tone: asString(row.status_tone, "warning") as StatusBadge["tone"]
-    }
+    },
+    criterionStatus: undefined
   };
 }
 
@@ -289,17 +294,20 @@ export function createSupabaseHiringRepository(client: SupabaseClient, env?: Sup
     const candidateIds = Array.from(new Set(applicationRows.map((application) => asString(application.candidate_id)).filter(Boolean)));
     const applicationIds = Array.from(new Set(applicationRows.map((application) => asString(application.id)).filter(Boolean)));
 
-    const [candidateResult, documentResult, reportResult] = await Promise.all([
+    const [candidateResult, documentResult, parsedCvResult, reportResult] = await Promise.all([
       candidateIds.length > 0
         ? client.from("candidates").select("*").eq("company_id", companyId).in("id", candidateIds)
         : Promise.resolve({ data: [], error: null }),
       applicationIds.length > 0
         ? client.from("uploaded_documents").select("*").eq("company_id", companyId).in("application_id", applicationIds)
         : Promise.resolve({ data: [], error: null }),
+      applicationIds.length > 0
+        ? client.from("parsed_cvs").select("application_id,extracted_name,created_at").eq("company_id", companyId).in("application_id", applicationIds).order("created_at", { ascending: false })
+        : Promise.resolve({ data: [], error: null }),
       client.from("evidence_reports").select("*").eq("company_id", companyId).eq("job_id", mappedJob.id)
     ]);
 
-    for (const result of [candidateResult, documentResult, reportResult]) {
+    for (const result of [candidateResult, documentResult, parsedCvResult, reportResult]) {
       assertNoSupabaseError(result.error, "Unable to assemble job candidate workspace");
     }
 
@@ -308,6 +316,7 @@ export function createSupabaseHiringRepository(client: SupabaseClient, env?: Sup
       applicationRows,
       candidateRows: asArray<DbRecord>(candidateResult.data),
       documentRows: asArray<DbRecord>(documentResult.data),
+      parsedCvRows: asArray<DbRecord>(parsedCvResult.data),
       reportRows: asArray<DbRecord>(reportResult.data)
     };
   }
@@ -393,6 +402,7 @@ export function createSupabaseHiringRepository(client: SupabaseClient, env?: Sup
 
           return {
             id: mappedJob.id,
+            status: mappedJob.status,
             title: mappedJob.title,
             department: mappedJob.department,
             candidates: `${jobApplications.length} candidates`,
@@ -439,9 +449,33 @@ export function createSupabaseHiringRepository(client: SupabaseClient, env?: Sup
       if (!workspace) return undefined;
 
       const candidateById = new Map(workspace.candidateRows.map((candidate) => [asString(candidate.id), mapCandidate(candidate)]));
+      const parsedNameByApplicationId = new Map<string, string>();
+      for (const parsed of workspace.parsedCvRows) {
+        const applicationId = asString(parsed.application_id);
+        if (applicationId && !parsedNameByApplicationId.has(applicationId)) parsedNameByApplicationId.set(applicationId, asString(parsed.extracted_name));
+      }
+      for (const [candidateId, candidate] of candidateById) {
+        const application = workspace.applicationRows.find((row) => asString(row.candidate_id) === candidateId);
+        const parsedName = application ? parsedNameByApplicationId.get(asString(application.id)) : undefined;
+        if (parsedName && candidate.name === "Name not recorded") {
+          candidate.name = parsedName;
+          candidate.nameSource = "parsed_cv";
+        }
+      }
       const applicationById = new Map(workspace.applicationRows.map((application) => [asString(application.id), application]));
       const documentByApplicationId = new Map(workspace.documentRows.map((document) => [asString(document.application_id), document]));
       const reportByApplicationId = new Map(workspace.reportRows.map((report) => [asString(report.application_id), report]));
+      const reportIds = workspace.reportRows.map((report) => asString(report.id)).filter(Boolean);
+      const evidenceResult = reportIds.length > 0
+        ? await client.from("evidence_items").select("*").eq("company_id", companyId).in("report_id", reportIds)
+        : { data: [], error: null };
+      assertNoSupabaseError(evidenceResult.error, "Unable to read evidence items");
+      const evidenceByReportId = new Map<string, EvidenceItem[]>();
+      for (const row of asArray<DbRecord>(evidenceResult.data).map(mapEvidenceItem)) {
+        const current = evidenceByReportId.get(row.reportId) ?? [];
+        current.push(row);
+        evidenceByReportId.set(row.reportId, current);
+      }
       const batchId = `job-${workspace.job.id}-read-state`;
       const batchFiles = workspace.documentRows.map((document) =>
         mapBulkUploadFile(document, applicationById.get(asString(document.application_id)), reportByApplicationId.get(asString(document.application_id)), batchId)
@@ -452,14 +486,20 @@ export function createSupabaseHiringRepository(client: SupabaseClient, env?: Sup
         const candidate = candidateById.get(mappedApplication.candidateId);
         const document = documentByApplicationId.get(mappedApplication.id);
         const report = reportByApplicationId.get(mappedApplication.id);
-        const evidenceLevel = getEvidenceLevel(application, document, report);
         const evidenceReportStatus = getEvidenceReportStatus(application, document, report);
+        const evidenceSummary = summarizeEvidence(report ? evidenceByReportId.get(asString(report.id)) ?? [] : []);
+        const evidenceLevel: EvidenceLevel = evidenceReportStatus === "Failed"
+          ? "Report failed"
+          : report
+            ? evidenceSummary.evidenceLevel
+            : getEvidenceLevel(application, document, report);
 
         return {
           id: mappedApplication.id,
           documentId: document ? asString(document.id) : undefined,
           hasReport: Boolean(report),
-          candidateName: candidate?.name || "Name not recorded",
+          candidateName: candidate?.name !== "Name not recorded" ? candidate?.name ?? "Name not recorded" : document ? `Filename: ${asString(document.file_name, "uploaded document")}` : "Name not recorded",
+          candidateNameSource: candidate?.nameSource === "recorded" || candidate?.nameSource === "parsed_cv" ? candidate.nameSource : document ? "filename" : "unavailable",
           applicationId: mappedApplication.id,
           evidenceLevel,
           reportStatus: {
@@ -469,7 +509,10 @@ export function createSupabaseHiringRepository(client: SupabaseClient, env?: Sup
           reviewStatus: getReviewStatus(evidenceLevel),
           uploadedFile: document ? asString(document.file_name, "Uploaded file") : "No document attached",
           updatedAt: formatDateLabel(asString(application.updated_at, mappedApplication.appliedAt)),
-          reportPath: report ? `/reports/${asString(report.public_report_code, asString(report.id))}` : getCandidateListRoutePath(workspace.job.id)
+          reportPath: report ? `/reports/${asString(report.public_report_code, asString(report.id))}` : getCandidateListRoutePath(workspace.job.id),
+          evidenceCounts: evidenceSummary.counts,
+          evidenceReviewGroup: evidenceSummary.reviewGroup,
+          criterionStatuses: evidenceSummary.items.map((item) => ({ criteriaId: item.criteriaId, requirement: item.requirement, status: item.criterionStatus! }))
         };
       });
 
@@ -559,7 +602,7 @@ export function createSupabaseHiringRepository(client: SupabaseClient, env?: Sup
       if (!reportData) return undefined;
 
       const report = reportData as DbRecord;
-      const [companyResult, candidateResult, applicationResult, jobResult, evidenceResult, documentResult, decisionResult, auditResult] =
+      const [companyResult, candidateResult, applicationResult, jobResult, evidenceResult, documentResult, parsedCvResult, decisionResult, auditResult] =
         await Promise.all([
           client.from("companies").select("*").eq("id", companyId).maybeSingle(),
           client.from("candidates").select("*").eq("company_id", companyId).eq("id", asString(report.candidate_id)).maybeSingle(),
@@ -572,6 +615,7 @@ export function createSupabaseHiringRepository(client: SupabaseClient, env?: Sup
           client.from("job_roles").select("*").eq("company_id", companyId).eq("id", asString(report.job_id)).maybeSingle(),
           client.from("evidence_items").select("*").eq("company_id", companyId).eq("report_id", asString(report.id)),
           client.from("uploaded_documents").select("*").eq("company_id", companyId).eq("application_id", asString(report.application_id)),
+          client.from("parsed_cvs").select("application_id,extracted_name,created_at").eq("company_id", companyId).eq("application_id", asString(report.application_id)).order("created_at", { ascending: false }).limit(1).maybeSingle(),
           client
             .from("human_review_decisions")
             .select("*")
@@ -596,6 +640,7 @@ export function createSupabaseHiringRepository(client: SupabaseClient, env?: Sup
         jobResult,
         evidenceResult,
         documentResult,
+        parsedCvResult,
         decisionResult,
         auditResult
       ]) {
@@ -604,6 +649,10 @@ export function createSupabaseHiringRepository(client: SupabaseClient, env?: Sup
 
       const decision = decisionResult.data as DbRecord | null;
 
+      const evidenceSummary = summarizeEvidence(asArray<DbRecord>(evidenceResult.data).map(mapEvidenceItem));
+      const candidateRow = requireData(candidateResult.data as DbRecord | null, "Candidate not found");
+      const parsedName = asString((parsedCvResult.data as DbRecord | null)?.extracted_name);
+      const mappedCandidate = mapCandidate(candidateRow, parsedName);
       return {
         id: asString(report.id),
         reportId: asString(report.public_report_code, asString(report.id)),
@@ -613,15 +662,22 @@ export function createSupabaseHiringRepository(client: SupabaseClient, env?: Sup
           status: asString((companyResult.data as DbRecord | null)?.status, "active") as "active",
           createdAt: asString((companyResult.data as DbRecord | null)?.created_at)
         },
-        candidate: mapCandidate(requireData(candidateResult.data as DbRecord | null, "Candidate not found")),
+        candidate: mappedCandidate,
         application: mapApplication(requireData(applicationResult.data as DbRecord | null, "Application not found")),
         jobRole: mapJobRole(requireData(jobResult.data as DbRecord | null, "Job role not found")),
         status: asString(report.status, "Human review required") as EvidenceReport["status"],
         generatedAt: asString(report.generated_at),
-        evidenceSummary: asArray<SummaryMetric>(report.evidence_summary),
-        requirementEvidence: asArray<DbRecord>(evidenceResult.data).map(mapEvidenceItem),
-        missingEvidence: asArray<string>(report.missing_evidence),
-        verificationNeeded: asArray<string>(report.verification_needed),
+        evidenceSummary: evidenceSummary.summaryCards,
+        evidenceCounts: evidenceSummary.counts,
+        evidenceReviewGroup: evidenceSummary.reviewGroup,
+        requirementEvidence: evidenceSummary.items,
+        missingEvidence: Array.from(new Set([
+          ...asArray<string>(report.missing_evidence),
+          ...evidenceSummary.items.filter((item) => item.criterionStatus === "missing").map((item) => item.requirement)
+        ])),
+        verificationNeeded: asArray<string>(report.verification_needed).length > 0
+          ? asArray<string>(report.verification_needed)
+          : evidenceSummary.items.filter((item) => item.verificationNeeded.trim() && item.verificationNeeded.trim().toLowerCase() !== "none").map((item) => `${item.requirement}: ${item.verificationNeeded}`),
         suggestedInterviewQuestions: asArray<string>(report.suggested_interview_questions),
         recruiterNotes: asArray<string>(report.recruiter_notes),
         documentSources: asArray<DbRecord>(documentResult.data).map(mapUploadedDocument),

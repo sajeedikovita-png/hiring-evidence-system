@@ -72,8 +72,11 @@ export type Candidate = {
   name: string;
   email?: string;
   source: "bulk_upload" | "application_link" | "manual";
+  nameSource?: CandidateNameSource;
   createdAt: string;
 };
+
+export type CandidateNameSource = "recorded" | "parsed_cv" | "filename" | "unavailable";
 
 export type Application = {
   id: string;
@@ -159,7 +162,19 @@ export type EvidenceItem = {
   confidence: "High" | "Medium" | "Low" | "None";
   verificationNeeded: string;
   status: StatusBadge;
+  criterionStatus?: EvidenceCriterionStatus;
 };
+
+export type EvidenceCriterionStatus = "found" | "needs_verification" | "missing";
+
+export type EvidenceCounts = {
+  found: number;
+  needsVerification: number;
+  missing: number;
+  total: number;
+};
+
+export type EvidenceReviewGroup = "All evidence found" | "Verification needed" | "Missing evidence" | "No criterion evidence";
 
 export type FairnessCheck = {
   status: string;
@@ -181,6 +196,8 @@ export type CandidateReport = {
   evidenceLevel: EvidenceLevel;
   fairness: FairnessCheck;
   summaryCards: SummaryMetric[];
+  evidenceCounts?: EvidenceCounts;
+  evidenceReviewGroup?: EvidenceReviewGroup;
   missingEvidence: string[];
   interviewQuestions: string[];
   recruiterNotes: string[];
@@ -197,6 +214,8 @@ export type EvidenceReport = {
   status: "Evidence report ready" | "Human review required" | "Decision pending" | "Recruiter decision recorded";
   generatedAt: string;
   evidenceSummary: SummaryMetric[];
+  evidenceCounts: EvidenceCounts;
+  evidenceReviewGroup: EvidenceReviewGroup;
   requirementEvidence: EvidenceItem[];
   missingEvidence: string[];
   verificationNeeded: string[];
@@ -288,6 +307,7 @@ export type JobCandidateRow = {
   documentId?: string;
   hasReport?: boolean;
   candidateName: string;
+  candidateNameSource: CandidateNameSource;
   applicationId: string;
   evidenceLevel: EvidenceLevel;
   reportStatus: StatusBadge;
@@ -295,6 +315,9 @@ export type JobCandidateRow = {
   uploadedFile: string;
   updatedAt: string;
   reportPath: string;
+  evidenceCounts: EvidenceCounts;
+  evidenceReviewGroup: EvidenceReviewGroup;
+  criterionStatuses: Array<{ criteriaId: string; requirement: string; status: EvidenceCriterionStatus }>;
 };
 
 export type CandidateReportViewModel = {
@@ -303,6 +326,8 @@ export type CandidateReportViewModel = {
   application: Application;
   report: CandidateReport;
   summaryCards: SummaryMetric[];
+  evidenceCounts: EvidenceCounts;
+  evidenceReviewGroup: EvidenceReviewGroup;
   evidenceRows: EvidenceItem[];
   missingEvidence: string[];
   interviewQuestions: string[];
@@ -374,6 +399,7 @@ export type ReviewQueueItem = {
 
 export type JobRow = {
   id: string;
+  status?: JobRole["status"];
   title: string;
   department: string;
   candidates: string;

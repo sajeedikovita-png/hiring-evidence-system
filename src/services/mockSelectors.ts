@@ -29,6 +29,7 @@ import type {
   ReviewQueueItem,
   StatusBadge
 } from "../types/hiring";
+import { summarizeEvidence } from "./evidenceSummaryService";
 import { validateUploadFile } from "./uploadService";
 
 const privacyConfirmationText =
@@ -200,6 +201,7 @@ export function getCandidateReport(reportId = "report-amanda-lee"): CandidateRep
   const consent = candidateConsents.find((item) => item.id === application.consentId);
   const document = candidateDocuments.find((item) => item.applicationId === application.id);
   const decisionDraft = reviewDecisions.find((item) => item.reportId === report.id && item.status === "draft");
+  const evidenceSummary = summarizeEvidence(getEvidenceItemsForApplication(application.id));
 
   return {
     candidate: {
@@ -219,9 +221,14 @@ export function getCandidateReport(reportId = "report-amanda-lee"): CandidateRep
     job,
     application,
     report,
-    summaryCards: report.summaryCards,
-    evidenceRows: getEvidenceItemsForApplication(application.id),
-    missingEvidence: report.missingEvidence,
+      summaryCards: evidenceSummary.summaryCards,
+      evidenceCounts: evidenceSummary.counts,
+      evidenceReviewGroup: evidenceSummary.reviewGroup,
+      evidenceRows: evidenceSummary.items,
+      missingEvidence: Array.from(new Set([
+        ...report.missingEvidence,
+        ...evidenceSummary.items.filter((item) => item.criterionStatus === "missing").map((item) => item.requirement)
+      ])),
     interviewQuestions: report.interviewQuestions,
     fairness: report.fairness,
     recruiterNotes: report.recruiterNotes,
@@ -240,8 +247,9 @@ export function getJobCandidateList(jobId = "job-frontend-developer"): JobCandid
       const application = applications.find((item) => item.id === file.applicationId);
       const report = candidateReports.find((item) => item.applicationId === file.applicationId);
       const candidate = candidates.find((item) => item.id === file.candidateId);
+      const evidenceSummary = report ? summarizeEvidence(getEvidenceItemsForApplication(report.applicationId)) : summarizeEvidence([]);
       const evidenceLevel: EvidenceLevel =
-        report?.evidenceLevel ??
+        report ? evidenceSummary.evidenceLevel :
         (file.evidenceReportStatus === "Failed"
           ? "Report failed"
           : file.evidenceReportStatus === "Needs manual review"
@@ -250,7 +258,8 @@ export function getJobCandidateList(jobId = "job-frontend-developer"): JobCandid
 
       return {
         id: file.id,
-        candidateName: candidate?.name ?? file.candidateName ?? "Candidate name not detected",
+        candidateName: candidate?.name ?? (file.fileName ? `Filename: ${file.fileName}` : file.candidateName ?? "Name not recorded"),
+        candidateNameSource: candidate?.name && candidate.name !== "Name not recorded" ? "recorded" : "filename",
         applicationId: application?.id ?? file.applicationId ?? "",
         evidenceLevel,
         reportStatus: {
@@ -268,7 +277,10 @@ export function getJobCandidateList(jobId = "job-frontend-developer"): JobCandid
         },
         uploadedFile: file.fileName,
         updatedAt: formatDateLabel(file.createdAt),
-        reportPath: getReportPath(report)
+        reportPath: getReportPath(report),
+        evidenceCounts: evidenceSummary.counts,
+        evidenceReviewGroup: evidenceSummary.reviewGroup,
+        criterionStatuses: evidenceSummary.items.map((item) => ({ criteriaId: item.criteriaId, requirement: item.requirement, status: item.criterionStatus! }))
       };
     });
 

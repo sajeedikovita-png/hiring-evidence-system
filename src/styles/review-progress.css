@@ -1,0 +1,11 @@
+.review-progress { margin: 0 0 24px; }
+.review-progress ol { list-style: none; display: flex; flex-wrap: wrap; gap: 12px; padding: 0; }
+.review-progress li { display: flex; align-items: center; gap: 8px; padding: 10px 14px; color: #555; border: 1px solid #d5d9d7; border-radius: 6px; }
+.review-progress li[aria-current="step"] { background: #183c38; color: white; border-color: #183c38; font-weight: 700; }
+.review-progress li span { font-weight: 700; }
+.next-task { border-left: 4px solid #183c38; padding: 18px 22px; margin-bottom: 22px; background: #f2f5f1; }
+.next-task h2 { margin: 4px 0 10px; }
+.next-task p { line-height: 1.6; }
+.manual-review-option { margin-top: 24px; }
+.manual-review-option summary { cursor: pointer; padding: 16px 0; font-weight: 700; }
+.selected-resumes { padding: 14px; background: #f2f5f1; margin: 12px 0; }

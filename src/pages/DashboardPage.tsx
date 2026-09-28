@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Badge } from "../../components/ui/Badge";
-import { Button } from "../../components/ui/Button";
 import { DataTable } from "../../components/ui/DataTable";
 import { DevelopmentConnectionStatusPanel } from "../components/dev/DevelopmentConnectionStatusPanel";
 import { RecruiterShell } from "../components/layout/RecruiterShell";
@@ -72,7 +71,6 @@ export function DashboardPage() {
         active="dashboard"
         title="Dashboard"
         subtitle="Review queue, evidence status, and decision sign-off work for hiring teams."
-        primaryAction="New report"
         reviewerName={reviewerName}
         showAccessRequests={isAdmin}
       >
@@ -95,7 +93,6 @@ export function DashboardPage() {
       active="dashboard"
       title="Dashboard"
       subtitle="Review queue, evidence status, and decision sign-off work for hiring teams."
-      primaryAction="New report"
       reviewerName={dashboard.activeReviewerName}
       showAccessRequests={isAdmin}
     >
@@ -107,12 +104,14 @@ export function DashboardPage() {
             <h2>{dashboard.introCount} candidate reports need recruiter review today.</h2>
             <p>Review the job-related evidence and verify any missing information before recording a decision.</p>
           </div>
-          <Link className="button button-secondary" to={dashboard.reviewQueue[0]?.reportPath ?? "/dashboard"}>
-            Open sample report
+          <Link className="button button-primary" to={dashboard.reviewQueue[0]?.reportPath ?? dashboard.recentJobs[0]?.candidateListPath ?? "/jobs"}>
+            {dashboard.reviewQueue.length ? "Review next report" : dashboard.recentJobs.length ? "Continue with your job" : "Create your first job"}
           </Link>
-          <Link className="button button-primary" to="/pilot-access">Pilot access</Link>
+          <Link className="button button-secondary" to="/pilot-access">Pilot access</Link>
         </section>
 
+        <section className="next-task"><p className="section-kicker">Team workflow</p><h2>Make ownership and the next action visible</h2><p>See which reviewer owns each candidate, what they need to do next, when it is due, and who recorded earlier workflow changes.</p><Link className="button button-primary" to="/workflow">Open team workflow</Link></section>
+        <section className="next-task"><p className="section-kicker">How to start</p><h2>Turn a CV into an evidence report</h2><p>Choose a job and confirm its requirements. Upload a CV, check the extracted text, then generate and review the evidence report. Your team makes the decision and records the reason.</p><Link className="button button-secondary" to={dashboard.recentJobs.length === 1 && dashboard.recentJobs[0].status !== "closed" ? dashboard.recentJobs[0].uploadPath : "/jobs"}>{dashboard.recentJobs.length === 1 && dashboard.recentJobs[0].status !== "closed" ? `Upload a CV for ${dashboard.recentJobs[0].title}` : "Choose or create a job"}</Link></section>
         <section className="dashboard-metrics">
           {dashboard.metrics.map((metric) => (
             <article className="metric-card" key={metric.label}>
@@ -151,7 +150,7 @@ export function DashboardPage() {
             <p className="section-kicker">Decisions needing sign-off</p>
             <h2>{dashboard.metrics.find((metric) => metric.label === "Decisions needing sign-off")?.value ?? "0"}</h2>
             <p className="muted">Decision reason required before candidate status is finalized.</p>
-            <Button>Review decisions</Button>
+            <Link className="button button-secondary" to="/jobs">Choose a job to review</Link>
           </section>
         </div>
 
@@ -161,7 +160,7 @@ export function DashboardPage() {
               <p className="section-kicker">Recent jobs</p>
               <h2>Evidence status by role</h2>
             </div>
-            <Button variant="secondary">Create job</Button>
+            <Link className="button button-secondary" to="/jobs">Manage jobs</Link>
           </div>
           <DataTable
             caption="Recent jobs table"
@@ -180,7 +179,7 @@ export function DashboardPage() {
               lastUpdated: (
                 <span className="table-action-group">
                   <span>{job.lastUpdated}</span>
-                  <Link className="table-link" to={job.uploadPath}>Upload candidates</Link>
+                  {job.status === "closed" ? <span className="muted">Closed role</span> : <Link className="table-link" to={job.uploadPath}>Upload candidates</Link>}
                 </span>
               )
             }))}

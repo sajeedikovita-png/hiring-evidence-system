@@ -1,0 +1,25 @@
+import assert from "node:assert/strict";
+import React from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { CandidateInterviewPanel, CandidateInterviewRecord, interviewUnresolvedItems, interviewPlannedAt } from "../src/components/workflow/CandidateInterviewPanel";
+import type { CandidateInterviewItem } from "../src/services/candidateInterviewService";
+const item: CandidateInterviewItem = { id:"item",applicationId:"app",criterionId:"criterion",criterionSnapshot:{id:"criterion",label:"Payment integration",description:"Original saved requirement",priority:"required"},question:"Which parts did you deliver?",candidateAnswer:"",reviewerObservation:"<script>unsafe</script>",sourceReference:"",verificationState:"not_checked",authorProfileId:"author",authorName:"Sam",updatedByProfileId:"editor",updatedByName:"Lee",version:1,createdAt:"2026-09-19T01:00:00Z",updatedAt:"2026-09-19T01:00:00Z"};
+const record=renderToStaticMarkup(<CandidateInterviewRecord item={item}/>);
+assert.match(record,/Original saved requirement/);
+assert.match(record,/No answer recorded/);
+assert.match(record,/No source recorded/);
+assert.match(record,/Added by Sam/);
+assert.match(record,/&lt;script&gt;unsafe/);
+assert.doesNotMatch(record,/<script>/);
+assert.doesNotMatch(record,/Edited by/);
+assert.match(renderToStaticMarkup(<CandidateInterviewRecord item={{...item,version:2}}/>),/Edited by Lee/);
+assert.equal(interviewUnresolvedItems([item,{...item,id:"explained",verificationState:"candidate_explained",candidateAnswer:"I delivered the API."},{...item,id:"sourced",verificationState:"supporting_evidence_added",sourceReference:"Reference call"}]).length,2,"Explanations remain outstanding until supporting evidence is recorded");
+const panel=renderToStaticMarkup(<CandidateInterviewPanel applicationId="app" candidateName="Alex"/>);
+assert.match(panel,/Interview &amp; verification/);
+assert.match(panel,/excluded from client summaries and shared reports/);
+assert.match(panel,/Loading interview workspace/);
+assert.doesNotMatch(panel,/<textarea/);
+assert.equal(interviewPlannedAt(""),null);
+const timezone=process.env.TZ;
+try {process.env.TZ="Australia/Sydney";assert.throws(()=>interviewPlannedAt("2026-10-04T02:30"),/valid local interview time/);assert.equal(interviewPlannedAt("2026-10-04T03:30"),"2026-10-03T16:30:00.000Z");process.env.TZ="Asia/Singapore";assert.equal(interviewPlannedAt("2026-10-04T02:30"),"2026-10-03T18:30:00.000Z");}finally{if(timezone===undefined)delete process.env.TZ;else process.env.TZ=timezone;}
+console.log("Candidate interview render tests passed");

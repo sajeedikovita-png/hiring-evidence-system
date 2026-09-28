@@ -1,10 +1,11 @@
 import assert from "node:assert/strict";
-import { buildSafeDiagnosticsPreview, createSupportRepository, getPageHelp, validateSupportIssue } from "../src/services/supportService";
+import { buildSafeDiagnosticsPreview, createSupportRepository, getPageHelp, shortGuideGreeting, shortGuideWorkspaceAnswer, validateSupportIssue } from "../src/services/supportService";
 
 const diagnostics = buildSafeDiagnosticsPreview({ pathname: "/jobs/123?token=secret", pageTitle: "Jobs", repositorySource: "supabase", workspaceRole: "admin" });
 assert.deepEqual(diagnostics, { page: "/jobs/123", pageTitle: "Jobs", repositorySource: "supabase", workspaceRole: "admin" });
 assert.equal(JSON.stringify(diagnostics).includes("secret"), false);
 assert.equal(getPageHelp("privacy").tips[0].includes("request"), true);
+assert.equal(getPageHelp("clients").title, "Agency clients and role context");
 assert.equal(validateSupportIssue({ summary: "", details: "x", type: "problem", severity: "low", affectedPage: "/jobs" }), "Add a short summary.");
 
 const calls: Array<{ name: string; args?: Record<string, unknown> }> = [];
@@ -25,6 +26,20 @@ const repository = createSupportRepository({
 });
 
 async function run() {
+  assert.equal(shortGuideGreeting("Hi!"), "Hello. How can I help you with Hiring Evidence?");
+  assert.equal(shortGuideGreeting("How do I create a role?"), undefined);
+  assert.match(shortGuideWorkspaceAnswer("Why was my second role blocked?", "/pilot-access") ?? "", /1 of 1 used/);
+  assert.equal(shortGuideWorkspaceAnswer("How do I create a role?", "/jobs"), undefined);
+  const greeting = await repository.askQuestion({ message: "Good morning", pageTitle: "Jobs" });
+  assert.equal(greeting.answer, "Hello. How can I help you with Hiring Evidence?");
+  assert.equal(greeting.escalated, false);
+  assert.equal(calls.length, 0, "A greeting must not create a support conversation or escalation");
+
+  const roleLimit = await repository.askQuestion({ message: "Why was my second role blocked?", pageTitle: "Pilot access", pagePath: "/pilot-access" });
+  assert.match(roleLimit.answer, /active-role allowance is full/);
+  assert.equal(roleLimit.escalated, false);
+  assert.equal(calls.length, 0, "An account-limit explanation must not create a support conversation or escalation");
+
   const issue = await repository.createIssue({ summary: "Slow page", details: "Jobs did not load", type: "problem", severity: "high", affectedPage: "/jobs" });
   assert.equal(issue.issueId, "issue-1");
   assert.equal(calls[0]?.name, "submit-support-issue");

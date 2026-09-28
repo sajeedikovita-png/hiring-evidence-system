@@ -42,6 +42,13 @@ export function createWorkspaceAccessGeneration(): WorkspaceAccessGeneration {
   };
 }
 
+/** Same-user token rotation must not cancel an in-flight check or its timeout. */
+export function handleWorkspaceAuthEvent(event: string, generation: WorkspaceAccessGeneration): "ignore" | "deny" | "refresh" {
+  if (event === "INITIAL_SESSION" || event === "TOKEN_REFRESHED") return "ignore";
+  generation.invalidate();
+  return event === "SIGNED_OUT" ? "deny" : "refresh";
+}
+
 type AccessRecord = Record<string, unknown>;
 
 function text(value: unknown): string {

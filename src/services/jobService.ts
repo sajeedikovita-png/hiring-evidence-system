@@ -32,8 +32,27 @@ export async function createJobWithCriteria(client: SupabaseClient, input: Creat
       priority: criterion.priority
     }))
   });
-  if (error || !data || typeof data !== "object" || !(data as { job_id?: string }).job_id) {
+  if (error) {
+    if (error.message.includes("PILOT_JOB_LIMIT")) throw new Error("Your active-role limit is reached. Close an existing role or review your current allowance in Pilot access before creating another role.");
+    if (error.message.includes("PILOT_EXPIRED")) throw new Error("Renew workspace access before creating another role.");
+    if (error.message.includes("JOB_MANAGEMENT_ACCESS_REQUIRED")) throw new Error("Only a company administrator or recruiter can create roles.");
     throw new Error("Unable to create job role.");
   }
+  if (!data || typeof data !== "object" || !(data as { job_id?: string }).job_id) throw new Error("Unable to create job role.");
   return { jobId: (data as { job_id: string }).job_id };
+}
+
+export async function updateJobRoleStatus(
+  client: Pick<SupabaseClient, "rpc">,
+  input: { jobId: string; status: "open" | "closed" }
+): Promise<{ jobId: string; status: "open" | "closed" }> {
+  const { data, error } = await client.rpc("update_job_role_status", { p_job_id: input.jobId, p_status: input.status });
+  if (error) {
+    if (error.message.includes("PILOT_JOB_LIMIT")) throw new Error("Your active-role limit is reached. Close another role before reopening this one.");
+    if (error.message.includes("PILOT_EXPIRED")) throw new Error("Renew workspace access before changing a job's status.");
+    if (error.message.includes("JOB_MANAGEMENT_ACCESS_REQUIRED")) throw new Error("Only a company administrator or recruiter can close or reopen roles.");
+    throw new Error("Unable to update this job's status.");
+  }
+  if (!data || typeof data !== "object" || typeof data.jobId !== "string" || (data.status !== "open" && data.status !== "closed")) throw new Error("Job status response was invalid.");
+  return { jobId: data.jobId, status: data.status };
 }

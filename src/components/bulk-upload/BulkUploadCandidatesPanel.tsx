@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { ReviewProgress } from "../report/ReviewProgress";
 import UploadCloud from "lucide-react/dist/esm/icons/upload-cloud.js";
 import { Badge } from "../../../components/ui/Badge";
 import { Button } from "../../../components/ui/Button";
@@ -57,6 +58,8 @@ export function BulkUploadCandidatesPanel({ workspace, onUploadFiles }: BulkUplo
 
   return (
     <section className="workspace-card bulk-upload-panel">
+      <ReviewProgress step={1} />
+      <div className="next-task"><p className="section-kicker">Your next step</p><h2>{selectedFiles.length ? "Confirm and upload your selected CVs" : files.length ? "Continue with an uploaded CV" : "Choose a CV to begin"}</h2><p>{files.length && !selectedFiles.length ? "Select Prepare evidence report beside an uploaded file below. You will check its text before choosing whether to use AI." : "Choose or drag a PDF or DOCX into the box below. Check the selected filenames, confirm your organisation is authorised to upload them, then select Upload candidates."}</p></div>
       <div className="section-heading-row">
         <div>
           <p className="section-kicker">Bulk Upload Candidates</p>
@@ -84,6 +87,7 @@ export function BulkUploadCandidatesPanel({ workspace, onUploadFiles }: BulkUplo
         />
       </label>
 
+      <div className="selected-resumes" role="status">{selectedFiles.length ? <><strong>{selectedFiles.length} file(s) selected — ready to upload</strong><ul>{selectedFiles.map((file, index) => <li key={`${file.name}-${index}`}>{file.name} ({Math.ceil(file.size / 1024)} KB)</li>)}</ul></> : "No files selected. Choose a file or drag it into the box above."}</div>
       <label className="privacy-confirmation">
         <input
           type="checkbox"
@@ -106,7 +110,7 @@ export function BulkUploadCandidatesPanel({ workspace, onUploadFiles }: BulkUplo
           <strong>{files.length}</strong>
         </div>
         <div>
-          <span>Ready for manual review</span>
+          <span>Uploaded successfully</span>
           <strong>{readyForManualReview}</strong>
         </div>
         <div>
@@ -118,7 +122,7 @@ export function BulkUploadCandidatesPanel({ workspace, onUploadFiles }: BulkUplo
       <section className="uploaded-files-section">
         <div className="section-heading-row">
           <div>
-            <p className="section-kicker">Manual review queue</p>
+            <p className="section-kicker">Continue your review</p>
             <h2>Uploaded files</h2>
           </div>
           <Badge tone="warning">Human review required</Badge>
@@ -143,7 +147,7 @@ export function BulkUploadCandidatesPanel({ workspace, onUploadFiles }: BulkUplo
               file.evidenceReportStatus === "Report ready" && file.reportPath ? (
                 <Link className="table-link" to={file.reportPath}>View report</Link>
               ) : file.status !== "Failed" ? (
-                <Link className="table-link" to={`/jobs/${workspace.job.id}/candidates/${file.id}/manual-review`}>Review source</Link>
+                <Link className="table-link" to={`/jobs/${workspace.job.id}/candidates/${file.id}/manual-review`}>Prepare evidence report</Link>
               ) : (
                 <span className="muted">Upload failed</span>
               )

@@ -115,13 +115,13 @@ export function BulkUploadCandidatesPage() {
       <main className="workspace-content">
         <DevelopmentConnectionStatusPanel status={connectionStatus} />
         <p><Link className="button button-secondary" to={candidateListPath}>Back to candidates</Link></p>
-        <BulkUploadCandidatesPanel
+        {workspace.job.status === "closed" ? <section className="workspace-card"><h2>This role is closed</h2><p>New uploads are paused. Existing candidate records and reports remain available. Reopen this role from Jobs when you have an active-role place available.</p><Link className="button button-secondary" to="/jobs">Manage roles</Link></section> : <BulkUploadCandidatesPanel
           workspace={workspace}
           onUploadFiles={async (files) => {
             await uploadPrivateCandidateDocuments({ client: createHiringSupabaseClient(), jobId, files, uploaderAttestation: true });
             await refreshWorkspace();
           }}
-        />
+        />}
       </main>
     </RecruiterShell>
   );

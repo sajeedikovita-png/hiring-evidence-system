@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from "react";
+import { confirmFoundingPayment } from "../services/foundingPriceService";
+import { loadAdminAccessWorkspace, type CompanyAccessOption } from "../services/accessApprovalService";
 import { RecruiterShell } from "../components/layout/RecruiterShell";
 import {
   listOngoingAccessRequests,
@@ -7,6 +9,11 @@ import {
 } from "../services/pilotLifecycleService";
 
 export function AdminPaidAccessRequestsPage() {
+  const [companies, setCompanies] = useState<CompanyAccessOption[]>([]);
+  const [paidCompany, setPaidCompany] = useState("");
+  const [paidDate, setPaidDate] = useState("");
+  const [paymentReference, setPaymentReference] = useState("");
+  const [paymentVerified, setPaymentVerified] = useState(false);
   const [requests, setRequests] = useState<PlatformOngoingAccessRequest[]>([]);
   const [notes, setNotes] = useState<Record<string, string>>({});
   const [confirmed, setConfirmed] = useState<Record<string, boolean>>({});
@@ -37,9 +44,32 @@ export function AdminPaidAccessRequestsPage() {
     } finally { setActiveId(""); }
   }
 
+  async function recordFoundingPayment(event: React.FormEvent) {
+    event.preventDefault();
+    if (!paymentVerified) return;
+    setActiveId("founding-payment");
+    try {
+      const result = await confirmFoundingPayment({ companyId: paidCompany, paidAt: new Date(paidDate).toISOString(), paymentReference });
+      setMessage(`Founding place ${result.founderSlot} recorded. Price protected until ${new Date(result.priceLockEndsAt).toLocaleDateString("en-SG")}. No payment was collected by this form.`);
+      setPaymentReference(""); setPaymentVerified(false);
+    } catch (error) { setMessage(error instanceof Error ? error.message : "Payment confirmation could not be recorded."); }
+    finally { setActiveId(""); }
+  }
+
   return <RecruiterShell active="paid-access" title="Ongoing access requests" subtitle="A platform administrator records each payment agreement and decision." reviewerName="Platform administrator" showAccessRequests>
     <main className="workspace-content pilot-access-page">
       {message ? <p className="workspace-status" role="status">{message}</p> : null}
+      <section className="workspace-card">
+        <p className="section-kicker">First five paying companies</p><h2>Record verified founding payment</h2>
+        <p>For companies on the new S$149 plan only. Verify a received payment before recording its reference. Eligibility and the 12-month price protection are checked by the server. This form does not collect money or change an existing agreement.</p>
+        <form className="login-form" onSubmit={(event) => void recordFoundingPayment(event)}>
+          <label>Company<select required value={paidCompany} onChange={(event) => setPaidCompany(event.currentTarget.value)}><option value="">Select a company</option>{companies.map((company) => <option key={company.id} value={company.id}>{company.name}</option>)}</select></label>
+          <label>Payment received (local time)<input type="datetime-local" required value={paidDate} onChange={(event) => setPaidDate(event.currentTarget.value)} /></label>
+          <label>Payment reference<input required maxLength={200} value={paymentReference} onChange={(event) => setPaymentReference(event.currentTarget.value)} placeholder="Invoice or transaction reference; no bank credentials" /></label>
+          <label className="checkbox-row"><input type="checkbox" checked={paymentVerified} onChange={(event) => setPaymentVerified(event.currentTarget.checked)} /><span>I verified receipt of the payment for this company.</span></label>
+          <button className="button button-primary" disabled={!paymentVerified || Boolean(activeId)}>Record founding eligibility</button>
+        </form>
+      </section>
       <section className="access-request-grid" aria-label="Ongoing access requests">
         {requests.map((request) => {
           const isPending = request.status === "pending";

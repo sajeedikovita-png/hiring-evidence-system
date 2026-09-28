@@ -5,21 +5,21 @@ import { getDemoTestLabViewModel } from "../services/demoTestLabService";
 
 const slides = [
   {
-    kicker: "Why this exists",
-    title: "Hiring reviews need evidence people can explain.",
-    body: "Recruiters need to see job-related evidence, missing proof, and verification questions before writing human decision notes.",
-    proof: "AI assists. Human decides. Evidence explains."
+    kicker: "The connection",
+    title: "Connect the client brief to evidence in each profile.",
+    body: "Hiring Evidence keeps every specific role requirement beside source-linked candidate evidence, missing proof, and the next verification question.",
+    proof: "From client requirement to evidence the hiring company can inspect."
   },
   {
-    kicker: "Controlled test set",
-    title: "We start with 60 synthetic resumes.",
-    body: "The resumes are grouped into known scenarios, so the demo can show whether the system behaves as expected.",
-    proof: "Strong evidence, missing evidence, wrong-role, incomplete, unreadable, and verification-needed cases."
+    kicker: "Recruiter value",
+    title: "Present focused profiles with a clear reason.",
+    body: "Instead of a general CV handoff, show how the job-related evidence connects to the brief and what still needs checking.",
+    proof: "A stronger, more transparent client conversation."
   },
   {
-    kicker: "Evidence grouping",
+    kicker: "Evidence connection",
     title: "The system shows evidence found and evidence missing.",
-    body: "Each resume receives an evidence group and a report status. Recruiters can inspect the reason instead of trusting a black box.",
+    body: "Every finding stays connected to a role requirement and its candidate source. Recruiters can inspect the reason instead of trusting a black box.",
     proof: "Good evidence, verification needed. Human review required."
   },
   {
@@ -29,16 +29,16 @@ const slides = [
     proof: "Decision reason required."
   },
   {
-    kicker: "Pilot proof",
-    title: "The demo proves the workflow, not a hiring outcome.",
-    body: "The result is a controlled product demonstration: what was expected, what was observed, and where a recruiter must verify.",
+    kicker: "Client confidence",
+    title: "The hiring company can inspect the basis for review.",
+    body: "The report makes supporting evidence, uncertain claims, and open questions visible before the company makes its own decision.",
     proof: "Evidence report ready. Human review required."
   },
   {
     kicker: "Next pilot step",
-    title: "Use one company, one role, one review workflow.",
-    body: "A real pilot can replace the synthetic set with controlled customer data after privacy, consent, and upload storage are ready.",
-    proof: "Start small, measure understanding, improve the workflow."
+    title: "Start with a free conversation, then S$149 per 30-day term.",
+    body: "Including the first paid term: two active roles, 50 new candidate documents per term, and two users. One initial 30-minute setup session and email support are included. Renew manually, with no annual contract or mandatory setup fee.",
+    proof: "Company-specific development requires a separate written quote."
   }
 ];
 
@@ -65,12 +65,19 @@ export function DemoPresentationPage() {
       <main>
         <section className="presentation-stage">
           <div className="presentation-copy">
-            <p className="section-kicker">Pilot Demo Slideshow</p>
-            <h1>Show the product story in 6 clicks.</h1>
+            <p className="section-kicker">Product discovery</p>
+            <h1>Show the recruiter-to-client value in 6 clicks.</h1>
             <p>
-              This is the page you can put in front of someone. It explains the product visually, then opens the practical
-              60-resume demo and sample evidence report.
+              See how a specific company requirement stays connected to candidate evidence, a focused recruiter handoff,
+              and the hiring company&apos;s final human decision. Keep your existing recruiting software; upload
+              documents here separately for evidence review. A direct connection to your recruiting platform is not included.
             </p>
+            <ol className="presentation-connection-flow" aria-label="Client requirement to human decision">
+              <li><span>01</span><strong>Client requirement</strong></li>
+              <li><span>02</span><strong>Candidate evidence</strong></li>
+              <li><span>03</span><strong>Recruiter handoff</strong></li>
+              <li><span>04</span><strong>Human decision</strong></li>
+            </ol>
             <div className="hero-actions">
               <a className="button button-primary" href="/demo-test-lab">
                 Open practical demo

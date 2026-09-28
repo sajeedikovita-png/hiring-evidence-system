@@ -45,6 +45,7 @@ export type SupportRepository = {
 const pageHelp: Record<string, { title: string; tips: string[] }> = {
   dashboard: { title: "Your review workspace", tips: ["Use the queue to open reports that need human review.", "Evidence summaries are prompts for verification; record a reason for every decision."] },
   candidates: { title: "Jobs and candidates", tips: ["Create one role with specific, observable requirements before uploading candidate documents.", "Missing evidence should be verified before a decision is recorded."] },
+  clients: { title: "Agency clients and role context", tips: ["Client records stay inside your agency’s existing company workspace.", "Assign an active client to a role only when the role is being managed for that client."] },
   privacy: { title: "Privacy and data", tips: ["Submit a request for a specific candidate and describe what you need.", "A recorded request starts a human review process; it does not itself export or erase data."] },
   pilot: { title: "Pilot access", tips: ["Review the current access term and account rules here.", "Contact support if the access details do not match your agreement."] },
   reports: { title: "Evidence reports", tips: ["Read the evidence and verification notes together.", "The hiring team remains responsible for the final decision."] },
@@ -65,6 +66,20 @@ export function validateSupportIssue(input: SupportIssueInput): string | undefin
   if (!input.affectedPage.trim()) return "Affected page is required.";
   if (input.summary.trim().length > 180 || input.details.trim().length > 4000) return "Keep the summary under 180 characters and the details under 4,000 characters.";
   return undefined;
+}
+
+export function shortGuideGreeting(message: string): string | undefined {
+  const normalized = message.trim().toLowerCase().replace(/[!.?]+$/g, "").trim();
+  if (!/^(hi|hello|hey|good morning|good afternoon|good evening)$/.test(normalized)) return undefined;
+  return "Hello. How can I help you with Hiring Evidence?";
+}
+
+export function shortGuideWorkspaceAnswer(message: string, pagePath = ""): string | undefined {
+  const normalized = message.trim().toLowerCase();
+  const relevantPage = pagePath === "/pilot-access" || pagePath === "/jobs";
+  const asksAboutRoleAllowance = /\brole(s)?\b/.test(normalized) && /\b(limit|allowance|blocked|second|another)\b/.test(normalized);
+  if (!relevantPage || !asksAboutRoleAllowance) return undefined;
+  return "Use the Roles value shown on Pilot access for this workspace. If it shows 1 of 1 used, the active-role allowance is full, so another role cannot be created until an existing role is closed or an authorised owner changes the access terms. Preserved agreements can differ from current public offers.";
 }
 
 function record(value: unknown): Record<string, unknown> {
@@ -120,8 +135,12 @@ export function createSupportRepository(client: SupportClient): SupportRepositor
     async askQuestion(input) {
       const message = input.message.trim();
       if (!message || message.length > 2000) throw new Error("Enter a question of up to 2,000 characters.");
+      const greeting = shortGuideGreeting(message);
+      if (greeting) return { conversationId: input.conversationId ?? "", answer: greeting, escalated: false };
       const pageTitle = input.pageTitle.trim().slice(0, 120) || "Hiring Evidence workspace";
       const pagePath = (input.pagePath ?? "").split("?")[0].slice(0, 240);
+      const workspaceAnswer = shortGuideWorkspaceAnswer(message, pagePath);
+      if (workspaceAnswer) return { conversationId: input.conversationId ?? "", answer: workspaceAnswer, escalated: false };
       const contextualMessage = `Current page: ${pageTitle}${pagePath ? ` (${pagePath})` : ""}\nCustomer question: ${message}`;
       let conversationId = input.conversationId ?? "";
       let messageId = "";

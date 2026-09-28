@@ -1,5 +1,13 @@
 project_id = "hiring-evidence-system"
 
+[auth.email.template.invite]
+subject = "Your Hiring Evidence workspace invitation"
+content_path = "./supabase/templates/invite.html"
+
+[auth.email.template.recovery]
+subject = "Hiring Evidence password reset"
+content_path = "./supabase/templates/recovery.html"
+
 [functions.request-access]
 verify_jwt = false
 

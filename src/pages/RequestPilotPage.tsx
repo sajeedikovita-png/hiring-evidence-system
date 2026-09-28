@@ -72,16 +72,27 @@ export function RequestPilotPage() {
       <main className="pilot-page">
         <section className="pilot-hero">
           <div className="pilot-hero-copy">
-            <p className="section-kicker">Pilot access</p>
-            <h1>Start a controlled pilot with one role.</h1>
+            <p className="section-kicker">Free first conversation</p>
+            <h1>Bring one role brief. See the evidence workflow before paying.</h1>
             <p>
-              Use Hiring Evidence System to review job-related candidate evidence, missing proof, suggested verification
-              questions, and human decision notes in one recruiter workflow.
+              In a free 15-minute conversation, we will understand your current candidate-to-client handoff and show the
+              complete workflow with fictional information. You can then decide whether a controlled pilot is useful.
             </p>
             <p className="pilot-price-disclosure">
-              Pilot: S$500 one-time for 30 days, one role, up to 50 documents, and two users. Founding ongoing access is
-              S$800 for each of the first three 30-day terms, then the standard price is S$1,400 per term. No charge is made in this form.
+              The first conversation is free. Company access is S$149 per 30-day term, including the first paid pilot
+              term: two active roles, 50 new candidate documents per term, and two named users. No mandatory setup fee,
+              annual contract, automatic renewal, or charge. No payment is taken in this form.
             </p>
+            <div className="pilot-support-inclusions" aria-label="Founder-supported pilot inclusions">
+              <p className="section-kicker">Included with the pilot</p>
+              <ul>
+                <li>One initial 30-minute setup session for role criteria and the review workflow</li>
+                <li>A synthetic-data rehearsal before authorised customer documents are introduced</li>
+                <li>Email support during your active term</li>
+              </ul>
+            </div>
+            <p>The first five paying companies can keep this price for 12 months within the stated scope. We confirm eligibility and the end date in writing before payment. Additional capacity and company-specific development require a separate written quote.</p>
+            <p>Keep your existing recruiting software for sourcing, scheduling, and offers. Upload documents here separately to review the evidence; a direct connection to that software is not included.</p>
             <div className="pilot-trust-row" aria-label="Pilot safeguards">
               <span>Human review required</span>
               <span>Evidence found and evidence missing</span>
@@ -101,8 +112,8 @@ export function RequestPilotPage() {
 
           <form className="pilot-form" onSubmit={handleSubmit}>
             <div>
-              <p className="section-kicker">Request details</p>
-              <h2>Tell us what to prepare for your pilot.</h2>
+              <p className="section-kicker">Conversation request</p>
+              <h2>Tell us which role and handoff problem to discuss.</h2>
             </div>
 
             {submissionStatus === "pending_contact" ? (
@@ -187,11 +198,11 @@ export function RequestPilotPage() {
             </label>
 
             <label>
-              Pilot note
+              What would you like to improve?
               <textarea
                 value={form.note}
                 onChange={(event) => updateField("note", event.currentTarget.value)}
-                placeholder="Share the hiring workflow or evidence review problem you want to test."
+                placeholder="For example: clients ask why a submitted profile fits the role, and our evidence is spread across notes and CVs."
                 rows={4}
               />
             </label>
@@ -201,7 +212,7 @@ export function RequestPilotPage() {
             </p>
 
             <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "Submitting request" : "Request pilot access"}
+              {isSubmitting ? "Submitting request" : "Request the free conversation"}
             </Button>
             <a className="button button-secondary" href="/reports/candidate-evidence">
               View sample report

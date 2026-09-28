@@ -20,6 +20,14 @@ export function canRequestOngoingAccess(lifecycle: PilotLifecycle | undefined) {
   return requestStatus === undefined || requestStatus === "rejected" || requestStatus === "expired" || (lifecycle.state === "expired" && requestStatus === "active");
 }
 
+export function ongoingOfferDescription(lifecycle: PilotLifecycle): string {
+  const pricing = lifecycle.pricing;
+  if (pricing.ongoingPricingVersion === "ongoing-access-2026-09-19-launch-149-v1") {
+    return "Two active roles, 50 new candidate documents per 30-day term, and two named users. Includes one initial 30-minute setup session and email support. Company-specific development is quoted separately. Every renewal requires manual agreement; no automatic charge or annual commitment.";
+  }
+  return `Your existing agreement is preserved. The first ${pricing.foundingTerms} founding ongoing terms are S$${pricing.foundingMonthlySgd.toLocaleString("en-SG")} each; the standard price thereafter is S$${pricing.standardMonthlySgd.toLocaleString("en-SG")}. Up to 10 active roles, 500 new documents per 30-day term, and five named users. Every renewal requires manual agreement. Payment is never charged automatically.`;
+}
+
 export function PilotAccessPage() {
   const [lifecycle, setLifecycle] = useState<PilotLifecycle>();
   const [message, setMessage] = useState("Loading pilot access.");
@@ -69,12 +77,12 @@ export function PilotAccessPage() {
   const stateLabel = lifecycle?.state.replace(/_/g, " ") ?? "Loading";
   const isReadOnly = lifecycle?.isWritable === false;
   const canRequestOngoing = canRequestOngoingAccess(lifecycle);
-  const ongoingPrice = lifecycle?.pricing.ongoingMonthlySgd ?? 800;
+  const ongoingPrice = lifecycle?.pricing.ongoingMonthlySgd ?? 149;
   const ongoingTermNumber = lifecycle?.pricing.ongoingPricingTermNumber;
   const isFoundingPrice = lifecycle?.pricing.ongoingPricingVersion === "ongoing-access-2026-09-10-founding-800-v1";
   const ongoingPriceContext = isFoundingPrice && ongoingTermNumber
     ? `Founding term ${ongoingTermNumber} of ${lifecycle.pricing.foundingTerms}`
-    : "Standard ongoing access";
+    : lifecycle?.pricing.ongoingPricingVersion === "ongoing-access-2026-09-19-launch-149-v1" ? "Company access" : "Existing agreement";
 
   return (
     <RecruiterShell active="pilot" title="Pilot access" subtitle="Review pilot scope, usage, timing, and ongoing access requests.">
@@ -94,7 +102,7 @@ export function PilotAccessPage() {
                   <div className="pilot-approved-scope" aria-label="Approved pilot scope">
                     <strong>Your approved pilot</strong>
                     <span>30 days</span>
-                    <span>{lifecycle.limits.roles} role</span>
+                    <span>{lifecycle.limits.roles} {lifecycle.limits.roles === 1 ? "role" : "roles"}</span>
                     <span>{lifecycle.limits.candidateDocuments} candidate documents</span>
                     <span>{lifecycle.limits.users} company users</span>
                   </div>
@@ -116,12 +124,13 @@ export function PilotAccessPage() {
 
             <section className="workspace-card ongoing-access-card">
               <p className="section-kicker">Ongoing access</p>
-              <h2>S${ongoingPrice.toLocaleString("en-SG")}/month</h2>
-              <p>{ongoingPriceContext}. The first three founding ongoing terms are S$800 each. The standard price from the fourth ongoing term is S$1,400. Every 30-day term is requested and renewed manually after agreement confirmation, with up to 10 roles, 500 candidate documents per term, and five users. Payment is never charged automatically.</p>
+              <h2>S${ongoingPrice.toLocaleString("en-SG")} per 30-day term</h2>
+              <p>{ongoingPriceContext}. {ongoingOfferDescription(lifecycle)}</p>
+              {lifecycle.pricing.priceLockEndsAt ? <p className="workspace-status">Your founding price is protected until {new Date(lifecycle.pricing.priceLockEndsAt).toLocaleDateString("en-SG")}, within the agreed scope.</p> : null}
               {lifecycle.paidRequest ? <p className="workspace-status">Request status: {lifecycle.paidRequest.status.replace(/_/g, " ")}{lifecycle.paidRequest.reviewNote ? `. ${lifecycle.paidRequest.reviewNote}` : ""}</p> : null}
               {canRequestOngoing ? (
                 <>
-                  <label className="checkbox-row"><input type="checkbox" checked={termsAccepted} onChange={(event) => setTermsAccepted(event.currentTarget.checked)} /><span>I accept S${ongoingPrice.toLocaleString("en-SG")} for this 30-day ongoing term. I understand the first three founding terms are S$800 each, the standard price from term four is S$1,400, and every renewal requires manual agreement.</span></label>
+                  <label className="checkbox-row"><input type="checkbox" checked={termsAccepted} onChange={(event) => setTermsAccepted(event.currentTarget.checked)} /><span>I accept S${ongoingPrice.toLocaleString("en-SG")} for this 30-day ongoing term. I accept the scope shown above. Every renewal requires manual agreement; no automatic charge will be made.</span></label>
                   <button className="button button-primary" disabled={!termsAccepted || isWorking} onClick={() => void requestOngoingAccess()}>Request ongoing access</button>
                 </>
               ) : lifecycle.plan === "pilot" && !lifecycle.startsAt ? <p className="muted">Start the initial pilot before requesting ongoing access.</p> : null}

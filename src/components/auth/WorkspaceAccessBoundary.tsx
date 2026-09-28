@@ -5,6 +5,7 @@ import { hasSupabaseConfig } from "../../services/supabaseConfig";
 import { isCurrentPlatformAdministrator } from "../../services/accessApprovalService";
 import {
   resolveWorkspaceAccess,
+  handleWorkspaceAuthEvent,
   createWorkspaceAccessGeneration,
   type WorkspaceAccess,
   type WorkspaceAccessGeneration,
@@ -98,22 +99,16 @@ export function WorkspaceAccessBoundary({ children, requireAdmin = false }: Work
     if (!client) return;
 
     const { data } = client.auth.onAuthStateChange((event) => {
-      // The initial access check above already covers INITIAL_SESSION. Running
-      // it again adds another user/profile round trip on every fresh page load.
-      if (event === "INITIAL_SESSION") return;
-
-      // Supabase warns against awaiting its client inside this callback. Queue
-      // the refresh after the event has completed to avoid auth lock deadlocks.
-      accessCheckGeneration.current.invalidate();
-      if (event === "SIGNED_OUT") {
+      // Ignore same-user token rotation BEFORE invalidating the pending check.
+      // Otherwise both its result and its timeout become stale, leaving loading forever.
+      const action = handleWorkspaceAuthEvent(event, accessCheckGeneration.current);
+      if (action === "ignore") return;
+      if (action === "deny") {
         setAccessState({ state: "denied", message: "Sign in to access this workspace." });
         return;
       }
 
-      // Token refreshes keep the same signed-in user and do not require a new
-      // company-profile lookup. User changes still get a fresh access check.
-      if (event === "TOKEN_REFRESHED") return;
-
+      // The callback stays synchronous; do not await Supabase auth work here.
       setAccessState({ state: "loading" });
       queueMicrotask(() => void refreshAccess());
     });

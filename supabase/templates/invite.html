@@ -20,12 +20,12 @@
                 <table role="presentation" cellspacing="0" cellpadding="0">
                   <tr>
                     <td style="background:#183c38;">
-                      <a href="{{ .ConfirmationURL }}" style="display:inline-block;padding:14px 22px;color:#ffffff;text-decoration:none;font-size:14px;font-weight:bold;letter-spacing:.5px;">SET UP YOUR ACCOUNT</a>
+                      <a href="{{ .RedirectTo }}?token_hash={{ .TokenHash }}&amp;type=invite" style="display:inline-block;padding:14px 22px;color:#ffffff;text-decoration:none;font-size:14px;font-weight:bold;letter-spacing:.5px;">SET UP YOUR ACCOUNT</a>
                     </td>
                   </tr>
                 </table>
                 <p style="margin:24px 0 8px;font-size:13px;line-height:1.55;color:#756d61;">This secure invitation is intended for you and should not be forwarded. If you were not expecting it, you can ignore this email.</p>
-                <p style="margin:0;font-size:13px;line-height:1.55;color:#756d61;">If the button does not work, copy this address into your browser:<br><a href="{{ .ConfirmationURL }}" style="color:#183c38;word-break:break-all;">{{ .ConfirmationURL }}</a></p>
+                <p style="margin:0;font-size:13px;line-height:1.55;color:#756d61;">Need help? Visit <a href="https://hiringevidence.com" style="color:#183c38;">hiringevidence.com</a> and contact the product owner.</p>
               </td>
             </tr>
             <tr>

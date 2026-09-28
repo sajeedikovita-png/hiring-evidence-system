@@ -1597,6 +1597,58 @@ h1 {
   margin: 0;
 }
 
+.presentation-connection-flow {
+  border-bottom: 1px solid var(--border);
+  border-top: 1px solid var(--border);
+  display: grid;
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 0;
+}
+
+.presentation-connection-flow li {
+  align-items: center;
+  display: grid;
+  gap: 14px;
+  grid-template-columns: 34px minmax(0, 1fr);
+  min-height: 56px;
+  padding: 9px 38px 9px 0;
+  position: relative;
+}
+
+.presentation-connection-flow li + li {
+  border-top: 1px solid var(--border);
+}
+
+.presentation-connection-flow li:not(:last-child)::after {
+  align-items: center;
+  background: #f2c85b;
+  border-radius: 50%;
+  color: #173c38;
+  content: '↓';
+  display: flex;
+  font-size: 15px;
+  font-weight: 900;
+  height: 26px;
+  justify-content: center;
+  position: absolute;
+  right: 4px;
+  bottom: -13px;
+  width: 26px;
+  z-index: 2;
+}
+
+.presentation-connection-flow span {
+  color: #a33d32;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 18px;
+}
+
+.presentation-connection-flow strong {
+  color: var(--text-strong);
+  font-size: 14px;
+}
+
 .slide-frame {
   background: #0f2530;
   border: 1px solid rgba(255, 255, 255, 0.18);
@@ -2607,5 +2659,16 @@ h1 {
 
   .pilot-hero-copy {
     padding-top: 0;
+  }
+}
+
+@media (min-width: 980px) and (max-width: 1180px) {
+  .presentation-stage {
+    gap: 32px;
+    grid-template-columns: minmax(0, .78fr) minmax(500px, 1fr);
+  }
+
+  .presentation-copy h1 {
+    font-size: 48px;
   }
 }

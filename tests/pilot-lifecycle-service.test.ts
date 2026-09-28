@@ -140,6 +140,25 @@ await assert.rejects(
   /PILOT_WORKSPACE_REQUIRED/
 );
 
+const launchPricing = {
+  initialPilotSgd: 149, ongoingMonthlySgd: 149,
+  ongoingPricingVersion: "ongoing-access-2026-09-19-launch-149-v1",
+  ongoingPricingTermNumber: 1, foundingMonthlySgd: 149, foundingTerms: 0,
+  standardMonthlySgd: 149, priceLockEndsAt: "2027-09-19T00:00:00Z"
+};
+const launch = await loadPilotLifecycle({ rpc: async () => ({ data: {
+  ...lifecycle, pricing: launchPricing, limits: { roles: 2, candidateDocuments: 50, users: 2 },
+  paidRequest: { ...lifecycle.paidRequest, ongoingMonthlySgd: 149, ongoingPricingVersion: launchPricing.ongoingPricingVersion }
+}, error: null }) });
+assert.deepEqual(launch.pricing, launchPricing);
+assert.equal(launch.paidRequest?.ongoingMonthlySgd, 149);
+assert.equal(launch.limits.roles, 2);
+for (const invalid of ["149", 199, null]) {
+  await assert.rejects(() => loadPilotLifecycle({ rpc: async () => ({ data: {
+    ...lifecycle, pricing: { ...launchPricing, initialPilotSgd: invalid }
+  }, error: null }) }), /pricing was invalid/);
+}
+
 console.log("Pilot lifecycle service tests passed.");
 }
 

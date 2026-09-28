@@ -9,7 +9,7 @@ export function SampleReportPreview() {
       <header className="dossier-masthead"><span>Review file 014</span><strong>Synthetic sample</strong></header>
       <div className="dossier-candidate">
         <div><p>Candidate evidence report</p><h2>{candidateReport.candidate.name}</h2><span>{candidateReport.candidate.role}</span></div>
-        <strong className="human-review-stamp">Human review<br />required</strong>
+        <strong className="human-review-stamp">Human review <br />required</strong>
       </div>
       <div className="dossier-column-labels"><span>Role requirement and source</span><span>Review state</span></div>
       <ol className="dossier-evidence-list">

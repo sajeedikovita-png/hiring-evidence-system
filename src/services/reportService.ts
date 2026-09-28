@@ -12,6 +12,7 @@ import {
 import type { EvidenceReport, ReviewDecision } from "../types/hiring";
 import { createAuditLogEntry } from "./auditLogService";
 import { requireCompanyId } from "./companyContextService";
+import { summarizeEvidence } from "./evidenceSummaryService";
 
 function requireRecord<T>(record: T | undefined, message: string): T {
   if (!record) {
@@ -68,6 +69,7 @@ export function getCandidateEvidenceReport(companyId: string, reportId = "report
     `Job role not found: ${sourceReport.jobId}`
   );
   const requirementEvidence = evidenceItems.filter((item) => item.applicationId === application.id);
+  const evidenceSummary = summarizeEvidence(requirementEvidence);
   const documentSources = candidateDocuments.filter((document) => document.applicationId === application.id);
   const draftDecision = reviewDecisions.find((decision) => decision.reportId === sourceReport.id && decision.status === "draft");
 
@@ -78,11 +80,16 @@ export function getCandidateEvidenceReport(companyId: string, reportId = "report
     candidate,
     application,
     jobRole,
-    status: sourceReport.reviewStatus.label === "Human review required" ? "Human review required" : "Evidence report ready",
+    status: evidenceSummary.reviewGroup === "All evidence found" ? "Evidence report ready" : "Human review required",
     generatedAt: sourceReport.generatedAt,
-    evidenceSummary: sourceReport.summaryCards,
-    requirementEvidence,
-    missingEvidence: sourceReport.missingEvidence,
+    evidenceSummary: evidenceSummary.summaryCards,
+    evidenceCounts: evidenceSummary.counts,
+    evidenceReviewGroup: evidenceSummary.reviewGroup,
+    requirementEvidence: evidenceSummary.items,
+    missingEvidence: Array.from(new Set([
+      ...sourceReport.missingEvidence,
+      ...evidenceSummary.items.filter((item) => item.criterionStatus === "missing").map((item) => item.requirement)
+    ])),
     verificationNeeded: requirementEvidence
       .filter((item) => item.verificationNeeded && item.verificationNeeded !== "None")
       .map((item) => `${item.requirement}: ${item.verificationNeeded}`),
