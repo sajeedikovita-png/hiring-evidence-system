@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 96" role="img" aria-labelledby="title description">
+  <title id="title">ABC Recruitment Singapore fictional sample logo</title>
+  <desc id="description">A fictional company mark used only in Hiring Evidence product testing.</desc>
+  <rect width="360" height="96" rx="8" fill="#fbf7ee"/>
+  <circle cx="48" cy="48" r="32" fill="#563654"/>
+  <path d="M31 61 43 32h10l12 29h-9l-2-7H42l-3 7Zm14-15h7l-3-9Z" fill="#fff"/>
+  <text x="92" y="44" fill="#193b35" font-family="Georgia, serif" font-size="25" font-weight="700">ABC Recruitment</text>
+  <text x="93" y="67" fill="#6f665d" font-family="Arial, sans-serif" font-size="13" letter-spacing="1.8">SINGAPORE · FICTIONAL</text>
+</svg>
