@@ -26,6 +26,7 @@ assert.match(html,/Company isolation/);
 assert.match(html,/Access lifecycle/);
 assert.match(html,/Audited company transfer/);
 assert.match(html,/URLs are not fetched automatically/);
-assert.match(html,/Invitation and password-recovery email delivery/);
+assert.match(html,/Password recovery reached the controlled Gmail inbox/);
+assert.match(html,/Invitation delivery across customer mail providers/);
 assert.doesNotMatch(html,/service_role|qa\.isolation\.admin/i);
 console.log("Pilot testing page tests passed.");
